@@ -1,0 +1,14 @@
+{
+  "name": "dev-workflows",
+  "description": "Structured development workflow skills for implementing features, fixing vulnerabilities, and upgrading dependencies — with branch management, Opus review, and automated maintenance.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ivan Hudak",
+    "url": "https://github.com/ihudak"
+  },
+  "homepage": "https://github.com/ihudak/copilot-marketplace/tree/main/dev-workflows",
+  "repository": "https://github.com/ihudak/copilot-marketplace",
+  "license": "MIT",
+  "keywords": ["impl", "vuln", "upgrade", "development", "workflow", "security", "dependencies"],
+  "skills": "./skills/"
+}
