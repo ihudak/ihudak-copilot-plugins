@@ -128,6 +128,23 @@ cp -r dev-workflows/. /mnt/c/Users/ivan.gudak/.copilot/installed-plugins/copilot
 
 On any other machine, `copilot plugin install dev-workflows@copilot-marketplace` handles everything natively after the marketplace is registered.
 
+## Marketplace manifest
+
+`.github/plugin/marketplace.json` at the **repo root** (not inside a plugin dir) is required for `copilot plugin install` to work. It lists all plugins in this marketplace:
+
+```json
+{
+  "name": "copilot-marketplace",
+  "metadata": { "description": "...", "version": "1.0.0", "pluginRoot": "." },
+  "owner": { "name": "...", "email": "..." },
+  "plugins": [
+    { "name": "dev-workflows", "source": "dev-workflows", "description": "...", "version": "1.0.0" }
+  ]
+}
+```
+
+`pluginRoot: "."` means plugin directories are at the repo root. `source` is the subdirectory name.
+
 ## Adding a new plugin
 
 1. Create `<plugin-name>/` at the repo root
@@ -135,4 +152,5 @@ On any other machine, `copilot plugin install dev-workflows@copilot-marketplace`
 3. Add skills under `<plugin-name>/skills/<skill-name>/SKILL.md`
 4. Update path references to use `~/.copilot/installed-plugins/copilot-marketplace/<plugin-name>/skills/`
 5. Add `LICENSE` and `README.md`
-6. Register in `settings.json` under `enabledPlugins`: `"<plugin-name>@copilot-marketplace": true`
+6. **Add an entry to `.github/plugin/marketplace.json`** under `plugins`
+7. Register in `settings.json` under `enabledPlugins`: `"<plugin-name>@copilot-marketplace": true`
