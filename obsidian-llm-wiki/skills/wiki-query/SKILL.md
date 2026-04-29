@@ -11,7 +11,7 @@ allowed-tools: view, bash, glob, grep
 
 # wiki-query
 
-Read `~/.copilot/installed-plugins/copilot-marketplace/obsidian-llm-wiki/skills/wiki-schema/SKILL.md` fully before proceeding.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/obsidian-llm-wiki/skills/wiki-schema/SKILL.md` fully before proceeding.
 
 Both forms invoke this skill identically:
 - Claude Code: `/wiki-query <question>`

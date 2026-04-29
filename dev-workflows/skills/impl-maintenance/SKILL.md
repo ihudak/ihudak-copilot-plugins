@@ -73,7 +73,7 @@ Produce the maintenance report (see `references/handoff.md` output format).
 ## Model Routing
 
 If the orchestrator passes a `model_routing` block (see
-`~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4), include it verbatim in the
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4), include it verbatim in the
 maintenance report so the final implementation report can quote it. This
 sub-agent's behaviour is otherwise unchanged — knowledge / instructions /
 docs maintenance does not depend on classification.

@@ -12,9 +12,9 @@ description: >
 # vuln-fixer — CVE Fix Sub-agent
 
 Read `references/handoff.md` for the exact input/output document format.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/fix-vuln/references/build-systems.md` for per-ecosystem update commands.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/fix-vuln/SKILL.md` sections "Git Workflow" and "Handling Test Failures" for branch naming, commit message templates, and PR format.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md` for the test-baseliner handoff format.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/fix-vuln/references/build-systems.md` for per-ecosystem update commands.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/fix-vuln/SKILL.md` sections "Git Workflow" and "Handling Test Failures" for branch naming, commit message templates, and PR format.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md` for the test-baseliner handoff format.
 
 ## Process
 
@@ -79,7 +79,7 @@ Receive the research report for **one CVE** with `status: READY`.
 ## Model Routing
 
 If the orchestrator passes a `model_routing` block (see
-`~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4):
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4):
 
 - Record it in the output result record so the final report can quote it.
 - If the block contains `gate_tests_on_review: true` (set by the orchestrator

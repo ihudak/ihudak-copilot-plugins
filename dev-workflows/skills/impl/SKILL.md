@@ -12,7 +12,7 @@ allowed-tools: view, edit, create, bash, glob, grep, ask_user, sql
 Activated when the user prompt starts with `impl:` or `implement:` (optionally followed by `@<file.md>` to load description from a file).
 
 > **Model routing is mandatory.** Before any planning happens, this skill MUST
-> classify the task per `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` and follow
+> classify the task per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` and follow
 > the routing rules. See Phase 0.5 below.
 
 ---
@@ -31,7 +31,7 @@ Activated when the user prompt starts with `impl:` or `implement:` (optionally f
 
 ## Phase 0.5 — Classify & Route (mandatory)
 
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` and classify the task into
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` and classify the task into
 exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, `HIGH-RISK`.
 
 Quick rubric (see the shared doc for the full list):
@@ -209,7 +209,7 @@ Mandatory gate **before** tests are run for SIGNIFICANT / HIGH-RISK tasks.
      description:"Opus code review (SIGNIFICANT/HIGH-RISK gate)",
      mode:       "sync",
      prompt:     "<plan summary> + <diff/changed files> +
-                  Use the §6 checklist from ~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md.
+                  Use the §6 checklist from ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md.
                   For each item return: OK | CONCERN | BLOCKER + comment."
    )
    ```
@@ -244,7 +244,7 @@ Mandatory gate **before** tests are run for SIGNIFICANT / HIGH-RISK tasks.
 
 After successful implementation, build a compact handoff document and delegate ALL maintenance tasks to the `impl-maintenance` sub-agent. Do **not** perform knowledge base, instructions, or documentation updates inline.
 
-**Build the handoff** (use the format in `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/impl-maintenance/references/handoff.md`):
+**Build the handoff** (use the format in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/impl-maintenance/references/handoff.md`):
 
 ```markdown
 ## Implementation Summary

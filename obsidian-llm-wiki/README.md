@@ -8,7 +8,7 @@ Claude Code (slash commands) as first-class agents.
 ## Installation
 
 ```
-copilot plugin install obsidian-llm-wiki@copilot-marketplace
+copilot plugin install obsidian-llm-wiki@ihudak-copilot-plugins
 ```
 
 ## Prerequisites
@@ -54,7 +54,7 @@ Wiki operations never write to: `Meetings/`, `Daily/`, `Projects/`, `Customers/`
 ## Claude Code
 
 Identical slash commands are available via the
-[claude-marketplace](https://github.com/ihudak/claude-marketplace/tree/main/plugins/obsidian-llm-wiki)
+[ihudak-claude-plugins](https://github.com/ihudak/ihudak-claude-plugins/tree/main/plugins/obsidian-llm-wiki)
 entry. Both agents write to the same wiki — switching mid-session is seamless.
 
 ## License

@@ -85,12 +85,12 @@ When XML/JSON reports are available, prefer them over stdout parsing for accurac
 
 ## Resources
 
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md` — Complete input/output document format for both `capture` and `verify` modes.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md` — Complete input/output document format for both `capture` and `verify` modes.
 
 ## Model Routing
 
 If the caller (orchestrator or another sub-agent) passes a `model_routing`
-block (see `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4), include it
+block (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4), include it
 verbatim in the result record so the orchestrator's final report can quote it.
 This sub-agent's behaviour is otherwise unchanged by the routing block — it
 only ever runs the test command and reports results.

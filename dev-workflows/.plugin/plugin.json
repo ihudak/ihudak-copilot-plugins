@@ -6,8 +6,8 @@
     "name": "Ivan Hudak",
     "url": "https://github.com/ihudak"
   },
-  "homepage": "https://github.com/ihudak/copilot-marketplace/tree/main/dev-workflows",
-  "repository": "https://github.com/ihudak/copilot-marketplace",
+  "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/dev-workflows",
+  "repository": "https://github.com/ihudak/ihudak-copilot-plugins",
   "license": "MIT",
   "keywords": ["impl", "vuln", "upgrade", "development", "workflow", "security", "dependencies"],
   "skills": "./skills/"

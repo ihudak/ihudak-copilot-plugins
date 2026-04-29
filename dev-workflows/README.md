@@ -5,7 +5,7 @@ A GitHub Copilot plugin providing structured development workflow skills for imp
 ## Installation
 
 ```
-copilot plugin install dev-workflows@copilot-marketplace
+copilot plugin install dev-workflows@ihudak-copilot-plugins
 ```
 
 ## Skills

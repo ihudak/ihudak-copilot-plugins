@@ -12,8 +12,8 @@ description: >
 # upgrade-executor — Upgrade Execution Sub-agent
 
 Read `references/handoff.md` for the exact input/output document format.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade/references/ecosystems.md` for per-ecosystem update commands.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md` for the test-baseliner handoff format.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade/references/ecosystems.md` for per-ecosystem update commands.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md` for the test-baseliner handoff format.
 
 ## Process
 
@@ -63,7 +63,7 @@ Receive one upgrade plan with `status: READY`.
 ## Model Routing
 
 If the orchestrator passes a `model_routing` block (see
-`~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4):
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4):
 
 - Record it in the output summary record.
 - If the block contains `gate_tests_on_review: true` (set by the orchestrator

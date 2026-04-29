@@ -23,7 +23,7 @@ baseline:                    # The orchestrator (upgrade/SKILL.md Phase 2 Step 1
 model_routing:               # optional; set by orchestrator for SIGNIFICANT / HIGH-RISK
   classification: SIGNIFICANT
   gate_tests_on_review: true # if true: stop after Build, return AWAITING_REVIEW
-  # full schema: see ~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md §4
+  # full schema: see ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md §4
 
 ## Upgrade Plan: spring-boot
 status: READY

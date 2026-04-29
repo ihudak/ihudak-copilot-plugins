@@ -12,8 +12,8 @@ description: >
 # vuln-research — CVE Research Sub-agent
 
 Read `references/handoff.md` for the exact input/output document format.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/fix-vuln/references/nvd-api.md` for NVD REST API details.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/fix-vuln/references/build-systems.md` for per-ecosystem library detection.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/fix-vuln/references/nvd-api.md` for NVD REST API details.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/fix-vuln/references/build-systems.md` for per-ecosystem library detection.
 
 ## Process
 
@@ -45,7 +45,7 @@ For each CVE in the input handoff:
 ## Model Routing
 
 If the orchestrator passes a `model_routing` block (see
-`~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4), record it in the research
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4), record it in the research
 report so the fixer and final report can quote it. This sub-agent runs under
 whichever model the orchestrator selected via the `task` tool's `model:`
 argument. The orchestrator **MUST** re-invoke this sub-agent under Opus for

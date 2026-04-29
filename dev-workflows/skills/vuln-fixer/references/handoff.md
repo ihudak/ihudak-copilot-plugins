@@ -24,7 +24,7 @@ jira_placeholder: NOJIRA           # or omit if project uses no placeholder
 model_routing:                     # optional; set by orchestrator for SIGNIFICANT / HIGH-RISK
   classification: SIGNIFICANT
   gate_tests_on_review: true       # if true: stop after Build, return AWAITING_REVIEW
-  # full schema: see ~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md §4
+  # full schema: see ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md §4
 
 ## Research Report (single CVE)
 ### CVE-2023-46604

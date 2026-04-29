@@ -17,12 +17,12 @@ description: >
 Upgrade one or more components in the current repository to a requested version, verify the project still builds and tests stay green, and leave all changes uncommitted on the current branch.
 
 > **Model routing is mandatory.** Before Phase 1, this skill MUST classify the
-> requested upgrade batch per `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` and
+> requested upgrade batch per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` and
 > follow the routing rules. See "Phase 0 — Classify & Route" below.
 
 ## Phase 0 — Classify & Route (mandatory, runs before Phase 1)
 
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` and classify the upgrade
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` and classify the upgrade
 batch into exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, `HIGH-RISK`.
 
 Default classification heuristics for `upgrade:`:
@@ -145,7 +145,7 @@ When a `CONFLICT` is returned, the `upgrade-planner` sub-agent provides ranked a
      ```
    - Run `git checkout -b <branch-name>`. If it already exists, append the first 7 chars of HEAD SHA: `<branch-name>-<short-sha>`. Announce the branch name.
 
-2. **Baseline** — Invoke `test-baseliner` sub-agent in `capture` mode (see `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md`). Pass the returned result to all `upgrade-executor` invocations. If `status: RUN_FAILED` or `COMMAND_NOT_FOUND`, warn the user and ask whether to proceed without a test safety net.
+2. **Baseline** — Invoke `test-baseliner` sub-agent in `capture` mode (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md`). Pass the returned result to all `upgrade-executor` invocations. If `status: RUN_FAILED` or `COMMAND_NOT_FOUND`, warn the user and ask whether to proceed without a test safety net.
 
 #### Per-component loop (for each component, in order)
 
@@ -157,7 +157,7 @@ When a `CONFLICT` is returned, the `upgrade-planner` sub-agent provides ranked a
    - Invoke a `code-review` sub-agent pinned to Opus (`task` with
      `agent_type: "code-review"`, `model: "claude-opus-4.7"` or highest
      available, `mode: "sync"`). Embed the §6 checklist from
-     `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` in the prompt and require
+     `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` in the prompt and require
      `OK | CONCERN | BLOCKER` per item.
    - **Invoke `review-fixer`** to apply BLOCKER+MAJOR findings:
      ```
@@ -322,10 +322,10 @@ Include the Maintenance Report in the final output under `### Knowledge Base`,
 
 ## Resources
 
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` - Mandatory classification rubric, model fallback chain, and the Opus code-review checklist.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` - Mandatory classification rubric, model fallback chain, and the Opus code-review checklist.
 - `references/ecosystems.md` - Detection patterns, update commands, and registry query patterns for every supported ecosystem.
 - `references/lts-sources.md` - LTS lookup reference for common runtimes and frameworks.
 - `references/compatibility.md` - Known compatibility constraints between common components (Java, Gradle, Maven, Spring Boot, Node, etc.) and how to look up compatibility dynamically.
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade-planner/references/handoff.md` - Input/output format for the `upgrade-planner` sub-agent.
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade-executor/references/handoff.md` - Input/output format for the `upgrade-executor` sub-agent.
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md` - Input/output format for the `test-baseliner` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade-planner/references/handoff.md` - Input/output format for the `upgrade-planner` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade-executor/references/handoff.md` - Input/output format for the `upgrade-executor` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md` - Input/output format for the `test-baseliner` sub-agent.

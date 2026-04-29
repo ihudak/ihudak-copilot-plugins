@@ -19,14 +19,14 @@ description: >
 Fix one or more CVE vulnerabilities with the smallest possible dependency change, then open a PR per vulnerability.
 
 > **Model routing is mandatory.** Before Step 1, this skill MUST classify the
-> CVE batch per `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` and follow the
+> CVE batch per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` and follow the
 > routing rules. See "Step 0 — Classify & Route" below.
 
 ## Workflow
 
 ### Step 0 — Classify & Route (mandatory)
 
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md`. Classify the CVE batch into
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`. Classify the CVE batch into
 exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, `HIGH-RISK`.
 
 Default classification heuristics for `vuln:` — **classify by the size of the
@@ -166,7 +166,7 @@ See `vuln-fixer/references/handoff.md` for the handoff format.
      description:"Opus review of CVE fix",
      mode:       "sync",
      prompt:     "<CVE summary> + <diff> +
-                  Use the §6 checklist from ~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md.
+                  Use the §6 checklist from ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md.
                   For each item return: OK | CONCERN | BLOCKER + comment."
    )
    ```
@@ -296,9 +296,9 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 
 ## Resources
 
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` - Mandatory classification rubric, model fallback chain, and Opus code-review checklist.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` - Mandatory classification rubric, model fallback chain, and Opus code-review checklist.
 - `references/nvd-api.md` - NVD REST API usage, response structure, and how to extract affected packages and version ranges.
 - `references/build-systems.md` - Per-ecosystem patterns for detecting libraries and updating version pins (Gradle, Maven, npm, pip, Go modules, etc.).
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/vuln-research/references/handoff.md` - Input/output format for the `vuln-research` sub-agent.
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/vuln-fixer/references/handoff.md` - Input/output format for the `vuln-fixer` sub-agent.
-- `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/test-baseliner/references/handoff.md` - Input/output format for the `test-baseliner` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/vuln-research/references/handoff.md` - Input/output format for the `vuln-research` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/vuln-fixer/references/handoff.md` - Input/output format for the `vuln-fixer` sub-agent.
+- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/test-baseliner/references/handoff.md` - Input/output format for the `test-baseliner` sub-agent.

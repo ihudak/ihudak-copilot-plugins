@@ -12,9 +12,9 @@ description: >
 # upgrade-planner — Upgrade Compatibility Sub-agent
 
 Read `references/handoff.md` for the exact input/output document format.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade/references/ecosystems.md` for detection patterns and registry query commands.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade/references/compatibility.md` for known compatibility constraints.
-Read `~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/upgrade/references/lts-sources.md` when resolving `lts` targets.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade/references/ecosystems.md` for detection patterns and registry query commands.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade/references/compatibility.md` for known compatibility constraints.
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/upgrade/references/lts-sources.md` when resolving `lts` targets.
 
 ## Process
 
@@ -49,7 +49,7 @@ Receive a single upgrade request (one component, one target spec).
 ## Model Routing
 
 If the orchestrator passes a `model_routing` block (see
-`~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md` §4), record it in the output
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §4), record it in the output
 `plan` record so the executor and the final report can quote it. This sub-agent
 itself runs under whichever model the orchestrator selected when invoking
 it via the `task` tool's `model:` argument — for SIGNIFICANT / HIGH-RISK

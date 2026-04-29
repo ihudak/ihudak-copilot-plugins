@@ -1,20 +1,20 @@
-# Copilot Instructions — copilot-marketplace
+# Copilot Instructions — ihudak-copilot-plugins
 
 This repository is a private GitHub Copilot plugin marketplace. Each subdirectory is a self-contained plugin installable via:
 
 ```
-copilot plugin install <plugin-name>@copilot-marketplace
+copilot plugin install <plugin-name>@ihudak-copilot-plugins
 ```
 
 The marketplace is registered in `~/.copilot/settings.json` under `extraKnownMarketplaces`:
 ```json
-"copilot-marketplace": { "source": { "source": "github", "repo": "ihudak/copilot-marketplace" } }
+"ihudak-copilot-plugins": { "source": { "source": "github", "repo": "ihudak/ihudak-copilot-plugins" } }
 ```
 
 ## Repository structure
 
 ```
-copilot-marketplace/
+ihudak-copilot-plugins/
 └── <plugin-name>/
     ├── .plugin/plugin.json     ← plugin manifest (required; this exact path)
     ├── LICENSE
@@ -37,7 +37,7 @@ copilot-marketplace/
   "version": "1.0.0",
   "author": { "name": "...", "url": "..." },
   "homepage": "...",
-  "repository": "https://github.com/ihudak/copilot-marketplace",
+  "repository": "https://github.com/ihudak/ihudak-copilot-plugins",
   "license": "MIT",
   "keywords": [...],
   "skills": "./skills/"
@@ -76,14 +76,14 @@ description: >
 All cross-skill references must use the **installed-plugins absolute path**:
 
 ```
-~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/...
+~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/...
 ```
 
 Never use `~/.copilot/skills/...` — that path is for user-level skills not managed by this plugin.
 
 When adding a new skill that references shared content, always reference via the full installed path, e.g.:
 ```
-~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/skills/_shared/model-routing.md
+~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md
 ```
 
 ## The `_shared/` directory
@@ -118,15 +118,15 @@ After editing files in this repo and pushing, update the installed copies on eac
 
 **Linux (this dev machine):**
 ```bash
-cp -r dev-workflows/. ~/.copilot/installed-plugins/copilot-marketplace/dev-workflows/
+cp -r dev-workflows/. ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/
 ```
 
 **Windows (via WSL):**
 ```bash
-cp -r dev-workflows/. /mnt/c/Users/ivan.gudak/.copilot/installed-plugins/copilot-marketplace/dev-workflows/
+cp -r dev-workflows/. /mnt/c/Users/ivan.gudak/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/
 ```
 
-On any other machine, `copilot plugin install dev-workflows@copilot-marketplace` handles everything natively after the marketplace is registered.
+On any other machine, `copilot plugin install dev-workflows@ihudak-copilot-plugins` handles everything natively after the marketplace is registered.
 
 ## Marketplace manifest
 
@@ -134,7 +134,7 @@ On any other machine, `copilot plugin install dev-workflows@copilot-marketplace`
 
 ```json
 {
-  "name": "copilot-marketplace",
+  "name": "ihudak-copilot-plugins",
   "metadata": { "description": "...", "version": "1.0.0", "pluginRoot": "." },
   "owner": { "name": "...", "email": "..." },
   "plugins": [
@@ -150,7 +150,7 @@ On any other machine, `copilot plugin install dev-workflows@copilot-marketplace`
 1. Create `<plugin-name>/` at the repo root
 2. Add `.plugin/plugin.json` using the format above
 3. Add skills under `<plugin-name>/skills/<skill-name>/SKILL.md`
-4. Update path references to use `~/.copilot/installed-plugins/copilot-marketplace/<plugin-name>/skills/`
+4. Update path references to use `~/.copilot/installed-plugins/ihudak-copilot-plugins/<plugin-name>/skills/`
 5. Add `LICENSE` and `README.md`
 6. **Add an entry to `.github/plugin/marketplace.json`** under `plugins`
-7. Register in `settings.json` under `enabledPlugins`: `"<plugin-name>@copilot-marketplace": true`
+7. Register in `settings.json` under `enabledPlugins`: `"<plugin-name>@ihudak-copilot-plugins": true`

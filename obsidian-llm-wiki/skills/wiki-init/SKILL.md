@@ -125,7 +125,7 @@ Use today's date (YYYY-MM-DD) in the `updated:` fields of files you create.
 Read the schema file from the plugin installation via bash (to ensure tilde-expansion):
 
 ```bash
-cat "${HOME}/.copilot/installed-plugins/copilot-marketplace/obsidian-llm-wiki/skills/wiki-schema/SKILL.md"
+cat "${HOME}/.copilot/installed-plugins/ihudak-copilot-plugins/obsidian-llm-wiki/skills/wiki-schema/SKILL.md"
 ```
 
 Create the target directory if needed:
