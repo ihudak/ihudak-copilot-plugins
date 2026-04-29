@@ -6,8 +6,8 @@
     "pluginRoot": "."
   },
   "owner": {
-    "name": "Ivan Hudak",
-    "email": "ihudak@github.com"
+    "name": "Ivan Gudak",
+    "email": "ivan.gudak@dynatrace.com"
   },
   "plugins": [
     {
@@ -15,6 +15,12 @@
       "source": "dev-workflows",
       "description": "Structured development workflow skills for implementing features, fixing vulnerabilities, and upgrading dependencies — with branch management, Opus review, and automated maintenance.",
       "version": "1.0.0"
+    },
+    {
+      "name": "obsidian-llm-wiki",
+      "source": "obsidian-llm-wiki",
+      "description": "LLM Wiki pattern for an active Obsidian vault. Seven skills for ingesting, querying, saving, linting, and managing a persistent wiki compiled from meetings, projects, and daily notes.",
+      "version": "0.1.0"
     }
   ]
 }
