@@ -89,7 +89,7 @@ updated: YYYY-MM-DD
 
 # Wiki Ingest Log
 
-(Entries prepended by wiki-ingest:, wiki-save:, wiki-scan:, wiki-lint:, wiki-tags-refresh:)
+(Entries prepended by wiki-ingest:, wiki-save:, wiki-scan:, wiki-lint:, wiki-tags-refresh:, wiki-hot:, wiki-init:)
 ```
 
 **`Knowledge/wiki/_manifest.json`** — create only if absent:
@@ -122,8 +122,11 @@ Use today's date (YYYY-MM-DD) in the `updated:` fields of files you create.
 
 ## Step 4 — Sync wiki-schema to vault
 
-Read the schema file from the plugin installation:
-`~/.copilot/installed-plugins/copilot-marketplace/obsidian-llm-wiki/skills/wiki-schema/SKILL.md`
+Read the schema file from the plugin installation via bash (to ensure tilde-expansion):
+
+```bash
+cat "${HOME}/.copilot/installed-plugins/copilot-marketplace/obsidian-llm-wiki/skills/wiki-schema/SKILL.md"
+```
 
 Create the target directory if needed:
 ```bash
@@ -142,14 +145,16 @@ Target: `${VAULT}/CLAUDE.md`
 
 If this file does not exist, skip and note it in the report.
 
-Check if a `## Wiki` section already exists:
-- **Section found**: replace everything from `## Wiki` up to (but not including) the
-  next `## ` heading (or end of file) with the block below.
-- **Section not found**: append the block below at end of file.
+Check whether the file contains a `<!-- WIKI_BLOCK_START -->` anchor:
 
-Wiki block (write as raw markdown, not inside a code fence):
+- **Anchor found**: replace the entire span from `<!-- WIKI_BLOCK_START -->` to
+  `<!-- WIKI_BLOCK_END -->` (inclusive) with the wiki block below.
+- **Anchor not found**: append the wiki block at end of file (one blank line before it).
 
----
+The `<!-- WIKI_BLOCK_START -->` / `<!-- WIKI_BLOCK_END -->` HTML comments are the
+idempotent merge anchors — they allow safe re-runs without duplicating content.
+
+<!-- WIKI_BLOCK_START -->
 ## Wiki
 
 Compiled knowledge base at `Knowledge/wiki/`. Plugin: `obsidian-llm-wiki`.
@@ -178,7 +183,7 @@ Wiki operations MUST NEVER write to: `Meetings/`, `Daily/`, `Projects/`, `Custom
 Write only to `Knowledge/wiki/`.
 
 Only use tags from `.obsidian/copilot/tag-index.md`. Never invent new tags.
----
+<!-- WIKI_BLOCK_END -->
 
 ---
 
@@ -188,13 +193,16 @@ Target: `${VAULT}/.github/copilot-instructions.md`
 
 If this file does not exist, skip and note it in the report.
 
-Check if a `## Wiki` section already exists:
-- **Section found**: replace as in Step 5.
-- **Section not found**: append at end of file.
+Check whether the file contains a `<!-- WIKI_BLOCK_START -->` anchor:
 
-Wiki block (write as raw markdown):
+- **Anchor found**: replace the entire span from `<!-- WIKI_BLOCK_START -->` to
+  `<!-- WIKI_BLOCK_END -->` (inclusive) with the wiki block below.
+- **Anchor not found**: append the wiki block at end of file (one blank line before it).
 
----
+The `<!-- WIKI_BLOCK_START -->` / `<!-- WIKI_BLOCK_END -->` HTML comments are the
+idempotent merge anchors — they allow safe re-runs without duplicating content.
+
+<!-- WIKI_BLOCK_START -->
 ## Wiki
 
 The vault has a compiled knowledge base at `Knowledge/wiki/` managed by the
@@ -238,7 +246,7 @@ Write only to `Knowledge/wiki/`.
 Only use tags from `.obsidian/copilot/tag-index.md`. Never invent new tags.
 If a concept needs a new tag, flag it with `tag-needed: <proposed>` and let the user
 approve it via `wiki-tags-refresh:`.
----
+<!-- WIKI_BLOCK_END -->
 
 ---
 
