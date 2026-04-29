@@ -19,7 +19,7 @@
     {
       "name": "obsidian-llm-wiki",
       "source": "obsidian-llm-wiki",
-      "description": "LLM Wiki pattern for an active Obsidian vault. Seven skills for ingesting, querying, saving, linting, and managing a persistent wiki compiled from meetings, projects, and daily notes.",
+      "description": "LLM Wiki pattern for an active Obsidian vault. Eight skills (/wiki-init, /wiki-ingest, /wiki-scan, /wiki-query, /wiki-save, /wiki-lint, /wiki-hot, /wiki-tags-refresh) for ingesting, querying, saving, linting, and managing a persistent wiki compiled from meetings, projects, and daily notes.",
       "version": "0.1.0"
     }
   ]
