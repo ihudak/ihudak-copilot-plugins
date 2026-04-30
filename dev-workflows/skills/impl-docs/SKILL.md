@@ -150,18 +150,34 @@ Apply the approved doc changes:
 
 ---
 
-## Phase 3.5 — Docs Consistency Review
+## Phase 3.5 — Docs Review (via `doc-reviewer` sub-agent)
 
-After all edits, run a lightweight self-review of every changed file:
+After all edits are complete, invoke the `doc-reviewer` sub-agent for a comprehensive review:
 
-1. **Links** — verify any new or modified links point to correct targets. Flag broken links.
-2. **Style** — heading hierarchy consistent? Code blocks fenced correctly? Lists formatted uniformly?
-3. **Structure** — does the new content fit logically in context? Anything duplicated?
-4. **Completeness** — does the change fully address the description?
+```
+task(
+  agent_type: "doc-reviewer",
+  mode:       "sync",
+  description:"Docs review",
+  prompt:     "goal: <one-sentence goal from Phase 2>
+               repo: <absolute-repo-root>
+               changed_files: [<relative path> — <one-line summary>, ...]
+               <model_routing block>"
+)
+```
 
-This is a self-check only — **not** a `code-review` sub-agent call.
+Evaluate the Doc Review Report:
 
-Fix any issues found and note them in the Phase 5 report.
+- `status: OK` → proceed to Phase 4.
+- `status: CONCERNS` → record findings in the Phase 5 report; fix any CONCERN that is trivially
+  addressable inline; proceed to Phase 4 without re-review.
+- `status: BLOCKERS` → apply all BLOCKER findings now (edit files to fix broken links, missing
+  content, invalid front matter, etc.). Then invoke `doc-reviewer` **once more**:
+  - Second review `OK` or `CONCERNS` → proceed to Phase 4.
+  - Second review still `BLOCKERS` → surface the unresolved BLOCKERs to the user via `ask_user`
+    and stop until resolved. Do not loop further.
+
+> **Cap: one fix cycle + one re-review maximum.** Do not loop beyond this.
 
 ---
 

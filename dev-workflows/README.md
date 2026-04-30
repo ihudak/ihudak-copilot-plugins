@@ -25,6 +25,7 @@ copilot plugin install dev-workflows@ihudak-copilot-plugins
 |-------|------|
 | test-baseliner | Captures test baseline before a change; compares after; returns regression report. Used by `impl:code:`, `upgrade-executor`, and `vuln-fixer`. |
 | test-writer | Writes or updates tests for newly added or changed code behaviour. Used by `impl:code:` (Phase 3.7). Returns a Test Report with framework detection, files created/modified, and status. |
+| doc-reviewer | Performs a comprehensive review of changed documentation files: link integrity, heading structure, wikilinks, style, structural coherence, and completeness. Used by `impl:docs:` (Phase 3.5). Returns a Doc Review Report with status and findings. |
 | impl-maintenance | Post-implementation maintenance: updates knowledge base, copilot-instructions, and project docs |
 | upgrade-planner | Plans a single component upgrade: resolves target version, checks compatibility |
 | upgrade-executor | Executes a single planned upgrade: applies change, builds, verifies tests, auto-fixes test breakage |
@@ -40,8 +41,8 @@ copilot plugin install dev-workflows@ihudak-copilot-plugins
 
 | Complexity | Model |
 |------------|-------|
-| TRIVIAL / LOW | Default session model |
-| MEDIUM | Default session model (with structured planning) |
+| SIMPLE | Default session model |
+| MODERATE | Default session model (with structured planning) |
 | SIGNIFICANT / HIGH-RISK | `claude-opus-4.7` (forced via `model:` override) |
 
 ## Feature highlights

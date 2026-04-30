@@ -215,6 +215,10 @@ used in Phase 3.8 to detect regressions introduced during implementation.
 > Do not run any other commands between Phase 2.6 and Phase 3.
 > The baseline must reflect the exact state of the newly-created branch before any edits.
 
+---
+
+## Phase 3 — Implementation
+
 **Implement immediately. Do NOT ask "Should I implement?" or any variation.**
 
 Follow the approved plan step-by-step:
@@ -277,7 +281,7 @@ Mandatory gate **before** tests are run for SIGNIFICANT / HIGH-RISK tasks.
 ## Phase 3.7 — Write / Update Tests
 
 Mandatory for all code changes. Skip **only** if the user explicitly chose
-"Proceed without tests" after a `NO_TESTS` / `COMMAND_NOT_FOUND` baseline in Phase 2.6.
+"Proceed without tests" via the `ask_user` prompt within Phase 3.7 step 3 below.
 
 1. Collect the list of changed source files and their one-line change summaries from Phase 3.
 2. Invoke the `test-writer` sub-agent:
@@ -321,8 +325,10 @@ Mandatory for all code changes. Skip **only** if the user explicitly chose
 Run the full test suite and compare against the Phase 2.6 baseline.
 
 > **Skip** if the user explicitly chose "Proceed without tests" in Phase 3.7.
-> In that case, still run the build/lint and record `tests: skipped — no framework` in
-> the Phase 5 report.
+> In that case:
+> 1. Run linters and builds (same commands as Phase 3 step 6). Fix any failures.
+> 2. Record `tests: skipped — no framework` in the Phase 5 report.
+> 3. Proceed to Phase 4.
 
 1. Invoke `test-baseliner` in `verify` mode, passing the Phase 2.6 baseline:
    ```

@@ -101,11 +101,12 @@ All orchestrators must load and follow `model-routing.md` at the start of every 
 
 ```
 impl:code: / impl:  → [rubber-duck@Opus plan critique] → impl → [code-review@Opus] → review-fixer → test-writer → tests → impl-maintenance
-impl:docs:          → impl-docs → impl-maintenance
+impl:docs:          → impl-docs → [doc-reviewer] → impl-maintenance
 fix-vuln:           → vuln-research → vuln-fixer → [code-review@Opus] → review-fixer → tests → impl-maintenance
 upgrade:            → upgrade-planner → upgrade-executor → [code-review@Opus] → review-fixer → tests → impl-maintenance
                     └── test-baseliner (used by upgrade-executor, vuln-fixer, and impl:code:)
                     └── test-writer    (used by impl:code: only — Phase 3.7)
+                    └── doc-reviewer   (used by impl:docs: only — Phase 3.5)
 ```
 
 Key invariants enforced by all three code orchestrators:
@@ -123,6 +124,8 @@ Key invariants for `impl:code:` specifically:
 Key invariants for `impl:docs:`:
 - **No branch creation by default** — works on current branch unless user requests one
 - **No test-baseliner, no test-writer, no code-review** — docs-only phases only
+- `doc-reviewer` sub-agent (Phase 3.5) performs comprehensive review: links, headings, wikilinks, style, completeness
+- BLOCKER findings trigger a fix cycle (max one fix + one re-review); CONCERNs are recorded and may be fixed inline
 - Mixed code + docs changes must use `impl:code:` instead
 
 ## Test-writing requirement for code changes
