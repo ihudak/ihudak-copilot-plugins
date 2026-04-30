@@ -102,11 +102,13 @@ All orchestrators must load and follow `model-routing.md` at the start of every 
 ```
 impl:code: / impl:  → [rubber-duck@Opus plan critique] → impl → [code-review@Opus] → review-fixer → test-writer → tests → impl-maintenance
 impl:docs:          → impl-docs → [doc-reviewer] → impl-maintenance
+impl:jira:docs:     → impl-jira → jira-reader → [diff-summarizer×N (parallel)] → [doc-reviewer] → impl-maintenance
+impl:jira:epics:    → impl-jira → jira-reader → [code-scanner×N (parallel, optional)] → [doc-reviewer] → impl-maintenance
 fix-vuln:           → vuln-research → vuln-fixer → [code-review@Opus] → review-fixer → tests → impl-maintenance
 upgrade:            → upgrade-planner → upgrade-executor → [code-review@Opus] → review-fixer → tests → impl-maintenance
                     └── test-baseliner (used by upgrade-executor, vuln-fixer, and impl:code:)
                     └── test-writer    (used by impl:code: only — Phase 3.7)
-                    └── doc-reviewer   (used by impl:docs: only — Phase 3.5)
+                    └── doc-reviewer   (used by impl:docs: Phase 3.5, and impl:jira: Phase 7)
 ```
 
 Key invariants enforced by all three code orchestrators:
@@ -127,6 +129,18 @@ Key invariants for `impl:docs:`:
 - `doc-reviewer` sub-agent (Phase 3.5) performs comprehensive review: links, headings, wikilinks, style, completeness
 - BLOCKER findings trigger a fix cycle (max one fix + one re-review); CONCERNs are recorded and may be fixed inline
 - Mixed code + docs changes must use `impl:code:` instead
+
+Key invariants for `impl:jira:`:
+- Subcommand dispatch is explicit: `impl:jira:docs:` (feature docs), `impl:jira:epics:` (epic writing), bare `impl:jira:` → ask
+- **Zero external API calls** — PR URLs from Jira exports are identifiers only; no `gh`, no Bitbucket REST API, no HTTPS fetch to Bitbucket; all resolution is pure local `git` on clones under `/repos/`
+- `jira-reader` is strictly read-only — never modifies vault files
+- Parallel sub-agent invocation: all diff-summarizers (use case A) or code-scanners (use case B) are launched in a **single response** (one `task()` per repo)
+- Branch setup (Phase 5.5) happens **before** writing output files (Phase 6) — never after
+- Branch policy: walk up cwd for `.obsidian/` → `obsidian` (never branch); else `git rev-parse` → `git_repo` (branch opt-in) or `plain_dir` (never branch). User can override at plan approval
+- `doc-reviewer` gate (Phase 7): cap 1 fix cycle + 1 re-review; orchestrator fixes BLOCKERs inline
+- Sub-agents return `DIRTY_TREE` / `REFRESH_BLOCKED` when they cannot refresh repos — orchestrator escalates to user; never silent failure
+- Every written claim must cite originating Jira key (`[[KEY]]`) + PR URL (use case A) or file path (use case B)
+- Writes never touch `_archive/` (vault read-only zone); never write outside cwd unless user provides explicit absolute path
 
 ## Test-writing requirement for code changes
 

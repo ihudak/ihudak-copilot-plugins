@@ -1,0 +1,680 @@
+---
+name: impl-jira
+description: >
+  Jira-driven documentation workflow orchestrator. Activated when the user's prompt starts
+  with "impl:jira:", "impl:jira:docs:", or "impl:jira:epics:". Reads Jira work-item exports
+  from an Obsidian vault, resolves Bitbucket/GitHub PR URLs as local-git identifiers (no HTTPS
+  calls), runs parallel diff-summarizers (use case A — feature docs) or code-scanners
+  (use case B — epic writing), synthesises documentation with inline Jira + PR citations,
+  gates on doc-reviewer, and runs impl-maintenance. All PR resolution is pure local git
+  on analysis-only clones under /repos/.
+allowed-tools: view, edit, create, bash, glob, grep, ask_user, sql
+---
+
+# `impl:jira:` — Jira-Driven Documentation Workflow
+
+Activated when the user prompt starts with `impl:jira:`, `impl:jira:docs:`, or `impl:jira:epics:`.
+
+> **No external API calls, ever.** PR URLs from Jira exports are identifiers only.
+> Do NOT use `gh`, `curl`, Bitbucket REST API, or any HTTPS fetch against Bitbucket.
+> All PR resolution is via local `git` on pre-cloned repos under `/repos/`.
+
+> **Model routing is mandatory.** Load
+> `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`
+> before any planning.
+
+---
+
+## Phase 0 — Load & Dispatch
+
+### Step 0.1 — Subcommand dispatch
+
+Determine which use case applies:
+
+| Prompt prefix              | Use case                          |
+|----------------------------|-----------------------------------|
+| `impl:jira:docs: <desc>`   | **A** — feature documentation     |
+| `impl:jira:epics: <desc>`  | **B** — child epic writing         |
+| `impl:jira: <desc>`        | unknown — ask (Step 0.2)          |
+
+If `impl:jira: @<file.md>` — read the file using `view`, treat its content as the description.
+
+### Step 0.2 — Ask if use case is ambiguous
+
+If the prompt was bare `impl:jira:` (no `docs:` or `epics:` suffix):
+
+```
+ask_user(
+  question: "Which Jira workflow should I run?",
+  choices: [
+    "impl:jira:docs: — Write feature documentation from existing Jira items + merged PRs",
+    "impl:jira:epics: — Write child Epic definitions for a new Value Increment",
+    "Other… (describe)"
+  ]
+)
+```
+
+### Step 0.3 — Extract `JIRA_KEY`
+
+Parse `<JIRA_KEY>` from the description (e.g. `PRODUCT-14902`, `MGD-789`).
+Pattern: `[A-Z][A-Z0-9]+-\d+`.
+If multiple keys found, ask the user which is the root VI key.
+
+### Step 0.4 — Resolve `$VAULT_PATH`
+
+1. Check the `VAULT_PATH` environment variable: `bash -c 'echo "$VAULT_PATH"'`.
+2. If set and the directory exists → use it.
+3. If set but the directory does not exist, or if unset:
+
+```
+ask_user(
+  question: "Where is your Obsidian vault? (VAULT_PATH is unset or invalid)",
+  choices: [
+    "Use /obsidian (Recommended)",
+    "Enter the path manually",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+4. Validate that `<VAULT_PATH>/_archive/jira-products/<JIRA_KEY>/` exists.
+   - If it does not:
+
+```
+ask_user(
+  question: "Jira export directory not found: <VAULT_PATH>/_archive/jira-products/<JIRA_KEY>/. How would you like to proceed?",
+  choices: [
+    "Re-enter the Jira key",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+---
+
+## Phase 0.5 — Classify & Route
+
+Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`.
+
+**Classify based on actual scope** — do NOT bind classification to use case alone:
+
+- **SIGNIFICANT** — use case A with multiple repos, many PRs, or large synthesis blast radius. Rubber-duck plan critique required at Phase 2.
+- **MODERATE** — use case B (epic writing, single VI, no PR resolution), or use case A with a single repo / few PRs.
+- When in doubt, escalate one level.
+
+Record the `model_routing` block (format from `_shared/model-routing.md` §4).
+
+---
+
+## Phase 1 — Clarification
+
+Use `ask_user` with `choices` for each question. The **last choice** in every question MUST be `"Other… (describe)"`.
+
+### Detect cwd context (do this before asking)
+
+Run the branch/write policy detection algorithm (§7 of the spec):
+
+```bash
+# Walk up from cwd looking for .obsidian/
+dir="$(pwd)"
+context=""
+while [ "$dir" != "/" ]; do
+  [ -d "$dir/.obsidian" ] && { context=obsidian; vault_root="$dir"; break; }
+  dir="$(dirname "$dir")"
+done
+
+# Check git if not obsidian
+if [ -z "$context" ]; then
+  git rev-parse --show-toplevel >/dev/null 2>&1 \
+    && context=git_repo \
+    || context=plain_dir
+fi
+
+echo "context=$context"
+[ -n "$vault_root" ] && echo "vault_root=$vault_root"
+[ "$context" = "git_repo" ] && echo "git_root=$(git rev-parse --show-toplevel)"
+```
+
+Display to the user:
+- Resolved absolute cwd
+- Detected context (`obsidian` / `git_repo` / `plain_dir`)
+- Whether branching + commit will happen
+
+### Clarification questions
+
+**Q1 — Output path** (show default first):
+
+Use case A default: `<cwd>/<JIRA_KEY>-<slug>.md`
+Use case B default: `<cwd>/<JIRA_KEY>/` directory with one file per Epic
+
+```
+ask_user(
+  question: "Output file path (resolved: <resolved_default_path>). Accept or override?",
+  choices: [
+    "Use default: <resolved_default_path> (Recommended)",
+    "Enter a custom sub-path under cwd",
+    "Other… (describe)"
+  ]
+)
+```
+
+If the output file already exists:
+```
+ask_user(
+  question: "Output file <path> already exists. How would you like to proceed?",
+  choices: [
+    "Overwrite",
+    "Append",
+    "Write to <path-v2>.md (new file with -v2 suffix)",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+**Q2 — PR status filter** (use case A only):
+
+```
+ask_user(
+  question: "Which PRs should be included in the documentation?",
+  choices: [
+    "MERGED only (Recommended)",
+    "All statuses (MERGED, OPEN, DECLINED)",
+    "Specify a list manually",
+    "Other… (describe)"
+  ]
+)
+```
+
+**Q3 — Code examination** (use case B only):
+
+```
+ask_user(
+  question: "Should I scan existing code in /repos/ to identify reusable components and gaps?",
+  choices: [
+    "Yes — scan code (Recommended)",
+    "No — write epics from Jira context only",
+    "Other… (describe)"
+  ]
+)
+```
+
+If code scan ON:
+
+```
+ask_user(
+  question: "Which repos under /repos/ should I scan?",
+  choices: [
+    "<repo1 derived from sibling epic refs if available> (Recommended)",
+    "List repos manually",
+    "Other… (describe)"
+  ]
+)
+```
+
+**Q4 — Repo refresh policy**:
+
+Use case A default: `fetch only`. Use case B default: `fetch + pull default branch`.
+
+```
+ask_user(
+  question: "How should I refresh the local repo clones under /repos/?",
+  choices: [
+    "Fetch only — update remote refs, don't change branches (Recommended for docs)",
+    "Fetch + pull default branch — ensure latest code",
+    "No refresh — use current local state",
+    "Other… (describe)"
+  ]
+)
+```
+
+**Q5 — Branching decision** (only if cwd context is `git_repo`):
+
+```
+ask_user(
+  question: "Detected context: git repo at <git_root>. Should I create a branch and commit the output?",
+  choices: [
+    "Yes — create branch docs/<JIRA_KEY>-<slug> and commit (Recommended)",
+    "No — write files only, no git ops",
+    "Other… (describe)"
+  ]
+)
+```
+
+---
+
+## Phase 2 — Plan + Approval
+
+Produce a written plan containing:
+
+1. **Use case** (A: feature docs / B: epics)
+2. **Jira key** and VI summary
+3. **Vault path** and export directory
+4. **PRs in scope** (use case A): list of `(url, repo, pr_id, status)`
+5. **Repos to process**: list of `/repos/<REPO>/` paths and whether each exists
+6. **Output file(s)**: resolved absolute path(s)
+7. **Detected context**: `obsidian` / `git_repo` / `plain_dir`; whether branch will be created
+8. **Parallelism plan**: N diff-summarizer or code-scanner instances to be launched
+9. **Model routing block**
+
+If classification is SIGNIFICANT: run a `rubber-duck` sub-agent critique at this point
+(use `task` with `agent_type: "rubber-duck"`, `model: claude-opus-4.7` per model-routing.md).
+Address every BLOCKER. Document CONCERNs in the plan. Then show the revised plan.
+
+Request approval:
+
+```
+ask_user(
+  question: "Plan ready. What would you like to do?",
+  choices: [
+    "Approve & proceed (Recommended)",
+    "Revise plan",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+---
+
+## Phase 3 — Read Jira Hierarchy
+
+Invoke `jira-reader` sub-agent via `task`:
+
+- `agent_type: "general-purpose"`
+- Prompt: include the full `jira-reader` SKILL.md content and the input block:
+
+```yaml
+vault_path: <resolved>
+jira_key:   <JIRA_KEY>
+depth:      full           # use case A
+            vi-only        # use case B
+model_routing: <block>
+```
+
+Read the handoff from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/jira-reader/references/handoff.md` for the expected schema.
+
+If `jira-reader` returns `status: NOT_FOUND` or `EMPTY` → escalate to user (ask to re-enter key or cancel).
+
+Filter `pull_requests` list by the user's PR status selection from Phase 1.
+
+---
+
+## Phase 4 — Validate Repos
+
+For each unique `(repo)` from the in-scope PR list (use case A) or user-selected repo list (use case B):
+
+1. Check that `/repos/<repo>/` exists: `bash -c '[ -d "/repos/<repo>" ] && echo exists || echo missing'`
+2. If missing:
+
+```
+ask_user(
+  question: "Repo /repos/<repo>/ is not found locally. How would you like to proceed?",
+  choices: [
+    "Skip this repo and continue without its PRs",
+    "I'll clone it now — wait for me",
+    "Cancel the run",
+    "Use a different /repos path",
+    "Other… (describe)"
+  ]
+)
+```
+
+3. Record the final list of validated repos with their `/repos/<name>/` paths.
+
+Note: the actual `git fetch`/`pull`/branch-switch happens **inside** the sub-agents (Phase 5), not here.
+Failures surface as `DIRTY_TREE` / `REFRESH_BLOCKED` statuses that this orchestrator escalates.
+
+---
+
+## Phase 5 — Code Analysis (Parallel)
+
+Launch all sub-agent instances in a **single response** (multiple `task()` calls).
+
+### Use case A — diff-summarizer per repo
+
+For each validated repo with at least one in-scope PR, launch one `diff-summarizer` task:
+
+- `agent_type: "general-purpose"`
+- Include the full content of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/diff-summarizer/SKILL.md`
+- Include the handoff schema from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/diff-summarizer/references/handoff.md`
+- Pass the input block:
+
+```yaml
+repo_path: /repos/<repo>
+pr_refs:
+  - url:         <url>
+    pr_id:       <id>
+    issue_keys:  [<keys>]
+    title_hint:  <title>
+    status:      <status>
+context: |
+  <2–4 sentences from jira-reader.value_increment.goal + linked_items context>
+refresh:
+  fetch: <true if "fetch only" or "fetch+pull"; false if "no refresh">
+  pull:  <true if "fetch+pull"; false otherwise>
+model_routing: <block>
+```
+
+### Use case B — code-scanner per repo (if code scan ON)
+
+For each user-selected repo, launch one `code-scanner` task:
+
+- `agent_type: "general-purpose"`
+- Include full content of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/code-scanner/SKILL.md`
+- Include schema from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/code-scanner/references/handoff.md`
+- Pass input block with `capability_themes` from `jira-reader.themes` + `context` from VI goal
+
+### Handle sub-agent errors
+
+After all sub-agents complete, check each handoff `status`:
+
+- `REPO_MISSING` → impossible (checked Phase 4); log and continue
+- `DIRTY_TREE`:
+
+```
+ask_user(
+  question: "The repo /repos/<repo>/ has uncommitted changes and could not be refreshed. How would you like to proceed?",
+  choices: [
+    "Continue with current local state",
+    "Skip this repo",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+- `REFRESH_BLOCKED`:
+
+```
+ask_user(
+  question: "git fetch/pull failed for /repos/<repo>/: <reason>. How would you like to proceed?",
+  choices: [
+    "Continue with current local state",
+    "Skip this repo",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+- Use case A, `unresolved_prs` is non-empty for a PR:
+
+```
+ask_user(
+  question: "PR #<pr_id> (<url>) could not be resolved. Candidates: <candidate SHAs>. How would you like to proceed?",
+  choices: [
+    "Show candidate commits and let me pick one",
+    "Skip this PR",
+    "Skip this repo entirely",
+    "Cancel",
+    "Other… (describe)"
+  ]
+)
+```
+
+---
+
+## Phase 5.5 — Branch Setup (git_repo context only)
+
+Only execute this phase if:
+- `context = git_repo` AND
+- User confirmed branching at Phase 1 Q5 AND
+- This phase has not already been completed
+
+**Clean-tree check:**
+
+```bash
+git status --porcelain
+```
+
+If dirty → ask user (same pattern as `impl/SKILL.md` Phase 2.5).
+
+**Detect naming convention:**
+
+```bash
+git --no-pager branch -a | head -20
+```
+
+Look for `docs/`, `feat/`, `feature/` prefix patterns. Default to `docs/`.
+
+**Generate slug:**
+
+Derive from `<JIRA_KEY>` + first 4–6 content words of the VI summary: lowercase, hyphens, max 40 chars, strip stop-words. Example: `PRODUCT-14902-ag-update-windows`.
+
+**Create branch:**
+
+```bash
+git checkout -b docs/<JIRA_KEY>-<slug>
+```
+
+If name exists → append 7-char short SHA: `docs/<JIRA_KEY>-<slug>-<short-sha>`.
+Announce: `"Created branch: docs/<JIRA_KEY>-<slug>"`
+
+---
+
+## Phase 6 — Write Documentation / Epics
+
+### Use case A — Feature documentation
+
+Synthesise a feature documentation page using:
+- `jira-reader` handoff (VI goal, linked items, PR context)
+- `diff-summarizer` handoffs for each repo (per-PR summaries, aggregate summaries)
+
+**Citation rule — mandatory:** Every factual claim in the output MUST include:
+- The originating Jira key as a wikilink: `[[KEY]]`
+- The originating PR URL inline as a Markdown link
+
+Example:
+```
+The ActiveGate auto-update backend was extended to respect maintenance windows
+([[MGD-1127]], [PR #179969](https://bitbucket.lab.dynatrace.org/projects/RX/repos/cluster/pull-requests/179969)):
+the scheduler now checks the configured update window before dispatching an update job.
+```
+
+Document structure (adapt based on VI content):
+
+```markdown
+# <VI Summary>
+
+> **Jira:** [[<VI_KEY>]] | **Status:** <status>
+
+## Overview
+
+<2–3 paragraphs: what this feature does and why it exists. Cite VI description.>
+
+## What Changed
+
+### <Repo Name>
+
+<Aggregate summary from diff-summarizer. Cite per-PR summaries inline.>
+
+#### <PR Title>
+
+<Per-PR summary from diff-summarizer. Cite: [[KEY]], PR URL.>
+
+## Architecture / Design Notes
+
+<Optional: notable patterns, abstractions, or refactors identified from diffs.>
+
+## Related Work
+
+| Jira Item | Type | Status | Summary |
+|-----------|------|--------|---------|
+| [[KEY]]   | ...  | ...    | ...     |
+
+## References
+
+- Jira: [[<VI_KEY>]]
+- PRs: [#<id>](<url>), ...
+```
+
+Write to the output path confirmed in Phase 1.
+**Never write inside `<VAULT_PATH>/_archive/`.**
+**Never write outside cwd unless user provided an explicit absolute path.**
+
+### Use case B — Child Epic definitions
+
+For each new Epic to write, create one Markdown file at `<cwd>/<JIRA_KEY>/<epic-slug>.md`:
+
+```markdown
+# <Epic Title>
+
+## Goal
+
+<1 sentence: what this Epic delivers>
+
+## Business Value
+
+<1–2 sentences: why this matters>
+
+## Scope
+
+### In Scope
+- <item>
+
+### Out of Scope
+- <item>
+
+## Acceptance Criteria
+
+- [ ] <testable criterion>
+
+## Dependencies
+
+| Item | Type | Notes |
+|------|------|-------|
+| [[KEY]] | Epic / Repo / Team | <note> |
+
+## Suggested Stories
+
+1. <story title>: <1-sentence description>
+
+## References
+
+- Parent VI: [[<VI_KEY>]]
+- Related Epics: [[KEY]], ...
+- Code paths (if scanned): `<repo>/<path>` — <note>
+```
+
+Citation rule: every Epic must cite the parent VI (`[[VI_KEY]]`). Code references must cite file paths from `code-scanner` handoff.
+
+Create `<cwd>/<JIRA_KEY>/` directory if not present.
+
+---
+
+## Phase 7 — Doc Review Gate
+
+Invoke `doc-reviewer` sub-agent:
+
+- `agent_type: "general-purpose"`
+- Include full content of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/doc-reviewer/SKILL.md`
+- Pass the output file(s) written in Phase 6, the stated goal, the repo path (cwd), and the `model_routing` block
+
+**On `status: OK`** → proceed to Phase 8.
+
+**On `status: CONCERNS`** → record findings in the Phase 9 report; proceed to Phase 8.
+
+**On `status: BLOCKERS`:**
+1. Apply each BLOCKER fix inline (orchestrator does this — no separate fixer sub-agent for docs)
+2. Re-invoke `doc-reviewer` once (one re-review)
+3. If still BLOCKERS after one fix cycle:
+
+```
+ask_user(
+  question: "Doc review still has BLOCKER: <finding>. How would you like to proceed?",
+  choices: [
+    "Apply fix as suggested (describe fix)",
+    "Defer this finding",
+    "Override — mark as acceptable",
+    "Other… (describe)"
+  ]
+)
+```
+
+**Cap:** 1 fix cycle + 1 re-review maximum.
+
+---
+
+## Phase 8 — Maintenance
+
+Invoke `impl-maintenance` sub-agent:
+
+- `agent_type: "general-purpose"`
+- Include the full content of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/impl-maintenance/SKILL.md`
+- Pass a compact handoff:
+
+```markdown
+## Implementation Summary
+
+change_type: docs
+skill:       impl:jira:
+use_case:    A (feature docs) | B (epics)
+jira_key:    <KEY>
+vi_summary:  <text>
+output_files:
+  - <path>
+repos_analysed:
+  - <repo>: <status>
+prs_in_scope: <count>
+doc_review_status: OK | CONCERNS | BLOCKERS_RESOLVED | BLOCKERS_DEFERRED
+model_routing: <block>
+```
+
+---
+
+## Phase 9 — Final Report
+
+Output a final report to the user:
+
+```
+## impl:jira: Complete
+
+### Jira Hierarchy Summary
+- **VI:** [[<KEY>]] — <summary>
+- **Linked items:** <count> (<N> Epic, <N> Story, <N> Sub-task, …)
+
+### Repos Analysed
+| Repo | Status | PRs resolved | PRs unresolved |
+|------|--------|-------------|----------------|
+| cluster | OK | 3 | 0 |
+
+### PRs in Scope
+| PR | Repo | Status | Summary |
+|----|------|--------|---------|
+| [#179969](<url>) | cluster | MERGED | Handle update windows... |
+
+### Output File(s)
+- `<path>` (<N> lines)
+
+### Doc Review
+- Status: <OK | CONCERNS | BLOCKERS_RESOLVED>
+- Findings: <count> CONCERNS, <count> BLOCKERS fixed
+
+### Model Routing
+<model_routing block>
+```
+
+If branch was created:
+```
+### Branch
+- Created: `docs/<JIRA_KEY>-<slug>`
+- Committed: <SHA> — <message>
+```
+
+---
+
+## Escalation Reference
+
+| Situation | ask_user choices (last always "Other… (describe)") |
+|-----------|---------------------------------------------------|
+| `$VAULT_PATH` unset / invalid | "Use /obsidian (Recommended)", "Enter path manually", "Cancel" |
+| Jira key dir not found | "Re-enter the Jira key", "Cancel" |
+| Repo missing under `/repos/` | "Skip this repo", "I'll clone it now — wait", "Cancel the run", "Use a different /repos path" |
+| `git fetch` failed | "Continue with current local state", "Skip this repo", "Cancel" |
+| `diff-summarizer` returned `unresolved_prs` | "Show candidates and let me pick", "Skip this PR", "Skip this repo", "Cancel" |
+| Use case B, no repos derivable | "List repos manually", "Proceed without code scan", "Cancel" |
+| `doc-reviewer` BLOCKERS after one fix cycle | Per-BLOCKER question with "Apply fix", "Defer", "Override" |
+| Output file already exists | "Overwrite", "Append", "Write to <path-v2>.md", "Cancel" |
