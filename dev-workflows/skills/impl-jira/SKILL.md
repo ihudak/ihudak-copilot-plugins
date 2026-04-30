@@ -166,7 +166,6 @@ ask_user(
   question: "Output file <path> already exists. How would you like to proceed?",
   choices: [
     "Overwrite",
-    "Append",
     "Write to <path-v2>.md (new file with -v2 suffix)",
     "Cancel",
     "Other… (describe)"
@@ -697,4 +696,4 @@ If branch was created:
 | `diff-summarizer` returned `unresolved_prs` | "Show candidates and let me pick", "Skip this PR", "Skip this repo", "Cancel" |
 | Use case B, no repos derivable | "List repos manually", "Proceed without code scan", "Cancel" |
 | `doc-reviewer` BLOCKERS after one fix cycle | Per-BLOCKER question with "Apply fix", "Defer", "Override" |
-| Output file already exists | "Overwrite", "Append", "Write to <path-v2>.md", "Cancel" |
+| Output file already exists | "Overwrite", "Write to <path-v2>.md", "Cancel" |

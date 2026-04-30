@@ -76,7 +76,7 @@ For each theme in `capability_themes`:
 **3a. Keyword extraction**
 
 Derive search keywords from the theme phrase:
-- Split on spaces; drop stop-words (a, an, the, in, for, to, with, of, and, or, is, are, be)
+- Split on spaces; drop stop-words (a, an, the, in, for, to, with, of, and, or, is, are, be, at, by, on, as, its, this, that, from, into, not, no, new, old, all, via, per, use, used, using, do, does, when, which, based, aware, support, update, enable, allow, handle, add, get, set, run, has, have, should, can, will, need, make, check)
 - Add any matching entries from `search_hints.keywords`
 - Use lowercase for case-insensitive search
 
