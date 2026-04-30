@@ -365,7 +365,22 @@ For each user-selected repo, launch one `code-scanner` task:
 - `agent_type: "general-purpose"`
 - Include full content of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/code-scanner/SKILL.md`
 - Include schema from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/code-scanner/references/handoff.md`
-- Pass input block with `capability_themes` from `jira-reader.themes` + `context` from VI goal
+- Pass input block:
+
+```yaml
+repo_path: /repos/<repo>
+capability_themes: <list from jira-reader.themes>
+context: |
+  <3–5 sentences from jira-reader.value_increment.goal + Epic context>
+search_hints:
+  symbols:  <from jira-reader.search_hints.symbols if present>
+  paths:    <from jira-reader.search_hints.paths if present>
+  keywords: <from jira-reader.search_hints.keywords if present>
+refresh:
+  switch_to_default_branch: <true if "fetch+pull default branch"; false if "fetch only" or "no refresh">
+  pull: <true if "fetch+pull default branch"; false otherwise>
+model_routing: <block>
+```
 
 ### Handle sub-agent errors
 
@@ -652,6 +667,11 @@ Output a final report to the user:
 ### Doc Review
 - Status: <OK | CONCERNS | BLOCKERS_RESOLVED>
 - Findings: <count> CONCERNS, <count> BLOCKERS fixed
+
+<if CONCERNS exist, add a sub-list:>
+#### Review Concerns
+- [<section or heading>]: <finding text>
+- …
 
 ### Model Routing
 <model_routing block>

@@ -38,7 +38,6 @@ prep:
   fetched:       true | false
   pulled:        true | false
   refresh_note:  <e.g. "fetched 3 new refs" | "skipped — RO mount" | "tree was dirty, refresh skipped">
-  diff_truncated: false  # true if any PR exceeded the 200-file cap
 
 per_pr:
   - pr_id:          <id>

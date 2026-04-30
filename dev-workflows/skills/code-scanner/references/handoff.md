@@ -65,4 +65,4 @@ gap_summary: |
 | `REPO_MISSING`    | `repo_path` does not exist.                                                    |
 | `DIRTY_TREE`      | Working tree is dirty and refresh was requested; orchestrator must escalate.   |
 | `REFRESH_BLOCKED` | `git checkout` or `git pull` failed (RO mount, network, etc.); orchestrator escalates. |
-| `EMPTY`           | Repo exists but no relevant files found for any theme.                        |
+| `EMPTY`           | Repo exists but every theme classified as absent and no relevant files found. Emit instead of `OK` when `capability_map` would contain only `absent` entries. |

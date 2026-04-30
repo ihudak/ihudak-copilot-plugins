@@ -4,7 +4,7 @@ description: >
   Read-only sub-agent that parses a Jira work-item export from an Obsidian vault.
   Given a vault path and a Jira key, reads the index file, item frontmatter, descriptions,
   and comments; extracts all PR URLs; and returns a structured YAML handoff.
-  Invoked by impl:jira: (Phases 3). Never modifies vault files.
+  Invoked by impl:jira: (Phase 3). Never modifies vault files.
 ---
 
 # `jira-reader` — Jira Export Reader Sub-Agent
