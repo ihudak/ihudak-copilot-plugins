@@ -350,7 +350,7 @@ Handle per-repo status after the batch returns:
 
 **Interview technique (grilling — embedded; no runtime dependency).** Conduct each stage as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, explore the Phase 4 code scan / Jira content to self-answer (fact-vs-decision), walk the design tree in dependency order, continue to shared understanding then write that stage's section.
 
-Walk the stages in order, authoring `specification.md` live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md`:
+Walk the stages in order, authoring `specification.md` live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 
 1. Header + **Problem statement**
 2. **Scope** (In/Out)

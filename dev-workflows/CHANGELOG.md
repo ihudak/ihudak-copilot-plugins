@@ -4,6 +4,12 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.7.0] — 2026-07-23
+
+### Changed
+
+- **No-hard-wrap prose convention.** New `skills/_shared/prose-formatting.md` — the single source of truth: never hard-wrap prose; write each paragraph/prose block as one unbroken line, since Obsidian and IntelliJ Idea both soft-wrap for reading, and a straight copy-paste into Jira/Grammarly needs no manual cleanup. Consumed by every authoring skill/agent that writes prose: `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `epic-writer`, `doc-writer`, `release-notes-writer`. Ported from the Claude Code edition (dev-workflows 2.37.0).
+
 ## [2.6.0] — 2026-07-21
 
 ### Added

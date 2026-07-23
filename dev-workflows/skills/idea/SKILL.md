@@ -116,7 +116,7 @@ by **Impact × Uncertainty**.
 ## Phase 4 — Write idea.md
 
 Author `idea.md` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` into the write root resolved in
-Phase 0:
+Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 
 - **Path:** `<write-root>/Projects/<area>/<candidate_slug>/idea.md`, where `<area>` = `Products` when
   the source already lives under `Projects/Products/…`, else `ideas`.

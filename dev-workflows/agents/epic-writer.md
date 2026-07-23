@@ -39,6 +39,8 @@ Return `status: BLOCKED` with the specific gap when: the handoff file is missing
 
 ## Write mechanics
 
+Apply the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md` to every prose field (Goal, Business value, narrative bullets) below.
+
 For each new Epic, emit a markdown file under the resolved output directory (default the handoff `output_dir`):
 
 ```markdown

@@ -350,6 +350,7 @@ These skills run fine on a bare host, but depend on a few external tools for the
 - `dependencies.md` — recommended companions + the external `jira-workitem-import` importer
 - `source-truth.md` — implementation-vs-description discrepancy-escalation protocol
 - `docs-grounding.md` — `$DOCS_PATH` documentation grounding: the `resolve-docs-grounding` resolution gate (`${DOCS_PATH:-/workspace/docs}`, read-only, silent-skip), the `dispatch-docs-grounder` procedure, and the grill-rank / writer-attach consumption modes (consulted by `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, `release-notes:`)
+- `prose-formatting.md` — output line-wrapping: never hard-wrap prose; write each paragraph/prose block as one unbroken line, so Obsidian and IntelliJ Idea soft-wrap it for reading and a straight copy-paste into Jira/Grammarly needs no manual cleanup (consumed by `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `epic-writer`, `doc-writer`, `release-notes-writer`)
 - `branch-naming.md` — the branch-prefix resolution chain (`$GIT_USER_INITIALS` → git config → sniff → fallback)
 - `fix-vuln/nvd-api.md`, `fix-vuln/build-systems.md` — NVD API shape and build-system detection for `vuln:`
 - `upgrade/ecosystems.md`, `upgrade/compatibility.md`, `upgrade/lts-sources.md` — ecosystem detection, compatibility constraints, LTS lookups for `upgrade:`
