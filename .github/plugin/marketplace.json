@@ -29,15 +29,12 @@
       "source": "obsidian-llm-wiki",
       "description": "LLM Wiki pattern for an active Obsidian vault. Eleven skills (wiki-init, wiki-ingest, wiki-scan, wiki-query, wiki-save, wiki-lint, wiki-hot, wiki-tags-refresh, wiki-schema, wiki-task, wiki-tasks-extract) for ingesting, querying, saving, linting, and managing a persistent wiki compiled from meetings, projects, and daily notes. Includes task management: create individual tasks and batch-extract tasks from wiki content.",
       "version": "0.3.3"
-    }
-    ,{
+    },
+    {
       "name": "acli",
       "source": "acli",
-      "version": "0.1.0",
       "description": "Atlassian CLI (acli) reference skill for Jira and Confluence: JQL search, work items, comments, links, attachments, watchers, projects, sprints, boards, filters, and Confluence spaces, pages and blog posts. Adds container-friendly authentication and a destructive-operation policy. Requires the acli binary on PATH.",
-      "author": { "name": "Daniel Ziegenberg", "url": "https://github.com/ziegenberg" },
-      "license": "MIT",
-      "category": "development",
+      "version": "0.1.0",
       "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/acli"
     }
   ]
