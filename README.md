@@ -9,6 +9,7 @@ Ivan Gudak's private GitHub Copilot plugin marketplace.
 | [dev-workflows](dev-workflows/) | Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow — idea refinement, VI / ARD authoring, VI updates, Epic drafting, specification and engineering-design authoring, structured implementation, feature documentation, release notes, vulnerability remediation, dependency upgrades, and API / UI guideline compliance — with strong-tier (Opus 4.8/4.7/4.6 or GPT-5.5) planning, code review, and doc / Epic / design review gates. |
 | [dt-style-guide](dt-style-guide/) | Dynatrace corporate style guide enforcement: `/dt-review-pr`, `/dt-review-docs`, `/dt-style-refresh`, and sub-agents used by `dev-workflows` for style checking Epics and feature docs |
 | [obsidian-llm-wiki](obsidian-llm-wiki/) | Eleven slash-command skills for compiling Obsidian vault knowledge into a persistent, cross-referenced wiki with task management; supports GitHub Copilot and Claude Code |
+| [acli](acli/) | Atlassian CLI (`acli`) reference skill for Jira and Confluence — JQL search, work items, comments, links, attachments, watchers, projects, sprints, boards, filters, and Confluence spaces/pages/blog posts. Derived from [ziegenberg/pi-skill-acli](https://github.com/ziegenberg/pi-skill-acli) (MIT). |
 
 ## Prerequisites
 
@@ -34,6 +35,7 @@ copilot plugin marketplace add ihudak/ihudak-copilot-plugins
 copilot plugin install dev-workflows@ihudak-copilot-plugins
 copilot plugin install dt-style-guide@ihudak-copilot-plugins
 copilot plugin install obsidian-llm-wiki@ihudak-copilot-plugins
+copilot plugin install acli@ihudak-copilot-plugins
 ```
 
 ### 3. Configure environment variables
