@@ -4,6 +4,18 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.9.0] — 2026-08-01
+
+### Added
+
+- **Deferred-backlog sharpeners (wave 3)** (ported from the Claude edition). Six additive, single-location refinements (all additive/conditional):
+  - **ADR candidacy filter** — `skills/_shared/ard-format.md`: an `AD-N` earns its place only when the decision is hard-to-reverse AND surprising-without-context AND a real trade-off (else left to `design:`). [Matt `domain-modeling`]
+  - **Wide-refactor sequencing exception** — `skills/epics/SKILL.md` Phase 2: expand → migrate-in-batches → contract for blast-radius-wide mechanical changes that cannot be tracer-bulleted. [Matt `to-tickets`]
+  - **Prototype-snippet exception** — `skills/_shared/design-format.md`: a narrow decision-encoding-snippet exception to the prose default. [Matt `to-spec`]
+  - **Missing-adoption gap** — `agents/code-review.md` dimension 4: an untouched sibling call site that should adopt changed behavior, uncaught by tests. Complements the wave-2 converge gate. [BMAD `lens-verification-gap`]
+  - **`resume.md` redaction reminder** — `skills/_shared/session-hygiene.md`. [Matt `handoff`]
+  - **Context "hand off by file, not paste"** — `skills/_shared/context-management.md`: a 4th long-run strategy (reference-only; the `implement:` dispatch-prompt refactor is deferred). [superpowers SDD]
+
 ## [2.8.0] — 2026-07-29
 
 ### Added
