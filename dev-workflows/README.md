@@ -154,6 +154,8 @@ flowchart TD
 
 `document:` (both modes) and `epics:` never run tests and never touch production code.
 
+When a `specification.md`/`design.md` is in scope on a SIGNIFICANT/HIGH-RISK run, `implement:` runs a **spec/design-conformance ("converge") check** — the Opus `code-review` traces every in-scope `[Uxx]`/`[ACxx]`/`[TCxx]` against the shipped diff, and unresolved `missing`/`contradicts` gaps are escalated as `- [ ]` notes back onto the spec/design. Bug-shaped tasks additionally follow `skills/_shared/bug-diagnosis.md` — a red-capable repro before hypotheses, 3–5 ranked falsifiable hypotheses, and `[DEBUG-xxxx]` instrumentation stripped before the review diff is captured.
+
 ## Session feedback
 
 Beyond the lifecycle skills, `dev-workflows` captures **friction and improvement

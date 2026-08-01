@@ -4,6 +4,18 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.8.0] — 2026-07-29
+
+### Added
+
+- **Upstream-harvest improvements** (ported from the Claude edition). Adapted eight improvements from four upstreams (GitHub SpecKit, Matt Pocock skills, superpowers, BMAD) into the pipeline, all additive and conditional:
+  - **Spec→code conformance ("converge").** `code-review` gains a conditional 10th dimension "Spec/design conformance" (active only when a `specification.md`/`design.md` is in scope) that traces every in-scope `[Uxx]`/`[ACxx]`/`[TCxx]` against the shipped diff (satisfied / missing / partial / contradicts). `risk-planner` tags plan steps with the requirement IDs they implement. `implement:` extracts in-scope IDs, passes `applicable_spec` to the Opus review, reports conformance in Phase 5, and escalates unresolved gaps as `- [ ]` notes back onto the spec/design.
+  - **Bug-diagnosis discipline.** New `skills/_shared/bug-diagnosis.md` — red-capable repro before hypotheses, 3–5 ranked falsifiable hypotheses, `[DEBUG-xxxx]` instrumentation with a cleanup gate, regression test at a correct seam. Folded into `risk-planner` (`task_shape: bug`) and `implement:` (bug-shape detection + strip-before-review; `code-review` flags leftover `[DEBUG-xxxx]`).
+  - **Quality gates.** `test-writer` falsifiability gate + mutation self-check; `review-fixer` `plan-conflict` disposition; `code-review` Fowler 12-smell floor (MINOR/NIT, overridable).
+  - **Authoring sharpeners.** `grilling-technique.md` terminology-precision move + altitude-aware `## Ambiguity taxonomy`; `spec-reviewer` NFR-coverage + implicit-enum-branch; `design-format.md` + `design-reviewer` deep-module/seam vocabulary; `risk-planner` "No placeholders"; `vi-format` + `vi-reviewer` counter-metrics (`[SM-C1]`).
+  - Renamed the grill's "design tree" → "decision tree".
+- Reconciled the marketplace manifest version (was stale at 2.5.0) to the plugin version.
+
 ## [2.7.0] — 2026-07-23
 
 ### Changed

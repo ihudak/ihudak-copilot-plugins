@@ -116,6 +116,8 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 
 `skills/_shared/release-note-types.md` is the **single authority** for the release-note Change Type taxonomy (`Breaking change` / `New technology support` / `Bug fix` / `not applicable`), the classification order, the per-type Summary shaping rules, and the deprecation-note rule (end-of-life date required, end-of-support optional). It is consulted by `release-notes-writer`; the `release-notes:` skill applies its decisions through the writer's gaps.
 
+`skills/_shared/bug-diagnosis.md` is the **single source of truth** for the bug-diagnosis discipline consulted by the `implement:` skill (Phase 2B) and followed by `risk-planner` when a task is bug-shaped (`task_shape: bug`): feedback-loop-first (a red-capable, deterministic repro before hypothesizing), 3–5 ranked falsifiable hypotheses, `[DEBUG-xxxx]`-tagged instrumentation with a mandatory cleanup gate (stripped before the Opus-review diff), and a regression test at a correct seam. It cross-references `skills/_shared/design-format.md` `## Seams` and is paired with `implement:`'s spec/design-conformance ("converge") check — `code-review`'s conditional 10th dimension that traces in-scope `[Uxx]`/`[ACxx]`/`[TCxx]` against the shipped diff.
+
 ## `dev-workflows` plugin — skill relationships
 
 ```
