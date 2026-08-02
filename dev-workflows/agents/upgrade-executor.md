@@ -18,13 +18,17 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 ## Process
 
-Receive one upgrade plan with `status: READY`. The plan may be provided inline or as an absolute file path — `Read` the file first when given a path.
+Receive one upgrade plan with `status: READY`. The plan may be provided inline or as an absolute file path — `view` the file first when given a path.
 
 > **Phase resume.** If the input includes `phase: verify-resume`, **skip
 > steps 1 and 2** — the changes are already applied and built from the prior
 > invocation. Resume at step 3 (Verify). Treat any `baseline` in the input
 > as authoritative; do not re-baseline. Default phase (omitted or
 > `phase: full`) runs all steps.
+>
+> If the input includes `phase: regression-resume`, **skip steps 1-3** —
+> jump straight to "Test regression" step 4 below, honoring the
+> `regression_decision: keep-anyway | revert` supplied by the orchestrator.
 
 1. **Apply changes** — Update every file listed in the plan's `files` array.
    For each related upgrade in `related`, apply those version changes too.

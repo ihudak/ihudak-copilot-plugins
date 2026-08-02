@@ -26,7 +26,7 @@ The caller passes a structured brief:
   user-approved equivalent).
 - **Diff** - `git diff` or a file-by-file list of changes. MANDATORY.
   Both **Plan** and **Diff** may be given inline or as an absolute file
-  path — `Read` the file first when given a path.
+  path — `view` the file first when given a path.
 - **Project root** - absolute path so files can be opened.
 
 Refuse to review without a diff - ask the caller to produce one.
@@ -60,7 +60,7 @@ If, after reading the diff, you conclude the task does NOT actually meet the
 SIGNIFICANT / HIGH-RISK criteria from
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` (absolute
 path — your working directory is the caller's project, not this repo; use
-`Read` to open the file if needed), return a short `### Re-classification`
+`view` to open the file if needed), return a short `### Re-classification`
 section INSTEAD of the full dimension-by-dimension report. State the level
 you would assign and the reason. The caller will drop out of the Opus-gated
 path.

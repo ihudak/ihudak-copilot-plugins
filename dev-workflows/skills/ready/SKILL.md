@@ -217,8 +217,8 @@ Phase 1's inventory. This is the mechanical half of the reviewer's "Status consi
 ## Phase 4 — Readiness review
 
 Dispatch `readiness-reviewer` (Opus, caller-pinned via `task(model:)`) with the Phase 3 skeleton, the
-artifact paths from Phase 1 (the reviewer Reads each end-to-end itself — it carries `Read`/`Glob`/
-`Grep`/`LS`), the Phase 2 declared statuses, `applicable_ard` (omit entirely when Phase 2.5 was `none`),
+artifact paths from Phase 1 (the reviewer reads each end-to-end itself — it carries `view`/`glob`/
+`grep`), the Phase 2 declared statuses, `applicable_ard` (omit entirely when Phase 2.5 was `none`),
 and a pointer to the rubric.
 
 → task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2 Opus chain>`):

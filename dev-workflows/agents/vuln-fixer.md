@@ -19,7 +19,7 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 ## Process
 
-Receive the research report for **one CVE** with `status: READY`. The report may be provided inline or as an absolute file path — `Read` the file first when given a path.
+Receive the research report for **one CVE** with `status: READY`. The report may be provided inline or as an absolute file path — `view` the file first when given a path.
 
 > **Phase resume.** If the input includes `phase: verify-resume`, **skip
 > steps 1, 2, and 3** — the baseline was captured (by the orchestrator), the
@@ -29,6 +29,10 @@ Receive the research report for **one CVE** with `status: READY`. The report may
 > Do **not** re-baseline (that would clobber the pre-fix snapshot) and do
 > **not** re-apply the version pin. Default phase (omitted or `phase: full`)
 > runs all steps.
+>
+> If the input includes `phase: regression-resume`, **skip steps 1-4** —
+> jump straight to "Test regression" step 4 below, honoring the
+> `regression_decision: keep-anyway | revert` supplied by the orchestrator.
 >
 > When `gate_tests_on_review: true` is set on a `phase: full` call, the
 > orchestrator is required to capture and pass the baseline itself (see

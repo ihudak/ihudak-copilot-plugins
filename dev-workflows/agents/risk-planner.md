@@ -20,7 +20,7 @@ The caller passes a structured brief:
 - **Codebase summary** - file map, existing patterns, conventions (from an
   Explore agent or inventory step). For upgrade/vuln work, this includes the
   component's inventory path(s) and any compat notes already gathered.
-  Provided inline or as an absolute file path — `Read` the file first when
+  Provided inline or as an absolute file path — `view` the file first when
   given a path.
 - **Constraints** - runtime versions, dependencies, deadlines, non-functional
   requirements.
@@ -36,7 +36,7 @@ Refuse to plan without a classification and a task description - ask the caller
 to supply them.
 
 If the brief is thin on the codebase side (e.g. no usage-site scan was done),
-use your own `Grep` / `Glob` / `Read` tools to inspect the repo before writing
+use your own `grep` / `glob` / `view` tools to inspect the repo before writing
 the plan. The plan is only as good as the blast-radius understanding behind it.
 
 ## Output
@@ -92,14 +92,14 @@ one alternative that was rejected and the reason.]
 - **Cite the criterion.** The classification reason must reference a concrete
   bullet from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`
   (absolute path, since the agent's working directory is the caller's project,
-  not this repo), not a vibe. Use `Read` to open it if needed.
+  not this repo), not a vibe. Use `view` to open it if needed.
 - **Minimise scope.** Suggest the smallest change that meets the acceptance
   checks. Do NOT introduce abstractions, feature flags, or cleanup for
   unrelated code.
 - **Trace to requirements (when a spec/design is in the brief).** If the brief
   carries a `specification.md`/`design.md`, annotate each `### Steps` entry with
-  the requirement ID(s) it implements — e.g. `1. <step> — implements [AC-3],
-  [TC-7]`. A step that implements no specific requirement needs no tag. When no
+  the requirement ID(s) it implements — e.g. `1. <step> — implements [AC03],
+  [TC07]`. A step that implements no specific requirement needs no tag. When no
   spec/design is in the brief (direct mode), skip this silently.
 - **Name the rejected alternatives.** A plan without a rejected alternative is
   suspect.

@@ -4,6 +4,21 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.9.4] — 2026-08-02
+
+### Fixed
+
+- **`vuln:` + `upgrade:` re-review read a stale diff.** After `review-fixer` applied the `BLOCKER`/`MAJOR` fixes, "re-run the Opus review once" re-used the `review_diff_file` captured *before* those fixes, so the second verdict was computed on the pre-fix diff (and a `BLOCK` could never clear). Both paths now overwrite `review_diff_file` with a fresh `git add -N . && git diff` before the re-review — the same correction `implement:` received as a 2.9.2 follow-up but which was not carried into the 2.9.3 siblings.
+- **`implement:`'s `test-writer` dispatches told the agent to shell out.** Phase 3.5 step 1 and Phase 3B step 4a embedded the `mktemp` + `git add -N . && git diff` capture *inside* the agent-facing prompt and left it unbracketed; `test-writer` has no `bash` tool, so it could not comply. The capture is now an orchestrator action recorded as `test_diff_file`, and the prompt hands only that path — matching the `document:` + `epics:` handoff pattern.
+- **Dispatch substitution brackets carried instructions instead of values.** `vuln:`'s two `vuln-fixer` dispatches and `upgrade:`'s `upgrade-executor` dispatch wrapped the whole "read … from the file at `<handle>`" sentence in `[…]`, which the house convention reads as "substitute the content here" — the opposite of the intent, and enough to defeat the file-handoff. Only the path handle is bracketed now.
+- **`vuln:`'s SIMPLE/MODERATE regression-resume was a missed adoption site.** It still said "passing the same CVE input verbatim" while every other `vuln:` resume had moved to `research_file`.
+- **`vuln-fixer` + `upgrade-executor` never received the `phase: regression-resume` directive.** The Claude edition's `## Process` "Phase resume" callout tells both agents to skip straight to the test-regression step on `phase: regression-resume`; this edition carried only the `verify-resume` half, so a regression resume would have re-run the baseline/fix/apply steps. Long-standing conversion gap, now ported.
+- **`skills/_shared/context-management.md` omitted the load-bearing temp-file guard.** As the authority for "hand off by file, not paste" it did not say the handoff file must be `mktemp`-ed **outside every repo working tree** — the property that keeps a later `git add -N . && git diff` from picking it up.
+- **`skills/_shared/handoff/vuln-fixer.md` + `skills/_shared/handoff/upgrade-executor.md` described their report/plan section as inline-only.** Both now state the section may instead arrive as an absolute path to read, matching what the orchestrators have sent since 2.9.3.
+- **Claude tool names leaked into agent/skill prose.** Sixteen references instructed agents to use `Read` / `Write` / `Glob` / `Grep` / `LS` — tools this edition never grants; its frontmatter grants `view` / `create` / `edit` / `glob` / `grep` / `bash` / `task` / `web_fetch`. Affected `code-review`, `risk-planner`, `test-writer`, `review-fixer`, `vuln-fixer`, `upgrade-executor`, `epic-writer`, `ready:` Phase 4, and both `skills/_shared/handoff/` docs. Same defect class as the `test-writer` shell-out above: an agent told to use a tool it does not have.
+- **Stale sub-agent counts in the manifests.** The marketplace entry said “Thirty-one dispatched sub-agents” and the repo-root `README.md` tree said “30 sub-agents”; there are 32 (matching `dev-workflows/.plugin/plugin.json`'s “32 sub-agents” and the 32-row agent table in `dev-workflows/README.md`). Both corrected.
+- **`agents/risk-planner.md`'s requirement-ID example used the wrong form.** `[AC-3]`/`[TC-7]` → `[AC03]`/`[TC07]`, the form `skills/_shared/specification-format.md` defines and `code-review`'s spec/design-conformance dimension traces against.
+
 ## [2.9.3] — 2026-08-02
 
 ### Changed

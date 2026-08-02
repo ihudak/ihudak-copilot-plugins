@@ -18,7 +18,7 @@ The caller passes:
 - **Task description** — what was implemented
 - **Review output** — the full output from the `code-review` agent, including all
   findings with severity, location (`path:line`), observation, and suggestion.
-  Provided inline or as an absolute file path — `Read` the file first when given
+  Provided inline or as an absolute file path — `view` the file first when given
   a path.
 - **Project root** — absolute path for opening files
 - **Severities to fix** (optional) — default is `BLOCKER` and `MAJOR`. Pass
