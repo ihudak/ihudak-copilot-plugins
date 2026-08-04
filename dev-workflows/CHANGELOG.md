@@ -16,6 +16,14 @@ Versions follow semver at the plugin level.
 - **Reaching the per-workflow fallback was silent.** §1.5 mandated a prompt, but no orchestrator implemented it. The prompt is now registered in `_shared/escalation-rules.md` as "Branch prefix undetected" and referenced from each branch-setup step.
 - **`docs-profile:` derived initials from `git config user.name`** in its own ad-hoc way, ignoring `$GIT_USER_INITIALS` entirely. It now uses the shared ladder.
 
+## [2.11.0] — 2026-08-04
+
+### Changed
+
+- **Branch naming is now repo-rule-first.** 2.10.0 wired the previously-orphaned `$GIT_USER_INITIALS` ladder into all five branch-creating workflows, but left it as the *primary* mechanism — and only `document:` and `docs-profile:` ever read the target repo's own branch-naming convention, so `_shared/branch-naming.md`'s claim that a documented pattern "outranks this ladder" was unenforceable in `implement:`, `upgrade:`, and `vuln:`. The priority is inverted and the gap closed. All five now read the repo's `CONTRIBUTING.md` / `CONTRIBUTION.md` / `README.md` / `DOCUMENTATION-GUIDELINES.md` / `.github/copilot-instructions.md` **first** (§1.1), classify the documented pattern's segments (§1.2), and fill each from its proper source: an **identity** placeholder (`<your-name-or-initials>`, `<user>`, …) from the `$GIT_USER_INITIALS` → `git config user.initials` → existing-branch-inference → prompt ladder, now §2; an **issue-key** segment from the run's already-resolved Jira key (or the documented no-issue literal); the **description** from each workflow's own slug rule (§3). Against `dynatrace-docs`' documented `<your-name-or-initials>/<JIRA-ISSUE-KEY>-<short-branch-name>`, `GIT_USER_INITIALS=iv-gu` now yields `iv-gu/PRODUCT-17753-add-oauth`. The ladder supplies the *whole* prefix only when a repo documents no convention at all (§1.4).
+- **A pattern with no identity segment no longer gets one.** Injecting initials into a repo whose documented convention is a plain `feat/<slug>` would violate that convention; §1.2 and §5 now forbid it. Identity inference ignores the generic prefixes, and the §2.5 escalation drops its generic-fallback choice when an identity is being filled.
+- **`implement:` composes a compliant name in issue-key repos.** When a documented pattern has no separate issue-key segment but the run resolved a Jira key, the key is prefixed to the slug (`<KEY>-<slug>`).
+
 ## [2.9.4] — 2026-08-02
 
 ### Fixed
