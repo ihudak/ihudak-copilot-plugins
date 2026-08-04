@@ -269,9 +269,12 @@ Gemini 3.1 Pro).
   `dt-style-guide` plugin. Some check is always better than no check.
 - **Branch-per-change** with shared **branch-prefix detection**
   (`_shared/branch-naming.md`): resolves the prefix via `$GIT_USER_INITIALS` →
-  `git config user.initials` → existing-branch sniff → workflow fallback. Teams
-  with `<initials>/`-prefix conventions set the env var once and every workflow
-  follows it.
+  `git config user.initials` → existing-branch sniff → a per-workflow fallback,
+  and asks before falling back. Teams with `<initials>/`-prefix conventions
+  (hyphenated or not — `iv-gu`, `ivgu`) set the env var once and every
+  branch-creating workflow follows it: `implement:`, `document:`,
+  `docs-profile:`, `upgrade:`, `vuln:`. A pattern documented in the repo's own
+  `CONTRIBUTING.md` still wins for the name's overall shape.
 - **Jira-driven docs & epics**: `document:` (Jira mode) and `epics:` read Obsidian
   vault Jira exports, resolve PR URLs as **pure local-git identifiers** (no
   Bitbucket REST API, no HTTPS fetch), run parallel `diff-summarizer`s or
@@ -353,7 +356,7 @@ These skills run fine on a bare host, but depend on a few external tools for the
 - `source-truth.md` — implementation-vs-description discrepancy-escalation protocol
 - `docs-grounding.md` — `$DOCS_PATH` documentation grounding: the `resolve-docs-grounding` resolution gate (`${DOCS_PATH:-/workspace/docs}`, read-only, silent-skip), the `dispatch-docs-grounder` procedure, and the grill-rank / writer-attach consumption modes (consulted by `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, `release-notes:`)
 - `prose-formatting.md` — output line-wrapping: never hard-wrap prose; write each paragraph/prose block as one unbroken line, so Obsidian and IntelliJ Idea soft-wrap it for reading and a straight copy-paste into Jira/Grammarly needs no manual cleanup (consumed by `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `epic-writer`, `doc-writer`, `release-notes-writer`)
-- `branch-naming.md` — the branch-prefix resolution chain (`$GIT_USER_INITIALS` → git config → sniff → fallback)
+- `branch-naming.md` — the branch-prefix resolution ladder (`$GIT_USER_INITIALS` → `git config user.initials` → existing-branch inference → per-workflow fallback, with a mandatory prompt when the fallback is reached); consumed by `implement:`, `document:`, `docs-profile:`, `upgrade:`, and `vuln:` (via `vuln-fixer`)
 - `fix-vuln/nvd-api.md`, `fix-vuln/build-systems.md` — NVD API shape and build-system detection for `vuln:`
 - `upgrade/ecosystems.md`, `upgrade/compatibility.md`, `upgrade/lts-sources.md` — ecosystem detection, compatibility constraints, LTS lookups for `upgrade:`
 - `handoff/` — per-agent handoff schemas (`code-scanner`, `diff-summarizer`, `impl-maintenance`, `jira-reader`, `release-notes-writer`, `test-baseliner`, `upgrade-executor`, `upgrade-planner`, `vuln-fixer`, `vuln-research`)

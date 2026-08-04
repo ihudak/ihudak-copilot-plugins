@@ -4,6 +4,13 @@ All notable changes to the **obsidian-llm-wiki** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [0.3.4] — 2026-08-04
+
+### Fixed
+
+- **`wiki-tags-refresh`'s invocation line omitted its optional `[directory]` argument.** The body already resolved and scanned a directory argument, but the "Invoke with" line advertised only `/wiki-tags-refresh`, so the scoping option was undiscoverable. Now `/wiki-tags-refresh [directory]`, with the default (whole vault, `.obsidian/` excluded) stated explicitly — matching the `ihudak-claude-plugins` sibling.
+- Restored the `-print0`/`xargs -0` rationale note dropped from the frontmatter-scan block: vault filenames routinely contain spaces, which plain word-splitting would turn into separate unopenable arguments.
+
 ## [0.3.3]
 
 ### Fixed

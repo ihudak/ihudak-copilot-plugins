@@ -314,7 +314,7 @@ Before writing any file:
    - **Proceed**: note in the Phase 5 report that the working tree was dirty at implementation start.
    - **Cancel**: stop and summarize what was planned.
 
-2. **Detect naming convention** — check `git branch -a` for the project's branch prefix (`feat/`, `feature/`, `chore/`, `story/`, etc.). Default to `feat/` if ambiguous.
+2. **Resolve the branch prefix** — apply the ladder in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` §1: `$GIT_USER_INITIALS` → `git config user.initials` → inferred from existing branches → this workflow's fallback `feat/`. Reaching the fallback triggers the mandatory §1.5 escalation before any branch is created.
 
 3. **Generate slug** — derive from the implementation description: lowercase, hyphens, max 40 chars, strip punctuation and special chars. Example: "Add user authentication to login page" → `add-user-authentication-login-page`.
 

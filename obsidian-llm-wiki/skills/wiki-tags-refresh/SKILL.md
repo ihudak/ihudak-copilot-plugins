@@ -13,7 +13,9 @@ allowed-tools: view, edit, create, bash, glob, grep
 
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/obsidian-llm-wiki/skills/wiki-schema/SKILL.md` fully before proceeding.
 
-Invoke with: `/wiki-tags-refresh`
+Invoke with: `/wiki-tags-refresh [directory]`
+
+If no directory argument is given, scan the entire vault (excludes `.obsidian/`).
 
 ---
 
@@ -60,7 +62,9 @@ find "$SCAN_ROOT" -name "*.md" -not -path "*/.obsidian/*" -print0 | xargs -0 awk
 > Note: only the YAML multi-line block form (`tags:` followed by `  - tagname` lines) is
 > parsed; inline arrays (`tags: [a, b]`) are silently skipped by this script. Worth knowing
 > now that the scan covers the whole vault, where inline-array frontmatter is common outside
-> plugin-authored wiki pages.
+> plugin-authored wiki pages. `-print0`/`xargs -0` is required — vault filenames routinely
+> contain spaces (e.g. `Daily/2026-07-13 Standup.md`), which would otherwise be word-split
+> into separate, unopenable arguments.
 
 Also collect inline tags from page bodies across the same scope:
 ```bash

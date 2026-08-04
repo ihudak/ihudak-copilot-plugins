@@ -4,6 +4,18 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.10.0] — 2026-08-04
+
+### Added
+
+- **`_shared/branch-naming.md` is now actually wired in.** The shared branch-prefix policy has shipped since 1.6.0 and the README described it, but **no skill ever loaded it** — every branch-creating workflow silently used its own inline `git branch -a` sniff, so `$GIT_USER_INITIALS` had no effect anywhere. All five branch-creating orchestrators now resolve their prefix through the §1 ladder: `implement:` (Phase 3 step 2), `document:` (Phase 6.2 steps 3–4, both modes), `docs-profile:` (Phase 6 step 1), `upgrade:` (Phase 2 prep), and `vuln:`'s "Git Workflow" spec that `vuln-fixer` follows. Setting `GIT_USER_INITIALS=iv-gu` now produces `iv-gu/PRODUCT-17753-add-oauth` instead of `feat/add-oauth`.
+
+### Fixed
+
+- **The prefix ladder rejected hyphenated initials.** §1.3's inference pattern was `^[a-z0-9]+$` while §4's hard rules allowed `[a-z0-9-]`, so existing `iv-gu/…` branches were invisible to inference and the §1.5 prompt told users "alphanumeric". Inference now accepts `[a-z0-9][a-z0-9-]*` and both prompts say `[a-z0-9-]`. (`$GIT_USER_INITIALS` was always taken verbatim, so §1.1 was unaffected.)
+- **Reaching the per-workflow fallback was silent.** §1.5 mandated a prompt, but no orchestrator implemented it. The prompt is now registered in `_shared/escalation-rules.md` as "Branch prefix undetected" and referenced from each branch-setup step.
+- **`docs-profile:` derived initials from `git config user.name`** in its own ad-hoc way, ignoring `$GIT_USER_INITIALS` entirely. It now uses the shared ladder.
+
 ## [2.9.4] — 2026-08-02
 
 ### Fixed
