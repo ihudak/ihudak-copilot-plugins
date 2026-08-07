@@ -99,10 +99,19 @@ Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak
 
 ## Phase 2 — Worthiness check + plan/approval
 
-1. **Worthiness.** After Phase 3 reads the ticket (or by reading the VI frontmatter now), check `relevant_for_release_notes` and `release_versions`. If `relevant_for_release_notes != "Yes"` AND `release_versions` is empty/absent, warn and ask:
-   ```
-   choices: ["Proceed anyway (Recommended)", "Cancel", "Other… (describe)"]
-   ```
+1. **Worthiness gate.** Read `relevant_for_release_notes` from the **imported VI frontmatter** under
+   `jira_export_root` — either from Phase 3's `jira-reader` handoff or by reading the frontmatter
+   directly here. NEVER read it from the authored specs draft.
+   - **`false` / `no`** → stop:
+     `RELEASE_NOTES_NOT_RELEVANT: <jira_key> is flagged not relevant for release notes; Jira's status rule does not require one.`
+     Offer an override for drafting ahead of the flag:
+     ```
+     choices: ["Cancel — nothing to draft (Recommended)", "Draft anyway — I'll set the flag later", "Other… (describe)"]
+     ```
+   - **`true` / `yes`** → proceed.
+   - **absent** → **proceed silently.** The field defaults to true; absent is not false.
+
+   `release_versions` plays no part in this gate.
 
 2. **Plan.** Present: resolved `jira_key`, destination, diff-grounding on/off (+ `$REPOS_PATH` and repos to scan when on), docs grounding on/off (+ root when on), release versions detected, style-check choice. Ask:
    ```
@@ -129,7 +138,13 @@ scopes only what Phase 6 renders; it does not mutate the stored handoff that oth
 phases read. When `focus_key` is null, the draft covers the whole ticket/VI exactly as
 today.
 
-If `status: NOT_FOUND` / `EMPTY`, surface `["Re-enter key", "Cancel"]`. On `OK`, parse `release_versions` from the VI frontmatter into a list (e.g. `"Managed (344), SaaS (344)"` → `["Managed (344)", "SaaS (344)"]`).
+If `status: NOT_FOUND` / `EMPTY`, surface `["Re-enter key", "Cancel"]`.
+
+On `OK`, capture `imported_change_type` and `imported_release_notes_category` from the jira-reader
+handoff's `value_increment` block (null when absent). Do NOT parse `release_versions` — the draft
+carries one Summary and never names a version. Do NOT read the authored specs-draft VI for these
+fields: they are Jira-mirror fields (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-format.md`), so an authored
+VI never carries them.
 
 ---
 
@@ -156,26 +171,51 @@ Run `resolve-docs-grounding release-notes` per `~/.copilot/installed-plugins/ihu
 
 ## Phase 6 — Render the draft
 
+**Resolve `run_phase`.** `release-notes:` runs at two points in a VI's life, and the
+`release-note-types.md` §4 documentation-link rule depends on which. Glob the VI's specs dir
+(`$SPECS_PATH/specifications/<jira_key>-*/`) for `specification.md` and `design.md`:
+
+- **neither present** → `run_phase: pm`. The feature is not built and its documentation does not
+  exist yet, so the note carries no documentation link and the skill never asks for one.
+- **either present** → `run_phase: dev`. The author may supply a redirect short link that will later
+  point at the page `document:` publishes.
+- **`$SPECS_PATH` unset or the dir missing** → `run_phase: pm` (the safe default — it only suppresses
+  a link, never fabricates one).
+
+Do not add a question for it.
+
 → task(agent_type: "dev-workflows:release-notes-writer"):
   > "Render the release-notes draft for this brief:
   >
   > jira_reader_handoff: [the Phase 3 handoff — scoped to the focus Epic's subtree when focus_key is set]
   > diff_summaries:      [the Phase 5 array, or omit when diff grounding was off]
-  > release_versions:    [parsed list, or [] ]
-  > context_label_hint:  [user hint if any, else null]
-  > change_type_hint:    [user-supplied Change Type and/or deprecation signal if any, else null]
+  > docs_grounding:      [the Phase 5.5 digest, or omit when OFF/EMPTY]
+  > imported_change_type:            [from Phase 3, else null]
+  > imported_release_notes_category: [from Phase 3, else null]
+  > run_phase:           [pm | dev — resolved immediately above, in this phase]
   > model_routing:       [the block from Phase 1.5]
-  > code_repos:          [the Phase-4 resolved {slug, path} map when diff grounding is on; omit otherwise]
-  > docs_grounding:      [the Phase 5.5 digest, or omit when OFF/EMPTY]"
+  > code_repos:          [the Phase-4 resolved {slug, path} map when diff grounding is on; omit otherwise]"
 
 If `status: PARTIAL`, surface each `gaps` entry with `recommended_action: "ask user"` and let the user supply the label/prose or accept a `<!-- TODO -->` marker.
 
-For a `field: change_type` gap (low-confidence classification), present the writer's
-proposed value and let the user confirm or override:
+For a `field: change_type` gap, the destination was inferred with low confidence — and the
+destination decides the draft's whole shape. Confirm it by **consequence**, never by enum label.
+This fires ONLY when `imported_change_type` was null; when the Jira dropdown is already set, no
+prompt appears.
+
+State the inference, then ask:
+
+> This note reads like a `<proposed type>`, so the draft is shaped as `<shape>` and lands in
+> `<destination>`.
+
 ```
-choices: ["<proposed value> (Recommended)", "Breaking change", "New technology support", "Bug fix", "not applicable", "Other… (describe)"]
+choices: ["<proposed type> — <its shape>, in <its destination> (Recommended)", "Feature update — titled section with a docs link, in feature-updates.md", "Breaking change — titled section with remediation steps, in breaking-changes.md", "Fix — one self-contained sentence, in fixes.md", "Other… (describe)"]
 ```
-Apply the chosen value to `release_notes_block.change_type` (and thus the draft's leading `Change type:` line).
+
+Drop the option that duplicates the recommended one. Apply the choice to
+`release_notes_block.change_type` + `destination` and **re-render** the draft in the chosen shape —
+switching between `fixes` and a titled destination changes the body structure, not just a label. The
+chosen value never becomes text in the draft; the PM still sets the Jira dropdown.
 
 For a `field: deprecation_eol` gap (a deprecation was detected but the required
 end-of-life date is unclear), ask the user:
@@ -224,8 +264,8 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
    ```
    ## Release-notes draft — <jira_key>
    - Destination: <path | stdout | skipped>
-   - Release versions: <list, or "none declared">
-   - Change type: <Breaking change | New technology support | Bug fix | not applicable>
+   - Shaped as: <Feature update | Breaking change | Fix> → <destination file>  (source: <imported | inferred>)
+   - Context label: <the {{#context}} value | none — omitted from the draft>
    - Deprecation: <EOL <date> (end-of-support <date | —>) | none>
    - Diff grounding: <on (repos: …) | off>
    - Style check: <applied N safe fixes | report only (M findings) | skipped (dt-style-guide absent)>
@@ -313,7 +353,9 @@ API call, and NEVER writes into a docs repo or the current working directory.
 - ZERO external API calls — PR URLs are identifiers only; all resolution is local `git`.
 - `jira-reader` is read-only.
 - The draft contains NO Jira IDs/keys, NO PR links, and NO `{{#internal-note}}` block.
-- The draft LEADS with a `Change type:` line (one of `Breaking change` / `New technology support` / `Bug fix` / `not applicable`) above a type-aware Summary; when the change deprecates something the Summary carries a deprecation note (end-of-life date required, end-of-support optional). The Change Type label never appears inside the Summary body, and no title or Summary prose names the release version. The pipeline-consumed Summary body is otherwise unchanged.
+- The draft is EXACTLY one Summary, shaped by its destination per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/release-note-types.md` §1/§3 — a `{{#context}}` label + `### title` + prose for `breaking-changes` / `feature-updates`, or ONE bare past-tense sentence for `fixes`. It carries NO `Change type:` line, NO `Release-notes category:` line, and no title or prose that names the release version. When the change deprecates something the Summary carries a deprecation note (end-of-life date required, end-of-support optional).
+- The `{{#context}}` label IS the imported `release_notes_category`, used verbatim; when the import carries none the line is OMITTED. Change Type is sourced `imported_change_type` → infer, and is confirmed with the user ONLY when it was inferred with low confidence — by shape and destination, never by enum label. Neither field is ever asked for as a Jira dropdown value.
+- The run is GATED on the imported `relevant_for_release_notes`: an explicit `false` stops with `RELEASE_NOTES_NOT_RELEVANT` (overridable); absent proceeds silently.
 - NEVER write into a docs repo; the default destination is persistent (never `/tmp`).
 - ALWAYS use `choices` arrays; the last choice is always `"Other… (describe)"`.
 - Light gate only — no Opus review, no tests, no branch, no commit.
