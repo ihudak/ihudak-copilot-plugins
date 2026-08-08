@@ -11,10 +11,11 @@ Draft release notes for the Jira ticket: the argument (text following the `relea
 `release-notes:` produces a **customer-facing release-notes draft** for a Jira
 Value Increment (or any ticket) from pre-exported markdown in the user's Obsidian vault.
 It optionally grounds the prose in merged PR diffs, renders the dynatrace-docs authored
-release-notes body (a `{{#context}}` label + `### title` + prose — **no `{{#internal-note}}`,
-no Jira IDs, no PR links**; the docs automation adds the metadata wrapper), runs a light
-style gate, and writes the draft to a persistent destination for the user to paste into
-Jira's release-notes field.
+release-notes body — a `{{#context}}` label + `### title` + prose for the `feature-updates` /
+`breaking-changes` destinations, or one bare past-tense sentence for `fixes` — with **no
+`{{#internal-note}}`, no Jira IDs, no PR links** (the docs automation adds the metadata
+wrapper), runs a light style gate, and writes the draft to a persistent destination for the
+user to paste into Jira's release-notes field.
 
 For full feature documentation use `document:`; for Epic drafting use `epics:`.
 
@@ -99,9 +100,10 @@ Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak
 
 ## Phase 2 — Worthiness check + plan/approval
 
-1. **Worthiness gate.** Read `relevant_for_release_notes` from the **imported VI frontmatter** under
-   `jira_export_root` — either from Phase 3's `jira-reader` handoff or by reading the frontmatter
-   directly here. NEVER read it from the authored specs draft.
+1. **Worthiness gate.** Read `relevant_for_release_notes` directly from the **imported VI frontmatter**
+   under `jira_export_root` (this phase runs before Phase 3, so there is no `jira-reader` handoff yet,
+   and `jira-reader` does not surface this field in any case). NEVER read it from the authored specs
+   draft.
    - **`false` / `no`** → stop:
      `RELEASE_NOTES_NOT_RELEVANT: <jira_key> is flagged not relevant for release notes; Jira's status rule does not require one.`
      Offer an override for drafting ahead of the flag:
@@ -113,7 +115,7 @@ Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak
 
    `release_versions` plays no part in this gate.
 
-2. **Plan.** Present: resolved `jira_key`, destination, diff-grounding on/off (+ `$REPOS_PATH` and repos to scan when on), docs grounding on/off (+ root when on), release versions detected, style-check choice. Ask:
+2. **Plan.** Present: resolved `jira_key`, destination, diff-grounding on/off (+ `$REPOS_PATH` and repos to scan when on), docs grounding on/off (+ root when on), style-check choice. Ask:
    ```
    choices: ["Approve & continue (Recommended)", "Revise plan", "Cancel"]
    ```
@@ -213,7 +215,8 @@ choices: ["<proposed type> — <its shape>, in <its destination> (Recommended)",
 ```
 
 Drop the option that duplicates the recommended one. Apply the choice to
-`release_notes_block.change_type` + `destination` and **re-render** the draft in the chosen shape —
+`release_notes_block.change_type` (Feature update → `New technology support`, Breaking change →
+`Breaking change`, Fix → `Bug fix`) + `destination` and **re-render** the draft in the chosen shape —
 switching between `fixes` and a titled destination changes the body structure, not just a label. The
 chosen value never becomes text in the draft; the PM still sets the Jira dropdown.
 
