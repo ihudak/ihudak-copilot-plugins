@@ -114,7 +114,7 @@ When adding a new skill that references shared content, always reference via the
 
 All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `fix-vuln`, `upgrade`) must load and follow `model-routing.md` at the start of every invocation. Standalone review orchestrators (`api-guideline-reviewer`, `guideline-reviewer`) are exempt — they do not classify complexity or route models. Sub-agents receive the `model_routing` block in their prompt; they do not re-read the file.
 
-`skills/_shared/release-note-types.md` is the **single authority** for the release-note Change Type taxonomy (`Breaking change` / `New technology support` / `Bug fix` / `not applicable`), the classification order, the per-type Summary shaping rules, and the deprecation-note rule (end-of-life date required, end-of-support optional). It is consulted by `release-notes-writer`; the `release-notes:` skill applies its decisions through the writer's gaps.
+`skills/_shared/release-note-types.md` is the **single source of truth** for the release-note **destination map** (`breaking-changes.md` / `feature-updates.md` / `fixes.md`), the per-destination **draft shape** (label + title + prose, vs one bare sentence for `fixes`), the per-destination prose rules, the deprecation-note rule (end-of-life date required, end-of-support optional), and Change Type sourcing (import → infer). It is consulted by `release-notes-writer`; the Change Type is never rendered as text.
 
 `skills/_shared/bug-diagnosis.md` is the **single source of truth** for the bug-diagnosis discipline consulted by the `implement:` skill (Phase 2B) and followed by `risk-planner` when a task is bug-shaped (`task_shape: bug`): feedback-loop-first (a red-capable, deterministic repro before hypothesizing), 3–5 ranked falsifiable hypotheses, `[DEBUG-xxxx]`-tagged instrumentation with a mandatory cleanup gate (stripped before the Opus-review diff), and a regression test at a correct seam. It cross-references `skills/_shared/design-format.md` `## Seams` and is paired with `implement:`'s spec/design-conformance ("converge") check — `code-review`'s conditional 10th dimension that traces in-scope `[Uxx]`/`[ACxx]`/`[TCxx]` against the shipped diff.
 
@@ -129,7 +129,7 @@ create-ard:      → create-ard → [ard-reviewer@strong] → (ARD, resolves dec
 specify:         → specify (jira-driven) → [spec-reviewer@strong] → (engineering spec)
 design:          → design → [design-reviewer@strong] → (engineering design)
 epics:           → epics (jira-driven) → jira-reader → [code-scanner×N (parallel, optional)] → writing → [dt-style-checker] → [doc-fixer] → [epic-reviewer@strong] → [doc-fixer] → impl-maintenance
-release-notes:   → release-notes → release-notes-writer: classify Change Type + shape per type + detect deprecation → (dynatrace-docs block draft: Change type: line + Summary; NEVER written to docs repo)
+release-notes:   → release-notes → release-notes-writer: resolve destination + shape per destination + source the {{#context}} label + detect deprecation → (dynatrace-docs block draft: destination-shaped Summary; NEVER written to docs repo)
 ready:           → ready → [readiness-reviewer@strong] → impl-maintenance
 
 Implementation & maintenance:
