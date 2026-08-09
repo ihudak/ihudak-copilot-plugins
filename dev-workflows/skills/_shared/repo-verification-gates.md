@@ -21,8 +21,8 @@ politeness: a run that ignores them ships work a reviewer will bounce.
 
 ## 2. Finding the checklist
 
-Scan the repo root (and `.claude/`) for `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`,
-`CLAUDE.md`, `STYLE.md`, and `DOCUMENTATION-GUIDELINES.md`. In each, look for a checklist section —
+Scan the repo root (and `.github/`) for `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`,
+`.github/copilot-instructions.md`, `STYLE.md`, and `DOCUMENTATION-GUIDELINES.md`. In each, look for a checklist section —
 headings matching, case-insensitively, `PR checklist`, `Before you submit`, `Before submitting`,
 `Definition of done`, `Review checklist`, `Submission checklist`, or `Merge checklist`. Read every
 sub-section beneath it.
