@@ -257,7 +257,7 @@ Opus 5 → GPT-5.6 → Opus 4.8 → 4.7 → 4.6 → GPT-5.5 → Opus 4.5 → Son
 
 - **Full lifecycle**: `idea:` → `create-vi:` → `create-ard:` → `specify:` →
   `design:` → `epics:` → `implement:` → `document:` → `release-notes:` → `ready:`,
-  each with a dedicated Opus/GPT-5.5 reviewer sub-agent.
+  each with a dedicated Opus/GPT-5.6 reviewer sub-agent.
 - **Source-code is the truth, discrepancies escalate to YOU**
   (`_shared/source-truth.md`): every sub-agent that writes or reviews user-visible
   docs verifies enums, labels, defaults, and counts against the actual source.
@@ -292,7 +292,7 @@ Opus 5 → GPT-5.6 → Opus 4.8 → 4.7 → 4.6 → GPT-5.5 → Opus 4.5 → Son
 - **Test-writing gate**: `implement:` writes tests for all new/changed behaviour
   via `test-writer` and verifies no regressions against a pre-impl baseline. No
   test framework? The workflow asks — it never silently skips.
-- **Opus/GPT-5.5 code-review gate**: code workflows run a strong-tier review before
+- **Opus/GPT-5.6 code-review gate**: code workflows run a strong-tier review before
   committing for SIGNIFICANT/HIGH-RISK tasks; `review-fixer` auto-applies fixable
   findings.
 - **Post-batch maintenance**: `impl-maintenance` updates the knowledge base,

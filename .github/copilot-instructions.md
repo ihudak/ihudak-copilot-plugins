@@ -176,7 +176,7 @@ Utilities: feedback:, prompt:, prompt-brainstorm:, prompt-grill-me:
 
 Key invariants enforced by all three code orchestrators (`implement:`, `vuln:`, `upgrade:`):
 - Branch created before any file is touched (`feat/<slug>` or equivalent)
-- Strong-tier (Opus/GPT-5.5) review gate runs **before** tests for `SIGNIFICANT`/`HIGH-RISK` tasks
+- Strong-tier (Opus/GPT-5.6) review gate runs **before** tests for `SIGNIFICANT`/`HIGH-RISK` tasks
 - `review-fixer` handles BLOCKER findings; only one review-fixer cycle per review
 - `impl-maintenance` runs post-batch to update KB, `copilot-instructions.md`, and project docs
 
