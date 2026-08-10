@@ -128,6 +128,8 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 
 `skills/_shared/dynatrace-docs/anchor-conventions.md` is the **single source of truth** for heading-anchor mechanics on dynatrace-docs pages — one `{:#id}` per heading (multi-anchor unsupported), the four verified internal-link forms, the `pnpm docstack validate-anchors` contract, and the rule that a product `dt-url` deep link's anchor wins reconciliation. Consumed by `doc-writer`, `doc-reviewer`, and `doc-planner`.
 
+`skills/_shared/specs-repo-git.md` is the **single source of truth** for the two specs-repo git entry points shared by all seventeen skills that write into `$SPECS_PATH`: `specs-preflight` (run start — flush leftover artifacts, retry an unpushed artifact commit, settle the branch) and `commit-artifacts` (terminal — stage the bounded artifact paths, commit, push). Owns the bounded write authority (two path shapes; `^(vi|ard|spec|design)/` branches only), the three preflight guards and their four-part notice contract, the branch-disposition table, and the `Specs repo:` outcome line. Always `git -C "$SPECS_PATH"`, never a `cd`; never force-pushes; never fails the run.
+
 ## `dev-workflows` plugin — skill relationships
 
 ```
