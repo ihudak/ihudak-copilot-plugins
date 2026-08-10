@@ -118,11 +118,15 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 
 `skills/_shared/bug-diagnosis.md` is the **single source of truth** for the bug-diagnosis discipline consulted by the `implement:` skill (Phase 2B) and followed by `risk-planner` when a task is bug-shaped (`task_shape: bug`): feedback-loop-first (a red-capable, deterministic repro before hypothesizing), 3–5 ranked falsifiable hypotheses, `[DEBUG-xxxx]`-tagged instrumentation with a mandatory cleanup gate (stripped before the Opus-review diff), and a regression test at a correct seam. It cross-references `skills/_shared/design-format.md` `## Seams` and is paired with `implement:`'s spec/design-conformance ("converge") check — `code-review`'s conditional 10th dimension that traces in-scope `[Uxx]`/`[ACxx]`/`[TCxx]` against the shipped diff.
 
-`skills/_shared/gate-ledger.md` is the **single source of truth** for verification-gate accounting — the six outcomes (`RAN` / `DEGRADED` / `FAILED` / `UNAVAILABLE` / `SKIPPED_BY_USER` / `NOT_APPLICABLE`), the rule that **no outcome is orchestrator-assignable to mean "I decided not to run this"**, the `document:` gate registry, the `UNAVAILABLE` conversion prompt, and the reviewer contract. Consumed by `document:` (both modes) and written generically for other skills to adopt.
+`skills/_shared/gate-ledger.md` is the **single source of truth** for verification-gate accounting — the six outcomes (`RAN` / `DEGRADED` / `FAILED` / `UNAVAILABLE` / `SKIPPED_BY_USER` / `NOT_APPLICABLE`), the rule that **no outcome is orchestrator-assignable to mean "I decided not to run this"**, the `document:` gate registry (now seven gates, including `image_review` for Phase 5.6's always-running image step), the `UNAVAILABLE` conversion prompt, and the reviewer contract. Consumed by `document:` (both modes) and written generically for other skills to adopt.
 
 `skills/_shared/repo-verification-gates.md` is the **single source of truth** for extracting a docs repo's own pre-PR checklist into the `repo_verification_gates` block — the heading patterns, what counts as checkable against the written files, and the augment-never-override rule. Applied by `doc-planner` in `document:` Jira mode and by the orchestrator itself in direct mode, which has no planner.
 
 `skills/_shared/toolchain-preflight.md` is the **single source of truth** for the Phase 0 environment check — deriving the required tool set from the resolved profile, the repo's config signals, and the repo's own documented `Prerequisites`; the `toolchain` block with its tool→gate map; and the missing-tool prompt (Cancel recommended, silence when everything resolves). Consumed by `document:` (both modes).
+
+`skills/_shared/doc-structure-conventions.md` is the **single source of truth** for how a written page is structured and what it may contain — the traceability boundary (a rendered page carries no source provenance; the Jira key lives in the commit message, per-claim attribution lives in the run handoff), callout scope and adjacency (a callout sits with the option it qualifies, never trailing the whole set — a scope violation is a `doc-reviewer` MAJOR), and component-pattern fidelity (reuse the docs area's established content component for a recurring shape instead of an ad-hoc structure — divergence is MINOR). Consumed by `doc-planner`, `doc-writer`, and `doc-reviewer`.
+
+`skills/_shared/dynatrace-docs/anchor-conventions.md` is the **single source of truth** for heading-anchor mechanics on dynatrace-docs pages — one `{:#id}` per heading (multi-anchor unsupported), the four verified internal-link forms, the `pnpm docstack validate-anchors` contract, and the rule that a product `dt-url` deep link's anchor wins reconciliation. Consumed by `doc-writer`, `doc-reviewer`, and `doc-planner`.
 
 ## `dev-workflows` plugin — skill relationships
 
@@ -141,8 +145,8 @@ ready:           → ready → [readiness-reviewer@strong] → impl-maintenance
 Implementation & maintenance:
 implement:       → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance
 document:        → document (dual-mode)
-                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance
-                    └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance
+                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip]
+                    └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip]
 vuln:            → vuln → vuln-research → vuln-fixer → [code-review@strong] → review-fixer → tests → impl-maintenance
 upgrade:         → upgrade → upgrade-planner → upgrade-executor → [code-review@strong] → review-fixer → tests → impl-maintenance
 docs-profile:    → docs-profile → (writes .dev-workflows/docs-profile.yml as reviewable PR; consumed by document: jira mode)
@@ -203,7 +207,9 @@ Key invariants for `document:` jira mode and `epics:`:
 - `epics:`: `dt-style-checker` is the primary style checker (vault content has no repo linter); gracefully skipped if `dt-style-guide` not installed
 - Review gate: `doc-reviewer` (`document:`) or `epic-reviewer@strong` (`epics:`); `doc-fixer` resolves BLOCKERs; cap 1 fix cycle + 1 re-review
 - Sub-agents return `DIRTY_TREE` / `REFRESH_BLOCKED` when they cannot refresh repos — orchestrator escalates to user; never silent failure
-- Every written claim must cite originating Jira key (`[[KEY]]`) + PR URL (`document:`) or file path (`epics:`)
+- Every written claim must be traceable to a Jira key + PR URL (`document:`) or file path (`epics:`) — but for `document:`, that attribution goes in the run's return payload and the commit message, **never** inline in the rendered page (`doc-structure-conventions.md` §1); `epics:` Epic drafts still cite `[[KEY]]` inline
+- `document:` jira mode's Phase 5.6 image step **always runs** — declining new screenshots skips only the add-list, never the review of images already on an `extend-existing` page for staleness; a page's declared `announcement_pages` block lets `doc-location-finder` propose a hand-authored cross-cutting page (e.g. a deprecation notice) as an additional target alongside the feature-subtree page
+- Phase 8's (jira mode) / Phase 4's (doc-edit mode) knowledge-base and instructions maintenance agents only ever **propose** an edit (`{file, anchor, replacement, reason}`); a following maintenance-proposals phase asks the user to skip/apply-all/choose-per-proposal before anything is written, and an applied edit is left uncommitted so it never rides the docs commit
 - Writes never touch `_archive/` (vault read-only zone); never write outside cwd unless user provides explicit absolute path
 - (docs flow) Phase 0 runs the toolchain preflight after profile resolution; it prompts **only** when a required tool is missing, and Cancel is the recommended option
 - (docs flow) Every gate in the `gate-ledger.md` registry appends its row **when the gate completes**; a missing row, an unconverted `UNAVAILABLE`, or an unattributed skip is a `doc-reviewer` BLOCKER
