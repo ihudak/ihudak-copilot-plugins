@@ -670,7 +670,7 @@ directory.
 - ALWAYS use `choices` arrays for decision points; last choice is always `"Other… (describe)"`
 - ALWAYS produce the Phase 9 report as the final output
 - ALWAYS end the Phase 9 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked
-- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain
+- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain. `[[KEY]]` wikilinks in the draft are correct here and stay: `epics:` writes into an Obsidian vault, where a wikilink is the native idiom and resolves. `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1 — which bans in-page provenance — governs **rendered product-docs pages** (`document:`'s write targets), not vault documents; do not apply it to Epic drafts
 - NEVER run `docs-style-checker` — Epic drafts are vault-internal and not subject to product-docs prose linting. Dynatrace corporate style is checked via `dt-style-checker` in Phase 6.2 instead.
 - ALWAYS have `epic-writer` write `_coverage.md` to `output_dir` (VI-holistic, even in focus mode); it is NOT a Jira Epic and is never pasted to Jira
 - ALWAYS run the Phase 6.1 clarification gate when the writer returns clarifications; unresolved-by-choice markers become `epic-reviewer` BLOCKERs

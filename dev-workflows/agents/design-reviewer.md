@@ -20,7 +20,7 @@ The caller passes:
   Required for the traceability check; if absent, report that traceability could not be verified.
 - **Classification** — `SIMPLE` / `MODERATE` / `SIGNIFICANT` / `HIGH-RISK`. Scales section-inclusion
   expectations (a `SIMPLE` design legitimately omits scaled sections with a one-line `_N/A — why_`; a
-  `HIGH-RISK` design must cover them thoroughly). Never flag a section that `design-format.md` says is
+  `HIGH-RISK` design must cover them thoroughly). Never flag a section that `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md` says is
   legitimately omittable at this classification.
 
 - **`applicable_ard`** (optional) — the resolved ARD `AD-N` invariants (`id`/`binds`/`prevents`/`rule`) when `design:` resolved an ARD (Phase 2.5); absent when no ARD exists. Enables the conditional ARD-conformance check below.

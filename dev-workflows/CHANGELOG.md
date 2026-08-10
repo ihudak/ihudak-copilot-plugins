@@ -57,6 +57,14 @@ Versions follow semver at the plugin level.
 - **One question survives, reframed.** A low-confidence *destination* inference is still confirmed — but only when the Jira dropdown is unset, and the options now name each choice's shape and destination file instead of the four opaque enum values.
 - **Two long-standing contract defects corrected.** `skills/_shared/handoff/release-notes-writer.md` typed `release_notes_category` with the `change_type` enum (it is a free-text Dynatrace Solution name) and omitted `"note in report"` from `recommended_action`. Both blocks were rewritten by this change.
 
+## [2.11.0] — 2026-08-04
+
+### Changed
+
+- **Branch naming is now repo-rule-first.** 2.10.0 wired the previously-orphaned `$GIT_USER_INITIALS` ladder into all five branch-creating workflows, but left it as the *primary* mechanism — and only `document:` and `docs-profile:` ever read the target repo's own branch-naming convention, so `_shared/branch-naming.md`'s claim that a documented pattern "outranks this ladder" was unenforceable in `implement:`, `upgrade:`, and `vuln:`. The priority is inverted and the gap closed. All five now read the repo's `CONTRIBUTING.md` / `CONTRIBUTION.md` / `README.md` / `DOCUMENTATION-GUIDELINES.md` / `.github/copilot-instructions.md` **first** (§1.1), classify the documented pattern's segments (§1.2), and fill each from its proper source: an **identity** placeholder (`<your-name-or-initials>`, `<user>`, …) from the `$GIT_USER_INITIALS` → `git config user.initials` → existing-branch-inference → prompt ladder, now §2; an **issue-key** segment from the run's already-resolved Jira key (or the documented no-issue literal); the **description** from each workflow's own slug rule (§3). Against `dynatrace-docs`' documented `<your-name-or-initials>/<JIRA-ISSUE-KEY>-<short-branch-name>`, `GIT_USER_INITIALS=iv-gu` now yields `iv-gu/PRODUCT-17753-add-oauth`. The ladder supplies the *whole* prefix only when a repo documents no convention at all (§1.4).
+- **A pattern with no identity segment no longer gets one.** Injecting initials into a repo whose documented convention is a plain `feat/<slug>` would violate that convention; §1.2 and §5 now forbid it. Identity inference ignores the generic prefixes, and the §2.5 escalation drops its generic-fallback choice when an identity is being filled.
+- **`implement:` composes a compliant name in issue-key repos.** When a documented pattern has no separate issue-key segment but the run resolved a Jira key, the key is prefixed to the slug (`<KEY>-<slug>`).
+
 ## [2.10.0] — 2026-08-04
 
 ### Added
@@ -68,14 +76,6 @@ Versions follow semver at the plugin level.
 - **The prefix ladder rejected hyphenated initials.** §1.3's inference pattern was `^[a-z0-9]+$` while §4's hard rules allowed `[a-z0-9-]`, so existing `iv-gu/…` branches were invisible to inference and the §1.5 prompt told users "alphanumeric". Inference now accepts `[a-z0-9][a-z0-9-]*` and both prompts say `[a-z0-9-]`. (`$GIT_USER_INITIALS` was always taken verbatim, so §1.1 was unaffected.)
 - **Reaching the per-workflow fallback was silent.** §1.5 mandated a prompt, but no orchestrator implemented it. The prompt is now registered in `_shared/escalation-rules.md` as "Branch prefix undetected" and referenced from each branch-setup step.
 - **`docs-profile:` derived initials from `git config user.name`** in its own ad-hoc way, ignoring `$GIT_USER_INITIALS` entirely. It now uses the shared ladder.
-
-## [2.11.0] — 2026-08-04
-
-### Changed
-
-- **Branch naming is now repo-rule-first.** 2.10.0 wired the previously-orphaned `$GIT_USER_INITIALS` ladder into all five branch-creating workflows, but left it as the *primary* mechanism — and only `document:` and `docs-profile:` ever read the target repo's own branch-naming convention, so `_shared/branch-naming.md`'s claim that a documented pattern "outranks this ladder" was unenforceable in `implement:`, `upgrade:`, and `vuln:`. The priority is inverted and the gap closed. All five now read the repo's `CONTRIBUTING.md` / `CONTRIBUTION.md` / `README.md` / `DOCUMENTATION-GUIDELINES.md` / `.github/copilot-instructions.md` **first** (§1.1), classify the documented pattern's segments (§1.2), and fill each from its proper source: an **identity** placeholder (`<your-name-or-initials>`, `<user>`, …) from the `$GIT_USER_INITIALS` → `git config user.initials` → existing-branch-inference → prompt ladder, now §2; an **issue-key** segment from the run's already-resolved Jira key (or the documented no-issue literal); the **description** from each workflow's own slug rule (§3). Against `dynatrace-docs`' documented `<your-name-or-initials>/<JIRA-ISSUE-KEY>-<short-branch-name>`, `GIT_USER_INITIALS=iv-gu` now yields `iv-gu/PRODUCT-17753-add-oauth`. The ladder supplies the *whole* prefix only when a repo documents no convention at all (§1.4).
-- **A pattern with no identity segment no longer gets one.** Injecting initials into a repo whose documented convention is a plain `feat/<slug>` would violate that convention; §1.2 and §5 now forbid it. Identity inference ignores the generic prefixes, and the §2.5 escalation drops its generic-fallback choice when an identity is being filled.
-- **`implement:` composes a compliant name in issue-key repos.** When a documented pattern has no separate issue-key segment but the run resolved a Jira key, the key is prefixed to the slug (`<KEY>-<slug>`).
 
 ## [2.9.4] — 2026-08-02
 

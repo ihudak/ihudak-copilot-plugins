@@ -193,9 +193,9 @@ auto-fixable), the **orchestrator** (this skill, running in the interactive sess
 decision:
 
 - Present the failing tests clearly (from the fixer's `failing_tests` / `diagnosis`).
-- Ask via `ask_user`:
+- Ask via `ask_user` — no option is safe to recommend across arbitrary regressions, so this list carries no `(Recommended)` marker and the qualifying condition sits in the option's own description (per the marker rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`):
   ```
-  choices: ["Apply the fix anyway and flag the failures in the PR (Recommended if tests are flaky)", "Revert this fix and skip it", "Investigate further"]
+  choices: ["Apply the fix anyway and flag the failures in the PR — for flaky tests", "Revert this fix and skip it", "Investigate further"]
   ```
 - **"Investigate further"** → show more detail (the diff, full failure output) and re-ask
   the same choices — this loops here at the orchestrator until the user picks apply or revert.
