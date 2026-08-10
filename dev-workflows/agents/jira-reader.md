@@ -13,8 +13,9 @@ Invoked from `document:` (Phase 3, `depth: full`), `epics:` (Phase 3, `depth: vi
 ## Inputs
 
 The caller passes **either** an explicit export root (preferred — used by
-`document:` and `implement:` via the shared `jira-input-resolution.md`
-front-end) **or** a vault path + key (used by `epics:` and `release-notes:`):
+`document:` and `implement:` via the shared
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` front-end) **or** a
+vault path + key (used by `epics:` and `release-notes:`):
 
 ```yaml
 # Form 1 — explicit export root:
