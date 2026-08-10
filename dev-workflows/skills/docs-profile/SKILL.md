@@ -1,7 +1,7 @@
 ---
 name: docs-profile
 description: >
-  Scan a documentation repository and write/refresh a machine-readable docs-profile (.dev-workflows/docs-profile.yml) plus complementary copilot-instructions.md guidance, as a reviewable PR. Captures spaces, dev-servers, cross-space override/shadowing, shared registries, gen3/Classic tokens, links, branch-naming, images, and prerequisites; defers changelog/owners to the dynatrace-docs-frontmatter skill. Bootstraps or refreshes the profile that document: consumes.
+  Scan a documentation repository and write/refresh a machine-readable docs-profile (.dev-workflows/docs-profile.yml) plus complementary copilot-instructions.md guidance, as a reviewable PR. Captures spaces, dev-servers, cross-space override/shadowing, shared registries, gen3/Classic tokens, links, announcement pages, branch-naming, images, and prerequisites; defers changelog/owners to the dynatrace-docs-frontmatter skill. Bootstraps or refreshes the profile that document: consumes.
   Activated when the user prompt starts with "docs-profile:".
 allowed-tools: view, edit, create, bash, glob, grep, task, ask_user
 ---
