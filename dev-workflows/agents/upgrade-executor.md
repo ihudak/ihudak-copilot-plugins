@@ -68,7 +68,7 @@ the user directly. The orchestrator owns that decision.
 
 ## Invariants
 
-- Leave all changes **uncommitted** — no git commits, no PRs.
+- Leave all changes **uncommitted** — no git commits, no PRs. (still true — this binds the code repo this agent upgrades; the orchestrator's terminal `commit-artifacts` step touches only `$SPECS_PATH`'s bookkeeping paths and never this agent's changes.)
 - Process one component per invocation.
 - The baseline provided by the orchestrator is authoritative; do not re-run it.
 

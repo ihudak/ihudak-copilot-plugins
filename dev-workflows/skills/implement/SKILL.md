@@ -87,6 +87,17 @@ Rules:
   `### Assumptions & limitations`. Direct-mode runs (no Jira input) are exempt —
   the prompt/spec file is the instruction.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover
+session artifacts from an earlier run, retry an artifact commit that failed to
+push, and settle the branch. This runs against `$SPECS_PATH` only —
+`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
+in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
+and on its default branch. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it.
+
 ---
 
 ## Phase 0.5 — Readiness pre-flight (jira-driven only; advisory)
@@ -103,17 +114,6 @@ Surface a **one-line, non-blocking** recommendation to run `ready: <VI> [<Epic>]
 EITHER: the status is below the readiness bar (VI below **Ready for Implementation**; Epic below
 **Refined**), OR a `_readiness.md` records **NOT-SUPPORTED** / **PARTIAL**. This NEVER blocks —
 proceed regardless; it is guidance only. If neither condition holds, say nothing and continue.
-
-**Specs-repo preflight.** Cite
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
-and execute its `specs-preflight` entry point (§3) inline: flush any leftover
-session artifacts from an earlier run, retry an artifact commit that failed to
-push, and settle the branch. This runs against `$SPECS_PATH` only —
-`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
-in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
-`commit-artifacts` step skips on it.
 
 ---
 

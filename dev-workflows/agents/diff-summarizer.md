@@ -159,7 +159,7 @@ aggregate_summary: |
 
 - NEVER make HTTPS / REST calls to Bitbucket (Cloud or Server). All Bitbucket resolution is pure local git.
 - NEVER make HTTPS / REST calls to GitHub outside the `gh` CLI. No direct API calls, no raw `curl` to `api.github.com`.
-- NEVER mutate the repo (no commits, no branch creation, no `git reset`, no `git clean`).
+- NEVER mutate the repo (no commits, no branch creation, no `git reset`, no `git clean`). (still true — this binds the code repo being summarized; the caller's terminal `commit-artifacts` step touches only `$SPECS_PATH` and never dispatches this agent's git.)
 - NEVER switch the repo's HEAD when `refresh.pull` is false — leave the working tree as found.
 - NEVER hardcode a Bitbucket Server hostname. Host classification uses the substring rule documented above.
 - NEVER fabricate diff content. If a PR cannot be resolved by any strategy, record it in `unresolved_prs`.

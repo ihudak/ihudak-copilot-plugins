@@ -23,6 +23,21 @@ For small one-off doc edits, use direct mode (below). For writing child Epic dra
 - **Jira mode (Mode A)** — the input resolves `jira-driven` via the shared front-end (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`): a first token matching a JiraID (`^[A-Z][A-Z0-9]+-[0-9]+`), optionally followed by `saas` | `managed`, **or** a directory that inspects as a Jira-export (contains `<KEY>-index.md`). The front-end's Fallback B handles a JiraID-shaped token with no `jira-products/<KEY>` folder.
 - **Direct mode (Mode B)** — the input resolves `direct` (a leading `@file` token, free-text prose, or a non-Jira-export directory, which Mode B handles via its existing "anything else" path).
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover
+session artifacts from an earlier run, retry an artifact commit that failed to
+push, and settle the branch. This runs against `$SPECS_PATH` only —
+`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
+in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
+and on its default branch. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it. It sits **here**, in the shared
+mode-detection dispatch, deliberately: both modes reach a terminal
+`commit-artifacts`, so both must carry a `specs_git: blocked` flag. A preflight
+placed inside either mode's own Phase 0 would leave the other mode committing
+unguarded.
+
 Echo the detected mode, then proceed to that mode's phases. The two modes share the same `docs-style-checker` / `doc-reviewer` / `doc-fixer` agents (each mode emits its own final report).
 
 ---
@@ -167,17 +182,10 @@ Before clarification, show a readiness table summarizing what Phase 0 resolved:
 
 All discovery defaults to `/workspace` (`${REPOS_PATH:-/workspace}`); on a host, or when a path is missing, the command asks rather than guessing.
 
-**Specs-repo preflight.** Cite
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
-and execute its `specs-preflight` entry point (§3) inline: flush any leftover
-session artifacts from an earlier run, retry an artifact commit that failed to
-push, and settle the branch. This runs against `$SPECS_PATH` only —
-`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
-in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
-`commit-artifacts` step skips on it. This dispatch runs **before mode
-detection**, so Mode B inherits it and never repeats it.
+**Specs-repo preflight.** Already run — the shared mode-detection dispatch executed `specs-preflight`
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
+before this mode was entered, and any `specs_git: blocked` flag it set is carried into this mode too.
+Do not run it a second time.
 
 ---
 
@@ -770,7 +778,7 @@ The writing is delegated to the **`doc-writer`** subagent (pinned to the §2 Opu
      ```
      On a provided value, rewrite the handoff file and re-dispatch once.
 
-Write context governs branch/commit (Phase 0 step 6); **the orchestrator commits the writer's output** (the writer never commits):
+Write context governs branch/commit (Phase 0 step 6); **the orchestrator commits the writer's output** (the writer never commits — still true: `doc-writer` runs no git at all; it only writes files):
 
 | Write context | Branch | Commit |
 |---|---|---|
@@ -1342,10 +1350,10 @@ No model-routing reminder is injected for this command — classification still 
    records the `repo_checklist` ledger row. An empty block is normal — record it and move on. Skip this
    step entirely when cwd is not a git tree (step 3 already skipped for the same reason).
 
-**Specs-repo preflight.** Already run — the shared Phase 0 dispatch executed `specs-preflight`
+**Specs-repo preflight.** Already run — the shared mode-detection dispatch executed `specs-preflight`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
-before mode detection, and any `specs_git: blocked` flag it set is carried into this mode too. Do not
-run it a second time.
+before this mode was entered, and any `specs_git: blocked` flag it set is carried into this mode too.
+Do not run it a second time.
 
 ---
 
