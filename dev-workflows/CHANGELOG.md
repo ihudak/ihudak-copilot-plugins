@@ -4,6 +4,17 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.14.1] — 2026-08-10
+
+### Fixed
+
+- **Haiku 4.5 was listed as a strong-tier fallback.** `README.md`'s chain read `Opus 4.8 → 4.7 → 4.6 → Haiku 4.5 → GPT-5.5 → …`, so a SIGNIFICANT or HIGH-RISK gate would degrade to the cheapest model in the lineup before trying a strong peer. Removed. The root cause was drift: the edition documented its chain in three places — `skills/_shared/model-routing.md`, `.github/copilot-instructions.md`, and `README.md` — and the three had diverged in three different directions. All three now flatten to one sequence, with `model-routing.md` as the authority.
+- **The model references had gone stale.** The strong-tier peer set grows from four to six — `claude-opus-5` first, `gpt-5.6` second, the existing four in their prior relative order. It remains a *peer set*, not a ladder: the "prefer the model the orchestrator is already running under" rule and the never-announced-as-a-downgrade semantics are unchanged. Further fallbacks renumber from 7. The peer label `Opus 4.8/4.7/4.6 or GPT-5.5` becomes `Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5` across nine reviewer agents (frontmatter and body), the preload hook, both READMEs, `copilot-instructions.md`, and both catalogs.
+
+### Added
+
+- **`claude-sonnet-5`, which this edition was missing entirely.** It appeared in neither the strong-tier further-fallbacks list nor the mid-tier detection chain — the canonical edition has carried it for some time and the B-series ports never brought it across, leaving the detection tier topped at Sonnet 4.6. It now sits above `claude-sonnet-4.6` in both.
+
 ## [2.14.0] — 2026-08-10
 
 ### Fixed
