@@ -86,31 +86,35 @@ review, engineering-design review, synthesis) runs on the **strong tier**.
 
 The strong tier is a **peer set**, not a single vendor ladder:
 
+- `claude-opus-5`
+- `gpt-5.6`
 - `claude-opus-4.8`
 - `claude-opus-4.7`
 - `claude-opus-4.6`
 - `gpt-5.5`
 
-These four are **first-class peers**. GPT-5.5 is a strong reasoning model in its
-own right — it is **not** a degraded fallback, and choosing it is never announced
-as a downgrade. (GPT models were unavailable in Claude Code, so the original
-policy was Opus-only; on Copilot CLI, GPT-5.5 is a co-equal strong option.)
+These six are **first-class peers**. GPT-5.6 and GPT-5.5 are strong reasoning
+models in their own right — they are **not** degraded fallbacks, and choosing one
+is never announced as a downgrade. (GPT models were unavailable in Claude Code, so
+the original policy was Opus-only; on Copilot CLI, GPT-5.6 and GPT-5.5 are co-equal
+strong options.)
 
 **Selection rule:**
 
 1. Prefer the model the **orchestrator is already running under** if it is in the
-   strong-tier peer set (e.g. an Opus 4.8 session pins gates to Opus 4.8; a
-   GPT-5.5 session pins gates to GPT-5.5).
+   strong-tier peer set (e.g. an Opus 5 session pins gates to Opus 5; a
+   GPT-5.6 session pins gates to GPT-5.6).
 2. Otherwise pick the first available peer in the list order above.
 
 **Further fallbacks** (only if no strong-tier peer is available — announce the
 degradation in the routing record and final report):
 
-5. `claude-opus-4.5`
-6. `claude-sonnet-4.6`
-7. `claude-sonnet-4.5`
-8. `gpt-5.4`
-9. `gemini-3.1-pro-preview`
+7.  `claude-opus-4.5`
+8.  `claude-sonnet-5`
+9.  `claude-sonnet-4.6`
+10. `claude-sonnet-4.5`
+11. `gpt-5.4`
+12. `gemini-3.1-pro-preview`
 
 `gemini-3.1-pro-preview` is the floor; if no model in the list is available,
 abort the SIGNIFICANT/HIGH-RISK gates and ask the user how to proceed rather than
@@ -134,9 +138,10 @@ expensive model, defeating the point).
 
 Use the first available:
 
-1. `claude-sonnet-4.6`
-2. `claude-sonnet-4.5`
-3. `gpt-5.4` (further fallback — note the degradation in the report)
+1. `claude-sonnet-5`
+2. `claude-sonnet-4.6`
+3. `claude-sonnet-4.5`
+4. `gpt-5.4` (further fallback — note the degradation in the report)
 
 If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
@@ -192,13 +197,13 @@ sub-agent it invokes. Format:
 model_routing:
   classification: SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK
   reason: <one-line justification citing the §1 trigger that applied>
-  current_model: <e.g. claude-opus-4.8 or gpt-5.5>   # the model the orchestrator is running
-  planning_model: <e.g. claude-opus-4.8>     # strong tier; only set for SIGNIFICANT/HIGH-RISK
-  review_model:   <e.g. claude-opus-4.8>     # strong tier; only set for SIGNIFICANT/HIGH-RISK
-  implementation_model: <e.g. claude-sonnet-4.6 or current_model>
-  detection_model: <e.g. claude-sonnet-4.6>  # mid-tier steps (§2.1); never the session model
+  current_model: <e.g. claude-opus-5 or gpt-5.6>   # the model the orchestrator is running
+  planning_model: <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
+  review_model:   <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
+  implementation_model: <e.g. claude-sonnet-5 or current_model>
+  detection_model: <e.g. claude-sonnet-5>    # mid-tier steps (§2.1); never the session model
   fixes_model:    <same as implementation_model>
-  opus_available: true | false             # true if any §2 peer (Opus 4.8/4.7/4.6 or GPT-5.5) is available
+  opus_available: true | false             # true if any §2 peer (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5) is available
   gate_tests_on_review: true | false   # optional; default false. Only meaningful for SIGNIFICANT/HIGH-RISK.
                                        # When true, the executor/fixer sub-agent stops after the build,
                                        # returns status: AWAITING_REVIEW, and waits for a follow-up call
@@ -245,7 +250,7 @@ The CLI's `task` tool accepts an explicit `model:` override. Use it like this:
 ```
 task(
   agent_type: "dev-workflows:risk-planner" | "dev-workflows:code-review" | "general-purpose",
-  model:      "claude-opus-4.8",   # or the highest available strong-tier peer per §2
+  model:      "claude-opus-5",   # or the highest available strong-tier peer per §2
   prompt:     "<full self-contained context — sub-agent has no memory>",
   description:"Strong-tier planning critique" | "Strong-tier code review",
   mode:       "sync"               # always sync for plan/review gates
