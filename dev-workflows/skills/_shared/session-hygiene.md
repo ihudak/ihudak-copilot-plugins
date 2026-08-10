@@ -13,10 +13,27 @@ for a compact/clear": the pipeline does the prep and prompts the choice itself.
 
 ## 1. Prepare-checkpoint (runs FIRST — unconditional for VI-scoped runs)
 
-At command finalization — AFTER the deliverable artifact is saved/committed and AFTER
-feedback / follow-up, and BEFORE the printed suggestion — a VI-scoped run
-writes/overwrites a **resume pointer**. It runs regardless of which suggestion (or none)
-fires: **prepare always, suggest adaptively.**
+At command finalization — AFTER the deliverable artifact is saved/committed, AFTER
+the terminal feedback and follow-up steps, and BEFORE the terminal `commit-artifacts`
+step (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4) — a VI-scoped run writes/overwrites a **resume pointer**. It runs regardless of
+which suggestion (or none) fires: **prepare always, suggest adaptively.**
+
+**The write is its own terminal step — not part of the printed suggestion.** The
+`### Context hygiene` block in a command's report carries the `/compact` | `/clear` |
+`/rename` guidance only. The pointer is written by a **discrete step that runs after
+the terminal feedback and follow-up steps and before `commit-artifacts`** — the last
+step of the skill's terminal feedback/follow-up phase, never folded into the
+feedback- or follow-up-emission procedures themselves. The order is three separate
+steps, as §5 rule 2 states: **follow-ups → `resume.md` → `commit-artifacts`**.
+
+Binding the write to the printed block instead would break it twice over: several
+commands compose their Final Report *before* their terminal feedback and follow-up
+steps run, so the write would land before the follow-up entry it is supposed to
+follow, and it would stay uncommitted, since `commit-artifacts` runs after the
+terminal feedback and follow-up steps. Prepare-first is still satisfied: the write
+happens before the run ends, and therefore before the user can act on the printed
+suggestion.
 
 **Skipped** (no VI anchor to write against): `idea:` (pre-VI, keyless), `implement:`
 **direct** mode, `document:` **doc-edit** mode (Mode B), `vuln:`, `upgrade:`. There the
@@ -93,9 +110,12 @@ auto-suggested there; the PM names the session manually if they want one.
 ## 5. Contract (5 rules)
 
 1. **Guidance-only** — never auto-invokes `/compact`, `/clear`, or `/rename`.
-2. **Prepare-first** — the disk flush (resume pointer) always precedes the printed
-   suggestion, so acting on it is safe. Prepare is unconditional (VI-scoped); only the
-   suggestion is adaptive.
+2. **Prepare-first** — the disk flush (resume pointer) always happens before the run
+   ends, so acting on the printed suggestion is safe. Prepare is unconditional
+   (VI-scoped); only the suggestion is adaptive. The canonical terminal order is:
+   **deliverable + handoff → feedback → follow-ups → `resume.md` →
+   `commit-artifacts` → the run's last printed output**
+   (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 3. **Role-aware via a single graph** — the compact/clear split reads
    `next-phase-offer.md`'s role labels; the role graph is not duplicated here.
 4. **Mode-aware** — direct / doc-edit / non-pipeline / pre-VI runs (no VI anchor) → no

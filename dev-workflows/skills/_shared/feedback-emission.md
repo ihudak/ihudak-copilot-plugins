@@ -11,7 +11,11 @@ plugin-facing predicate, and the caller contract.
 plugin itself** and persist them per-VI into the **specs repo** so the plugin
 maintainer can aggregate feedback across engineers. Feedback reaches the
 maintainer only if it lands in the committed, pushed specs repo — hence the
-persistence ladder is **specs-first** (§2).
+persistence ladder is **specs-first** (§2), and hence every command's terminal
+`commit-artifacts` step commits and pushes it
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4). This emitter still
+never touches git itself (§6 caller contract); the commit is a separate,
+bounded, end-of-run step.
 
 **Self-contained — no hard cross-plugin dependency.** `prompt-brainstorm:` uses
 `superpowers:brainstorming`; `prompt-grill-me:` grills the fix inline following
@@ -180,7 +184,9 @@ signal the maintainer needs.
 Three named entry points. Every caller supplies `plugin_version` (§3) and lets
 this reference resolve the target (§2), dedupe/append (§3), and format the entry
 (§1). None of them commits; none writes into a docs/code repo or the current
-working directory.
+working directory. The artifacts are committed later, once, by the run's
+terminal `commit-artifacts` step
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 
 ### `emit-auto` — automatic callers (the twelve commands' maintenance phases)
 
