@@ -16,6 +16,12 @@ All changes are left **uncommitted** on the current branch.
 
 ---
 
+## Phase 0 — Specs-repo preflight
+
+Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from an earlier run, retry an artifact commit that failed to push, and settle the branch. This runs against `$SPECS_PATH` only — `git -C "$SPECS_PATH"`, never a `cd`, so the code repo this run is about to upgrade is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal `commit-artifacts` step skips on it.
+
+---
+
 ## Phase 1 — Compatibility Planning (no files changed)
 
 1. **Inventory** — Detect all components and their current versions from build files, runtime version files, and CI YAML. Use `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/upgrade/ecosystems.md`.
@@ -154,7 +160,9 @@ All changes are left **uncommitted** on the current branch.
 
 **Context hygiene.** This was a large run — consider **`/compact`** to free context before your next task (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §3 — non-pipeline, so `/compact` only; guidance only).
 
-9. **Persist plugin feedback (automatic)** — After `impl-maintenance` returns, project its plugin-facing slice into the specs repo by citing `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and calling its `emit-auto` entry point (§6). Pass the Lessons Learned report, `command: upgrade:`, the run's `jira_key` (or `null`) and `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). `emit-auto` renders only the report's **Command workflow improvements**, **New agents / skills**, and plugin **Reference docs** sections plus the **Key observations** that triggered them (§4 plugin-facing predicate) — never target-project `copilot-instructions.md`/hook advice — as `origin: auto` entries, dedupes by stable `id` (§3), resolves the target via the §2 specs-first ladder, and writes silently. List the persisted path (or "no plugin-facing signal — nothing persisted") after the lessons-learned report. ADDITIVE — this step NEVER fails the run, NEVER commits, and NEVER writes into the code repo or the current working directory.
+9. **Persist plugin feedback (automatic)** — After `impl-maintenance` returns, project its plugin-facing slice into the specs repo by citing `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and calling its `emit-auto` entry point (§6). Pass the Lessons Learned report, `command: upgrade:`, the run's `jira_key` (or `null`) and `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). `emit-auto` renders only the report's **Command workflow improvements**, **New agents / skills**, and plugin **Reference docs** sections plus the **Key observations** that triggered them (§4 plugin-facing predicate) — never target-project `copilot-instructions.md`/hook advice — as `origin: auto` entries, dedupes by stable `id` (§3), resolves the target via the §2 specs-first ladder, and writes silently. List the persisted path (or "no plugin-facing signal — nothing persisted") after the lessons-learned report. ADDITIVE — this step NEVER fails the run, NEVER commits (still true — the assertion is scoped to *this step*, which only writes the feedback file; those writes are committed by the separate terminal `commit-artifacts` step, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4), and NEVER writes into the code repo or the current working directory.
+
+10. **Commit session artifacts (terminal)** — Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (upgrade:)` — or `NOISSUE …` when the run resolved no Jira key — and pushes to the specs repo's default branch. It NEVER touches the code repo this run just upgraded: the upgrade changes are left uncommitted on the current branch by `upgrade-executor`, exactly as before. It NEVER force-pushes, NEVER fails the run, and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Print its §6 outcome line as the run's last output, prefixed `Specs repo:`, with any guard notice repeated in full. No `resume.md` is written for `upgrade:` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 skip list).
 
 ---
 
@@ -217,6 +225,7 @@ the decision:
 - NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` component before the Opus review returns a non-BLOCK verdict
 - NEVER modify files during Phase 1
 - NEVER touch files before the upgrade branch exists
+- ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - ALWAYS capture the baseline once before executing any component
 - ALWAYS pass the same baseline block to `upgrade-executor` on `phase: verify-resume`
 - ALWAYS include classification in the final summary table

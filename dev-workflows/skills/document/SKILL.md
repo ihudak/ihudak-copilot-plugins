@@ -167,6 +167,18 @@ Before clarification, show a readiness table summarizing what Phase 0 resolved:
 
 All discovery defaults to `/workspace` (`${REPOS_PATH:-/workspace}`); on a host, or when a path is missing, the command asks rather than guessing.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover
+session artifacts from an earlier run, retry an artifact commit that failed to
+push, and settle the branch. This runs against `$SPECS_PATH` only —
+`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
+in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
+and on its default branch. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it. This dispatch runs **before mode
+detection**, so Mode B inherits it and never repeats it.
+
 ---
 
 ## Phase 1 — Clarification
@@ -767,6 +779,8 @@ Write context governs branch/commit (Phase 0 step 6); **the orchestrator commits
 | `non_docs_repo` | Phase 0 step 2 already asked user to confirm; if confirmed, behave as `docs_repo` | YES (if user confirmed at Phase 0) |
 | `plain_dir` | NEVER | NEVER |
 
+This table governs the **documentation write target only**. Independently of every row above, the run's terminal `commit-artifacts` step commits `$SPECS_PATH`'s bounded session-artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) — a different repository, never the docs write target.
+
 ---
 
 ## Phase 6.4 — Style check (before reviewer)
@@ -1030,8 +1044,11 @@ stable `id` (§3), resolves the target via the §2 specs-first ladder, and write
 silently. List the persisted path (or "no plugin-facing signal — nothing
 persisted") in the Phase 9 report's Session learnings line. ADDITIVE — the
 impl-maintenance report still appears in the report; this step NEVER fails the
-run, NEVER commits, and NEVER writes into the docs repo or the current working
-directory.
+run, NEVER commits (still true — the assertion is scoped to *this step*, which
+only writes the feedback file; those writes are committed by the separate
+terminal `commit-artifacts` step, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and NEVER writes into the docs repo or the current working directory.
 
 ---
 
@@ -1069,7 +1086,7 @@ Carry the squash result, push outcome, and PR-draft path into the Phase 9 report
 
 ## Phase 8.6 — Maintenance proposals
 
-Runs **after** Phase 8.5 — never before. The ordering is the whole safety property, and it holds whether or not Phase 8.5 ran: once this phase starts, **the run will create no further commit** — either Phase 8.5 sealed the docs commit, or the write context never commits at all (`obsidian` / `plain_dir`, per the Phase 6.3 branch/commit table). Either way an accepted `copilot-instructions.md` (or knowledge-base) edit has no commit left to ride.
+Runs **after** Phase 8.5 — never before. The ordering is the whole safety property, and it holds whether or not Phase 8.5 ran: once this phase starts, **the run will create no further commit in the docs write target** — either Phase 8.5 sealed the docs commit, or the write context never commits at all (`obsidian` / `plain_dir`, per the Phase 6.3 branch/commit table — which governs the docs write target only, never `$SPECS_PATH`). Either way an accepted `copilot-instructions.md` (or knowledge-base) edit has no commit left to ride. What still commits after this point is the terminal `commit-artifacts` step, which stages ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) — it can never pick up a `copilot-instructions.md` or knowledge-base edit, so the safety property holds unchanged.
 
 Skip this phase with no prompt when both Phase 8 Agent 2 and Agent 3 returned `'no update required'`.
 
@@ -1086,7 +1103,7 @@ choices: ["Skip — report only (Recommended)", "Apply all", "Choose per proposa
 - **Skip — report only** — apply nothing; every proposal's disposition is `proposed` for the Phase 9 report.
 - **Apply all** — apply every proposal via the mechanism below; every proposal's disposition is `applied-uncommitted`.
 - **Choose per proposal** — ask accept/decline for each proposal; apply the accepted ones (`applied-uncommitted`), leave the rest `declined`.
-- **Cancel** — apply nothing; every proposal's disposition is `proposed`. Unlike every other "Cancel" in this command, **Cancel here does not abort the run**: by the time this phase runs there is nothing upstream left to unwind — Phase 8.5's squash (and any push / PR draft) is already done, or the write context never committed at all (`obsidian` / `plain_dir`). Cancel only declines this phase's proposals; the run proceeds to Phase 9 and the Final Report is produced exactly as it would be after Skip.
+- **Cancel** — apply nothing; every proposal's disposition is `proposed`. Unlike every other "Cancel" in this command, **Cancel here does not abort the run**: by the time this phase runs there is nothing upstream left to unwind — Phase 8.5's squash (and any push / PR draft) is already done, or the write context never committed at all (`obsidian` / `plain_dir`) (still true — what still commits after this point is the terminal `commit-artifacts` step, bounded to `$SPECS_PATH`'s artifact paths per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1, and therefore never able to carry a proposal from this phase). Cancel only declines this phase's proposals; the run proceeds to Phase 9 and the Final Report is produced exactly as it would be after Skip.
 
 **Apply mechanism.** For each accepted proposal, re-dispatch the agent that produced it — Agent 2 or Agent 3, same general-purpose agent and model as Phase 8, no new agent type — in apply mode, carrying its own proposal back verbatim:
 
@@ -1194,7 +1211,7 @@ List each gap (claim, decision) with its own status line — never print the DO-
 
 ### Context hygiene
 
-Write the resume pointer at `<VI-dir>/dev-workflows/resume.md` (per `session-hygiene.md` §1). Then:
+The resume pointer is written in the terminal follow-up phase (Phase 10), per `session-hygiene.md` §1. Then:
 
 - **On to `release-notes: <VI>` (docs → PM handoff), even yourself?** → run **`/clear`** for a clean slate; the docs are on disk.
 - Consider **`/rename <VI-ID>-<slug>-team`** to relocate this session later.
@@ -1224,8 +1241,32 @@ inline.
 4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 9 report (today's behaviour).
-This phase NEVER fails the run, NEVER commits, and NEVER writes into the docs
-repo or the current working directory.
+This phase NEVER fails the run, NEVER commits (still true — this phase only
+writes follow-up files; those writes are committed by the terminal
+`commit-artifacts` step at the end of this phase, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and NEVER writes into the docs repo or the current working directory.
+
+**Then write the resume pointer.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the
+follow-up entries above, so the pointer reflects the completed run, and before
+the commit step below, so it is included in it. Redact per §1. Silent; the
+printed `### Context hygiene` guidance already appeared in the Phase 9 report.
+
+**Then commit session artifacts (terminal).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
+the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
+commits `<KEY> Add dev-workflows session artifacts (document:)`, and pushes to
+the specs repo's default branch. It NEVER writes into the docs repo this run
+just changed — the documentation commit, branch, and PR are untouched — NEVER
+touches a code repo, the vault, or the current working directory; NEVER
+force-pushes; NEVER fails the run; and skips entirely when the run carries
+`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
+report was composed before this phase, **print its §6 outcome line here**, as
+the run's last output — prefixed `Specs repo:`, with any guard notice repeated
+in full.
 
 ---
 
@@ -1256,7 +1297,8 @@ repo or the current working directory.
 - ALWAYS end the Phase 9 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked; omitted in direct doc-edit mode (Mode B)
 - ALL written claims must be traceable to Jira keys or PR diffs — attribution goes in the run's return payload and the commit message, NEVER inline in the rendered page (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1)
 - For `image_policy: cdn_upload_required`, NEVER copy user-provided screenshots into the repo — stage under `<screenshot_staging_dir>`, the ticket's persistent Obsidian project folder under `$VAULT_PATH` (never the docs repo, never `/tmp`) — and surface in the Phase 9 `### Screenshots to upload manually` section
-- ALWAYS end the Phase 9 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (`resume.md`), then a docs→PM handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-team`; guidance only, never auto-run. **Mode B (direct doc-edit) omits this** — no VI context.
+- ALWAYS end the Phase 9 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal follow-up phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a docs→PM handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-team`; guidance only, never auto-run. **Mode B (direct doc-edit) omits this** — no VI context.
+- ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 
 ---
 
@@ -1268,7 +1310,7 @@ If the argument starts with `@`, treat it as a path to a markdown file. Resolve 
 
 `document:` (direct mode) is the **one-shot doc-editing** workflow — minor edits, formatting, small updates to existing pages, and single-file additions where the content comes from the user's description alone. It is the right tool when:
 - the change is small and the content is already in the user's head or the file, **not** scattered across Jira items and PR diffs
-- no tests, no branch, no code review, and no commit are warranted
+- no tests, no branch (still true — the specs-repo preflight creates none, `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2), no code review, and no commit of the doc edit are warranted
 
 For net-new documentation assembled from a Jira hierarchy plus PR diffs, use Jira mode (above). For writing child Epic drafts from a Value Increment, use `epics:`.
 
@@ -1299,6 +1341,11 @@ No model-routing reminder is injected for this command — classification still 
    `repo_verification_gates` block. Carry it to Phase 3.5, which checks the edited files against it and
    records the `repo_checklist` ledger row. An empty block is normal — record it and move on. Skip this
    step entirely when cwd is not a git tree (step 3 already skipped for the same reason).
+
+**Specs-repo preflight.** Already run — the shared Phase 0 dispatch executed `specs-preflight`
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
+before mode detection, and any `specs_git: blocked` flag it set is carried into this mode too. Do not
+run it a second time.
 
 ---
 
@@ -1396,7 +1443,7 @@ choices: ["Approve & implement now (Recommended)", "Revise plan", "Cancel"]
 4. If a **new ambiguity** emerges mid-edit: STOP, ask with choices (last: `"Other… (describe)"`), resume after answer
 5. After all edits: run the Validation checks from the plan's step 6. Fix any failures caused by your changes (broken links, unparseable frontmatter, bad heading hierarchy).
 6. **Do NOT run tests.** This command has no test phase — validation checks are all that's expected.
-7. **Do NOT create a branch or commit.** The user manages git manually for doc edits.
+7. **Do NOT create a branch, and do NOT commit the doc edits.** The user manages git manually for doc edits. (The run's terminal `commit-artifacts` step is a separate repository — it stages ONLY `$SPECS_PATH`'s bounded artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1 — and never the files edited here.)
 8. Verify the outcome matches the approved plan.
 9. Proceed to Phase 3.5.
 
@@ -1505,14 +1552,19 @@ them (§4 plugin-facing predicate) — never target-project `copilot-instruction
 via the §2 specs-first ladder, and writes silently. List the persisted path
 (or "no plugin-facing signal — nothing persisted") in the Phase 5
 `### Session learnings (Agent 4)` line. ADDITIVE — the impl-maintenance report
-still appears in the report; this step NEVER fails the run, NEVER commits, and
+still appears in the report; this step NEVER fails the run, NEVER commits (still
+true — the assertion is scoped to *this step*, which only writes the feedback
+file; those writes are committed by the separate terminal `commit-artifacts`
+step, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and
 NEVER writes into the docs repo or the current working directory.
 
 ---
 
 ## Phase 4.5 — Maintenance proposals
 
-Direct mode never commits — Phase 3 explicitly creates no branch and no commit — so the ordering constraint that gates Jira mode's Phase 8.6 is already satisfied here: there is no commit for an accepted proposal to ride. This phase exists only so an accepted proposal still gets applied instead of just reported, the same as Jira mode's Phase 8.6.
+Direct mode never commits the doc edits — Phase 3 explicitly creates no branch and no commit — so the ordering constraint that gates Jira mode's Phase 8.6 is already satisfied here: there is no docs commit for an accepted proposal to ride. What the run does commit, via the terminal `commit-artifacts` step, is bounded to `$SPECS_PATH`'s artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) and can never carry a proposal from this phase. This phase exists only so an accepted proposal still gets applied instead of just reported, the same as Jira mode's Phase 8.6.
 
 Skip this phase with no prompt when both Phase 4 Agent 2 and Agent 3 returned `'no update required'`.
 
@@ -1529,7 +1581,7 @@ choices: ["Skip — report only (Recommended)", "Apply all", "Choose per proposa
 - **Skip — report only** — apply nothing; every proposal's disposition is `proposed` for the Phase 5 report.
 - **Apply all** — apply every proposal via the mechanism below; every proposal's disposition is `applied-uncommitted`.
 - **Choose per proposal** — ask accept/decline for each proposal; apply the accepted ones (`applied-uncommitted`), leave the rest `declined`.
-- **Cancel** — apply nothing; every proposal's disposition is `proposed`. Unlike every other "Cancel" in this command, **Cancel here does not abort the run**: direct mode never branches or commits (Phase 3), so there is nothing upstream to unwind. Cancel only declines this phase's proposals; the run proceeds to Phase 5 and the Final Report is produced exactly as it would be after Skip.
+- **Cancel** — apply nothing; every proposal's disposition is `proposed`. Unlike every other "Cancel" in this command, **Cancel here does not abort the run**: direct mode never branches or commits the doc edits (Phase 3), so there is nothing upstream to unwind (still true — what still commits after this point is the terminal `commit-artifacts` step, bounded to `$SPECS_PATH`'s artifact paths per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1). Cancel only declines this phase's proposals; the run proceeds to Phase 5 and the Final Report is produced exactly as it would be after Skip.
 
 **Apply mechanism.** For each accepted proposal, re-dispatch the agent that produced it — Agent 2 or Agent 3, same general-purpose agent as Phase 4, no new agent type — in apply mode, carrying its own proposal back verbatim:
 
@@ -1574,7 +1626,7 @@ Output a structured report — do NOT ask any closing confirmation:
 - [file, rule/entry summary, reason] — disposition: [proposed | applied-uncommitted | declined] OR "no update required"
 
 ### Maintenance applied (uncommitted)
-[Every Phase 4.5 proposal with disposition `applied-uncommitted` — file, one-line summary, reason — one per line. Direct mode never commits, so these edits already sit in the same uncommitted working tree as the rest of this run's changes; listed separately so an accepted `copilot-instructions.md` / knowledge-base edit doesn't get lost among the doc edits when you review before committing. OR "none".]
+[Every Phase 4.5 proposal with disposition `applied-uncommitted` — file, one-line summary, reason — one per line. Direct mode never commits the doc edits (the terminal `commit-artifacts` step stages only `$SPECS_PATH`'s bookkeeping paths), so these edits already sit in the same uncommitted working tree as the rest of this run's changes; listed separately so an accepted `copilot-instructions.md` / knowledge-base edit doesn't get lost among the doc edits when you review before committing. OR "none".]
 
 ### Session learnings (Agent 4)
 - [top suggestions from impl-maintenance agent, or "no suggestions — routine session"]
@@ -1591,7 +1643,7 @@ Output a structured report — do NOT ask any closing confirmation:
 - [anything the user asked to defer, OR validation failures the user accepted, OR "none"]
 
 ### Git state
-The working tree has uncommitted changes. `document:` (direct mode) never commits — you manage git manually. Run `git status` to review, then commit when ready.
+The working tree has uncommitted changes. `document:` (direct mode) never commits the doc edits — you manage git manually. Run `git status` to review, then commit when ready. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step — see its outcome line at the end of the run.)
 ```
 
 ---
@@ -1613,8 +1665,28 @@ its steps inline.
 4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 5 report. This phase NEVER
-fails the run, NEVER commits (the user manages git manually), and NEVER writes
-into the docs repo or the current working directory.
+fails the run, NEVER commits (still true — the user manages git manually for the
+doc edits; this phase only writes follow-up files, and those writes are
+committed by the separate terminal `commit-artifacts` step at the end of this
+phase, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and NEVER writes into the docs repo or the current working directory.
+
+**Then commit session artifacts (terminal).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
+the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
+commits `<KEY> Add dev-workflows session artifacts (document:)` — or
+`NOISSUE …` when this doc-edit run resolved no key — and pushes to the specs
+repo's default branch. It NEVER writes into the docs repo this run just changed,
+NEVER touches a code repo, the vault, or the current working directory; NEVER
+force-pushes; NEVER fails the run; and skips entirely when the run carries
+`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
+report was composed before this phase, **print its §6 outcome line here**, as
+the run's last output — prefixed `Specs repo:`, with any guard notice repeated
+in full. No `resume.md` is written in this mode
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 skip list).
 
 ---
 
@@ -1624,10 +1696,11 @@ into the docs repo or the current working directory.
 
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - ALWAYS run Phase 3.5 (style check) after editing — `docs-style-checker` falls back to `dt-style-checker`; never skip style on tool-absence judgement
-- NEVER create a git branch (the user manages git manually)
+- NEVER create a git branch — this mode never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
 - NEVER run tests (this command has no test phase)
 - NEVER invoke Opus (no planning agent, no review agent — docs edits are always SIMPLE or MODERATE)
-- NEVER commit (the user manages git manually)
+- NEVER commit the doc edits, or anything else in a docs/code repo, the vault, or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - NEVER make assumptions that could have been asked — ask instead
 - NEVER end implementation with "Should I implement?" — if approved, implement
 - NEVER rewrite sections wholesale when only a targeted edit is needed

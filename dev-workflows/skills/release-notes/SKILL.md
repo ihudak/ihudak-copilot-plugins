@@ -39,6 +39,17 @@ This command makes **zero external API calls** and **never writes into the docs 
    `RELEASE_NOTES_NEEDS_JIRA: release-notes: needs a Jira key or an imported-Jira directory.` —
    this command has no direct-prompt behavior.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover
+session artifacts from an earlier run, retry an artifact commit that failed to
+push, and settle the branch. This runs against `$SPECS_PATH` only —
+`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
+in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
+and on its default branch. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it.
+
 ---
 
 ## Phase 1 — Clarification
@@ -279,7 +290,7 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 
    ### Context hygiene
 
-   Write the resume pointer at `<VI-dir>/dev-workflows/resume.md` (per `session-hygiene.md` §1). Then:
+   The resume pointer is written in the terminal maintenance phase (Phase 10), per `session-hygiene.md` §1. Then:
 
    - **Release note drafted and the VI fully processed?** → nothing to suggest — you're done.
    - **A PA/PE phase still pending for this VI (e.g. `create-ard:`, `epics:`), even yourself?** → run **`/clear`** before switching roles.
@@ -307,8 +318,12 @@ inline.
 4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 8 report. This phase NEVER
-fails the run, NEVER commits, NEVER makes an external API call, and NEVER writes
-into a docs repo or the current working directory.
+fails the run, NEVER commits (still true — this phase only writes follow-up
+files; those writes are committed by the terminal `commit-artifacts` step in
+Phase 10, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), NEVER makes an external API call, and NEVER writes into a docs repo or the
+current working directory.
 
 ---
 
@@ -345,8 +360,32 @@ and then persists the plugin-facing slice of its report as session feedback.
 3. **Surface** the persisted path (or "no plugin-facing signal — nothing
    persisted") as this phase's only output.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits, NEVER makes an external
-API call, and NEVER writes into a docs repo or the current working directory.
+**Then write the resume pointer.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the
+feedback and follow-up entries above, so the pointer reflects the completed run,
+and before the commit step below, so it is included in it. Redact per §1.
+Silent; the printed `### Context hygiene` guidance already appeared in the Phase
+8 report.
+
+**Then commit session artifacts (terminal).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
+the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
+commits `<KEY> Add dev-workflows session artifacts (release-notes:)`, and pushes
+to the specs repo's default branch. It NEVER writes into a docs repo — the
+release-note draft is untouched — NEVER touches a code repo, the vault, or the
+current working directory; NEVER force-pushes; NEVER fails the run; and skips
+entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
+notice. Because the Phase 8 report was composed before this phase, **print its
+§6 outcome line here**, as the run's last output — prefixed `Specs repo:`, with
+any guard notice repeated in full.
+
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the
+release-notes draft is a plain file for manual paste into Jira; the terminal
+step above commits only the bounded session-artifact paths in `$SPECS_PATH`),
+NEVER makes an external API call, and NEVER writes into a docs repo or the
+current working directory.
 
 ---
 
@@ -361,6 +400,7 @@ API call, and NEVER writes into a docs repo or the current working directory.
 - The run is GATED on the imported `relevant_for_release_notes`: an explicit `false` stops with `RELEASE_NOTES_NOT_RELEVANT` (overridable); absent proceeds silently.
 - NEVER write into a docs repo; the default destination is persistent (never `/tmp`).
 - ALWAYS use `choices` arrays; the last choice is always `"Other… (describe)"`.
-- Light gate only — no Opus review, no tests, no branch, no commit.
+- Light gate only — no Opus review, no tests, no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none), and no commit of the draft or of anything in a docs/code repo, the vault, or the current working directory. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - ALWAYS end the Phase 8 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked; the pipeline leaf (adaptive: continue any pending PA/PE phase, else the VI is fully processed).
-- ALWAYS end the Phase 8 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (`resume.md`), then a leaf-aware suggestion (done → nothing; pending role → `/clear`) + `/rename <VI-ID>-<slug>-pm`; guidance only, never auto-run.
+- ALWAYS end the Phase 8 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal maintenance phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a leaf-aware suggestion (done → nothing; pending role → `/clear`) + `/rename <VI-ID>-<slug>-pm`; guidance only, never auto-run.

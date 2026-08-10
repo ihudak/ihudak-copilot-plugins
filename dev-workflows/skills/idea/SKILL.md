@@ -1,7 +1,7 @@
 ---
 name: idea
 description: >
-  Idea-refinement workflow (PM phase, front of the VI-creation flow). Takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an exported RFE Jira ticket — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a well-refined idea.md: a lean one-page brief that seeds the future create-vi:. Writes to the vault (keyless); no Jira, no code, no specs write.
+  Idea-refinement workflow (PM phase, front of the VI-creation flow). Takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an exported RFE Jira ticket — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a well-refined idea.md: a lean one-page brief that seeds the future create-vi:. Writes to the vault (keyless); no Jira, no code, no specs deliverable — the only `$SPECS_PATH` writes are the run's own session artifacts, committed by `commit-artifacts`.
   Activated when the user prompt starts with "idea:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -46,6 +46,14 @@ Flag: `--deep` switches the grill from bounded (≤5 questions) to relentless (u
    delegated subagent). `idea-reader` runs on `detection_model`. If no Opus resolves, **degrade to the
    best available and record the degradation** in `notes` and the final report — do NOT hard-block (a PM
    must not be blocked from capturing an idea by a momentary Opus outage).
+
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts
+from an earlier run, retry an artifact commit that failed to push, and settle the branch.
+Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires,
+emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole
+run — the terminal `commit-artifacts` step skips on it.
 
 ---
 
@@ -186,8 +194,21 @@ abandoned at the block still records the gap. NEVER `emit-block` for an environm
    plugin-facing slice (§4), dedupes by stable `id` (§3), resolves the target via the §2 specs-first
    ladder, and writes silently. Surface the persisted path (or "no plugin-facing signal — nothing
    persisted").
-ADDITIVE — this phase NEVER fails the run, NEVER commits, and NEVER writes into a code/docs repo or the
-current working directory; no user name is ever written.
+3. **Commit session artifacts (terminal).** Cite
+   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+   and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages
+   ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
+   `NOISSUE Add dev-workflows session artifacts (idea:)` (this run is keyless — no VI-Key exists
+   yet), and pushes. It NEVER touches a code/docs repo, the vault, or the current working directory;
+   NEVER force-pushes; NEVER fails the run; and skips entirely when the run carries
+   `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome line for the Final
+   report. No `resume.md` is written for `idea:`
+   (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+   §1 skip list — pre-VI and keyless).
+
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea.md carries no git offer
+of its own — the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`),
+and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
 
 ---
 
@@ -195,4 +216,7 @@ current working directory; no user name is ever written.
 
 Report: the `idea.md` path + `status` (refined / draft with N open clarifications); the source type and
 `sources`; the count of `[NEEDS CLARIFICATION]` items and Assumptions; any source-detection correction
-or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; and the adaptive next-phase recommendation.
+or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; the
+`Specs repo:` outcome line from `commit-artifacts`
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
+with any guard notice repeated in full; and the adaptive next-phase recommendation.

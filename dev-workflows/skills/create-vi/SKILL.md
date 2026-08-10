@@ -34,6 +34,8 @@ Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hyb
 
 `create-vi:` is **cwd-agnostic** and needs **no repos mounted** (product-level; no code scan).
 
+**Specs-repo preflight.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal `commit-artifacts` step skips on it.
+
 ---
 
 ## Phase 1 — Configure
@@ -214,9 +216,9 @@ Guidance only — never auto-invokes another command. Per `~/.copilot/installed-
 
 ### Context hygiene
 
-Write/overwrite the resume pointer at `<VI-dir>/dev-workflows/resume.md` (per
-`session-hygiene.md` §1; the VI-Key is minted by the Jira round-trip, so **omit the
-session-name line** and name the session manually if useful). Then:
+The resume pointer is written in the terminal maintenance phase (Phase 7), per
+`session-hygiene.md` §1 — the VI-Key is minted by the Jira round-trip, so it **omits
+the session-name line**; name the session manually if useful. Then:
 
 - **Continuing as PM (`release-notes: <VI>` after the round-trip)?** → run **`/compact`**.
 - **Handing to PA (`create-ard: <VI>`) or PE (`epics: <VI>`), even yourself?** → run **`/clear`** for a clean slate.
@@ -232,17 +234,22 @@ Terminal phase — runs after Phase 6, NEVER interrupts an earlier phase.
 **Capture-at-block invariant.** If an EARLIER phase **halts on a plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked), `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) at that halt **before** escalating. NEVER `emit-block` for an environment / user halt (missing key, unset `$SPECS_PATH`, cancellation) or a work-quality review BLOCK.
 
 **Session-hygiene invariant.** End Phase 6 with a `### Context hygiene` block per
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (write `resume.md`),
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the
+`resume.md` write runs later, as step 3 of this terminal phase, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints
+the guidance only),
 then a span suggestion (PM continue → `/compact`; PA/PE handoff → `/clear`). No `/rename`
 label yet (no VI-Key). Guidance only, never auto-run.
 
 1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`) with a compact handoff: command `create-vi:`; what was authored (VI + profile); key events (source-ladder friction, unresolved clarifications, BLOCK reviews — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
 2. **Persist plugin feedback (automatic).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6) with the Lessons Learned report, `command: create-vi:`, the run's `jira_key`, `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). Surface the persisted path (or "no plugin-facing signal — nothing persisted").
+3. **Write the resume pointer.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the feedback and follow-up entries above, so the pointer reflects the completed run, and before the commit step below, so it is included in it. Redact per §1. Silent; the printed `### Context hygiene` guidance already appeared in the report.
+4. **Commit session artifacts (terminal).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (create-vi:)` — or `NOISSUE …` when the Jira round-trip has not yet minted a key — with no `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the current working directory; NEVER force-pushes; NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome line for the Final report.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits (git is offered only in Phase 5), and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (git for the deliverable is offered only in Phase 5; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`), and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
 
 ---
 
 ## Final report
 
-Report: the VI path + profile; US/AC/SM counts + which adapt-in clusters were included; open-question count; the `vi-reviewer` verdict; the Dynatrace style-check outcome (`OK` | `N fixed, M remaining` | `SKIPPED`); the PR URL (if opened); the Jira round-trip reminder; resolved model routing (+ any Opus degradation); the feedback path; and the next-step recommendations.
+Report: the VI path + profile; US/AC/SM counts + which adapt-in clusters were included; open-question count; the `vi-reviewer` verdict; the Dynatrace style-check outcome (`OK` | `N fixed, M remaining` | `SKIPPED`); the PR URL (if opened); the Jira round-trip reminder; resolved model routing (+ any Opus degradation); the feedback path; the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and the next-step recommendations.

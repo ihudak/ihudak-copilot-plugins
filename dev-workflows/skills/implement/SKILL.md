@@ -104,6 +104,17 @@ EITHER: the status is below the readiness bar (VI below **Ready for Implementati
 **Refined**), OR a `_readiness.md` records **NOT-SUPPORTED** / **PARTIAL**. This NEVER blocks —
 proceed regardless; it is guidance only. If neither condition holds, say nothing and continue.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover
+session artifacts from an earlier run, retry an artifact commit that failed to
+push, and settle the branch. This runs against `$SPECS_PATH` only —
+`git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
+in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
+and on its default branch. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it.
+
 ---
 
 ## Phase 1 — Clarification
@@ -560,8 +571,11 @@ that triggered them (§4 plugin-facing predicate) — never target-project
 (§3), resolves the target via the §2 specs-first ladder, and writes silently.
 List the persisted path (or "no plugin-facing signal — nothing persisted") in
 the Phase 5 `### Session learnings` line. ADDITIVE — the impl-maintenance report
-still appears in the report; this step NEVER fails the run, NEVER commits, and
-NEVER writes into the code repo or the current working directory.
+still appears in the report; this step NEVER fails the run, NEVER commits (still
+true — this step only writes the feedback file; those writes are committed by
+the terminal `commit-artifacts` step in Phase 6, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and NEVER writes into the code repo or the current working directory.
 
 ---
 
@@ -617,7 +631,7 @@ Output a structured report — do NOT ask any closing confirmation:
 ### Context hygiene
 
 *(Jira mode only — omit this whole block in direct-prompt mode, like the `### Next step` above.)*
-Write the resume pointer at `<VI-dir>/dev-workflows/resume.md` (per `session-hygiene.md` §1). Then:
+The resume pointer is written in the terminal follow-up phase (Phase 6), per `session-hygiene.md` §1. Then:
 
 - **More Epics to build (`implement: <VI> <Epic2>`) or on to `document: <VI>` — same build lane?** → run **`/compact`** — context stays relevant.
 - Consider **`/rename <VI-ID>-<slug>-team`** to relocate this session later.
@@ -649,8 +663,33 @@ and executing its steps inline.
 4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 5 report. This phase NEVER
-fails the run, NEVER commits, and NEVER writes into the code repo or the current
-working directory.
+fails the run, NEVER commits (still true — this phase only writes follow-up
+files; those writes are committed by the terminal `commit-artifacts` step at the
+end of this phase, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4), and NEVER writes into the code repo or the current working directory.
+
+**Then write the resume pointer (Jira mode only).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the
+follow-up entries above, so the pointer reflects the completed run, and before
+the commit step below, so it is included in it. Redact per §1. Silent; the
+printed `### Context hygiene` guidance already appeared in the Phase 5 report.
+Direct-prompt mode writes none (§1 skip list — no VI anchor).
+
+**Then commit session artifacts (terminal).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
+the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
+commits `<KEY> Add dev-workflows session artifacts (implement:)`, and pushes to
+the specs repo's default branch. It NEVER writes into the code repo this run
+just changed — the implementation commit and branch are untouched — NEVER
+touches a docs repo, the vault, or the current working directory; NEVER
+force-pushes; NEVER fails the run; and skips entirely when the run carries
+`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
+report was composed before this phase, **print its §6 outcome line here**, as
+the run's last output — prefixed `Specs repo:`, with any guard notice repeated
+in full.
 
 ---
 
@@ -683,4 +722,5 @@ working directory.
 - ALWAYS fan out `code-scanner` one-per-repo in a single response, capped at 4 concurrent — never sequentially
 - NEVER silently skip a referenced `@dir` that is missing or unrecognized — surface it and ask (~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md §8.4)
 - Scanning agents (`jira-reader`, `code-scanner`) are pinned to the §2.1 detection (Sonnet) chain like every mechanical step (never inherit the session model); escalate a single scanner to Opus only when one repo slice is oversized
-- ALWAYS end the Phase 5 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (`resume.md`), then a same-lane `/compact` suggestion + `/rename <VI-ID>-<slug>-team`; **omitted in direct mode** (no VI/Epic context, no `resume.md`); the Phase 3B checkpoint additionally suggests `/compact` mid-run. Guidance only, never auto-run.
+- ALWAYS end the Phase 5 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal follow-up phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a same-lane `/compact` suggestion + `/rename <VI-ID>-<slug>-team`; **omitted in direct mode** (no VI/Epic context, no `resume.md`); the Phase 3B checkpoint additionally suggests `/compact` mid-run. Guidance only, never auto-run.
+- ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run

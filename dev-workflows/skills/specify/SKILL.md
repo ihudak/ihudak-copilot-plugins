@@ -82,6 +82,14 @@ specification* for a single item (typically an Epic). Run `epics:` first, then `
 `specify:` is **cwd-agnostic**, like `epics:` — it reads Jira from the vault/export and writes specs to
 an absolute `$SPECS_PATH`-rooted directory, so it does not require cwd to be inside either.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts
+from an earlier run, retry an artifact commit that failed to push, and settle the branch.
+Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires,
+emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole
+run — the terminal `commit-artifacts` step skips on it.
+
 ---
 
 ## Phase 1 — Configure
@@ -444,7 +452,10 @@ persists the plugin-facing slice of its report as session feedback.
 **Capture-at-block invariant.** This terminal phase captures gaps for a *completed* run. Separately, if an EARLIER phase **halts on a plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked), `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) at that halt **before** escalating — so a run abandoned at the block still records the gap. NEVER `emit-block` for a work-quality review BLOCK or an environment / user halt (repo/spec gate, jira-not-found, cancellation).
 
 **Session-hygiene invariant.** End the report with a `### Context hygiene` block per
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (`resume.md`), then a
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the
+`resume.md` write runs later, at the end of this terminal phase, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 — this block prints the guidance only), then a
 span suggestion (VI-level→`epics:` `/compact`; Epic-level→`design:` `/clear`) +
 `/rename <VI-ID>-<slug>-pe`. Guidance only, never auto-run.
 
@@ -473,14 +484,36 @@ span suggestion (VI-level→`epics:` `/compact`; Epic-level→`design:` `/clear`
 3. **Surface** the persisted path (or "no plugin-facing signal — nothing
    persisted") as this phase's only output.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits (git is offered only in
-Phase 7), and NEVER writes into the current working directory. The specs-first
+**Write the resume pointer.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the
+feedback and follow-up entries above, so the pointer reflects the completed run,
+and before the commit step below, so it is included in it. Redact per §1.
+Silent; the printed `### Context hygiene` guidance already appeared in the
+report.
+
+**Commit session artifacts (terminal).** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
+the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
+commits `<KEY> Add dev-workflows session artifacts (specify:)` with no
+`Co-Authored-By` trailer, and pushes to the branch this run's handoff phase
+created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the
+current working directory; NEVER force-pushes; NEVER fails the run; and skips
+entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
+notice. Hold its §6 outcome line for the Final report.
+
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (still
+true — git for the deliverable is offered only in Phase 7; the terminal step
+above commits only the bounded session-artifact paths in `$SPECS_PATH`, per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§2.1), and NEVER writes into the current working directory. The specs-first
 ladder writes the feedback file inside `$SPECS_PATH`, alongside the feature
 folder — the intended home.
 
 ## Final report
 
-Report: feature-folder path; stage/user-story/AC/TC counts; open-question count; unmounted-repo advisories; the `spec-reviewer` verdict; the PR URL (if opened); and a reminder of the round-trip described above + that `Published: yes` is a human-only freeze step.
+Report: feature-folder path; stage/user-story/AC/TC counts; open-question count; unmounted-repo advisories; the `spec-reviewer` verdict; the PR URL (if opened); the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and a reminder of the round-trip described above + that `Published: yes` is a human-only freeze step.
 
 ### Next step
 
@@ -488,7 +521,7 @@ End the report with a `### Next step` recommendation per `~/.copilot/installed-p
 
 ### Context hygiene
 
-Write the resume pointer at `<VI-dir>/dev-workflows/resume.md` (per `session-hygiene.md` §1). Then:
+The resume pointer is written at the end of the terminal maintenance phase (Phase 8), per `session-hygiene.md` §1. Then:
 
 - **VI-level spec → `epics: <VI>` (still PE)?** → run **`/compact`** — context still relevant.
 - **Epic-level spec → Team `design: <VI> <Epic>` (even yourself)?** → run **`/clear`** for a clean slate.
