@@ -219,7 +219,7 @@ G1 does not — see the note in its row.
 ## 4. `commit-artifacts` — terminal step
 
 Runs as the **last action of the run**, after `resume.md` is written (where the
-skill writes one) and before or as the run's last printed output (§6).
+command writes one) and before or as the run's last printed output (§6).
 
 1. **Gate.** All of §3.1's environment conditions, **plus** the run must not
    carry `specs_git: blocked` from §3.3 G0.
@@ -235,10 +235,10 @@ skill writes one) and before or as the run's last printed output (§6).
    step 1's silence — here the specs repo *is* managed and simply had nothing
    new.
 4. **Commit.** Message:
-   `<KEY> Add dev-workflows session artifacts (<command>)`, or
+   `<KEY> Add dev-workflows session artifacts (<command>)` — e.g.
+   `PRODUCT-13950 Add dev-workflows session artifacts (create-vi:)` — or
    `NOISSUE Add dev-workflows session artifacts (<command>)` when the run
-   resolved no key — e.g.
-   `<KEY> Add dev-workflows session artifacts (create-vi:)`. This matches the
+   resolved no key. This matches the
    specs repo's own `<KEY|NOISSUE> <summary>` convention. **No
    `Co-Authored-By` trailer** (§1 rule 6).
 5. **Push** to the current branch's upstream. If the branch has no upstream:
