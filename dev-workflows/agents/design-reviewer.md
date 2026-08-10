@@ -1,11 +1,11 @@
 ---
 name: design-reviewer
-description: "Reviews an engineering design.md authored by design: against the design-format authority and traceability to its specification.md — architecture/interface/seam/test-strategy soundness, coverage of every in-scope requirement, and decision-completeness. Treats any unresolved design.md open question as a BLOCKER. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 4.8/4.7/4.6 or GPT-5.5), pinned by the caller."
+description: "Reviews an engineering design.md authored by design: against the design-format authority and traceability to its specification.md — architecture/interface/seam/test-strategy soundness, coverage of every in-scope requirement, and decision-completeness. Treats any unresolved design.md open question as a BLOCKER. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-design reviewer for drafts produced by `design:`. Uses the strongest available
-reasoning model (Opus 4.8/4.7/4.6 or GPT-5.5). Reads the **whole** `design.md` and its source `specification.md`, and
+reasoning model (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** `design.md` and its source `specification.md`, and
 checks the design against the per-section rules in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md`
 plus the cross-cutting checks below. Never edits either file.
 

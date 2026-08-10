@@ -1,11 +1,11 @@
 ---
 name: risk-planner
-description: "Risk-weighted planner for SIGNIFICANT / HIGH-RISK tasks. Returns a structured plan with an explicit risks section. Uses the strong reasoning tier (Opus 4.8/4.7/4.6 or GPT-5.5), pinned by the caller. Do NOT use for SIMPLE / MODERATE tasks."
+description: "Risk-weighted planner for SIGNIFICANT / HIGH-RISK tasks. Returns a structured plan with an explicit risks section. Uses the strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller. Do NOT use for SIMPLE / MODERATE tasks."
 tools: [view, glob, grep, web_fetch]
 ---
 
 Deep planner for SIGNIFICANT / HIGH-RISK tasks. Uses the strongest available
-reasoning model (Opus 4.8/4.7/4.6 or GPT-5.5).
+reasoning model (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5).
 
 Invoked from the dev-workflows commands (`implement:`, `vuln:`, `upgrade:`) only when the classification step
 returns `SIGNIFICANT` or `HIGH-RISK`. Do NOT invoke this for routine

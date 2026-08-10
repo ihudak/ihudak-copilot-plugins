@@ -1,11 +1,11 @@
 ---
 name: ard-reviewer
-description: "Reviews an Architecture Requirements/Decision Document (ARD) authored by create-ard: for grounding integrity (every as-is claim cites a real file:line), AD-N well-formedness (Binds/Prevents/testable Rule), non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 4.8/4.7/4.6 or GPT-5.5), pinned by the caller."
+description: "Reviews an Architecture Requirements/Decision Document (ARD) authored by create-ard: for grounding integrity (every as-is claim cites a real file:line), AD-N well-formedness (Binds/Prevents/testable Rule), non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-ARD reviewer for drafts produced by `create-ard:`. Uses the strongest available
-reasoning model (Opus 4.8/4.7/4.6 or GPT-5.5). Reads the **whole** ARD and checks it against the rules in
+reasoning model (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** ARD and checks it against the rules in
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/ard-format.md` plus the dimensions below. Never edits the ARD.
 
 Invoked from `create-ard:` Phase 5 after authoring. A `BLOCK` verdict gates the handoff — the caller

@@ -107,7 +107,7 @@ When adding a new skill that references shared content, always reference via the
 
 `skills/_shared/model-routing.md` is the **single source of truth** for:
 - Task complexity classification (`SIMPLE` / `MODERATE` / `SIGNIFICANT` / `HIGH-RISK`)
-- Model fallback chain (Opus 4.8 → 4.7 → 4.6 → GPT-5.5 → Opus 4.5 → Sonnet 4.6 → Sonnet 4.5 → GPT-5.4 → Gemini 3.1 Pro); Opus 4.8/4.7/4.6 + GPT-5.5 are co-equal strong-tier peers, the rest are further fallbacks
+- Model fallback chain (Opus 5 → GPT-5.6 → Opus 4.8 → 4.7 → 4.6 → GPT-5.5 → Opus 4.5 → Sonnet 5 → Sonnet 4.6 → Sonnet 4.5 → GPT-5.4 → Gemini 3.1 Pro Preview); Opus 5/4.8/4.7/4.6 + GPT-5.6/5.5 are co-equal strong-tier peers, the rest are further fallbacks
 - The 8-dimension mandatory Opus code-review checklist
 - The `model_routing` YAML block format passed between orchestrators and sub-agents
 - The `phase: verify-resume` protocol for gating tests on Opus review
@@ -171,7 +171,7 @@ guideline-reviewer:      → guideline-reviewer skill → guideline-reviewer age
 
 Utilities: feedback:, prompt:, prompt-brainstorm:, prompt-grill-me:
 
-"@strong" = strong reasoning tier (Opus 4.8/4.7/4.6 or GPT-5.5), pinned by the caller.
+"@strong" = strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller.
 ```
 
 Key invariants enforced by all three code orchestrators (`implement:`, `vuln:`, `upgrade:`):

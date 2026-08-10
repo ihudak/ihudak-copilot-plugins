@@ -1,11 +1,11 @@
 ---
 name: spec-reviewer
-description: "Reviews a product specification.md authored by specify: for per-stage quality (problem/scope/user-stories/acceptance-criteria/test-cases), cross-stage consistency, coverage, and identifier integrity. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 4.8/4.7/4.6 or GPT-5.5), pinned by the caller."
+description: "Reviews a product specification.md authored by specify: for per-stage quality (problem/scope/user-stories/acceptance-criteria/test-cases), cross-stage consistency, coverage, and identifier integrity. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-specification reviewer for drafts produced by `specify:`. Uses the strongest available
-reasoning model (Opus 4.8/4.7/4.6 or GPT-5.5). Reads the **whole** `specification.md` and checks it against the
+reasoning model (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** `specification.md` and checks it against the
 per-stage rules in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md` plus the cross-stage
 checks below. Never edits the specification.
 

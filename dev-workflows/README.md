@@ -247,11 +247,11 @@ block in their prompt.
 |------------|-------|
 | SIMPLE | Default session model |
 | MODERATE | Default session model (with structured planning) |
-| SIGNIFICANT / HIGH-RISK | Strong tier — `claude-opus-4.8` / `4.7` / `4.6` or `gpt-5.5`, pinned via `model:` override |
+| SIGNIFICANT / HIGH-RISK | Strong tier — `claude-opus-5` / `4.8` / `4.7` / `4.6` or `gpt-5.6` / `gpt-5.5`, pinned via `model:` override |
 
-The strong tier treats Opus 4.8/4.7/4.6 and GPT-5.5 as peers (fallback chain:
-Opus 4.8 → 4.7 → 4.6 → Haiku 4.5 → GPT-5.5 → Sonnet 4.6 → Sonnet 4.5 → GPT-5.4 →
-Gemini 3.1 Pro).
+The strong tier treats Opus 5/4.8/4.7/4.6 and GPT-5.6/5.5 as peers (fallback chain:
+Opus 5 → GPT-5.6 → Opus 4.8 → 4.7 → 4.6 → GPT-5.5 → Opus 4.5 → Sonnet 5 → Sonnet 4.6
+→ Sonnet 4.5 → GPT-5.4 → Gemini 3.1 Pro Preview).
 
 ## Feature highlights
 
