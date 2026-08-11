@@ -1,7 +1,7 @@
 ---
 name: idea
 description: >
-  Idea-refinement workflow (PM phase, front of the VI-creation flow). Takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an exported RFE Jira ticket — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a well-refined idea.md: a lean one-page brief that seeds the future create-vi:. Writes to the vault (keyless); no Jira, no code, no specs deliverable — the only `$SPECS_PATH` writes are the run's own session artifacts, committed by `commit-artifacts`.
+  Idea-refinement workflow (PM phase, front of the VI-creation flow). Takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an exported Jira ticket (product feedback, or an existing Value Increment the idea extends, parallels, or rewrites) — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a well-refined idea.md: a lean one-page brief that seeds the future create-vi:. Writes to the vault (keyless); no Jira, no code, no specs deliverable — the only `$SPECS_PATH` writes are the run's own session artifacts, committed by `commit-artifacts`.
   Activated when the user prompt starts with "idea:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -14,7 +14,8 @@ the existing pipeline. It ingests one source, refines it through a grill, and wr
 **not** a VI: no Jira write, no code change, no specs-repo write. Output lands keyless in the vault;
 `create-vi:` relocates it under `$SPECS_PATH` once a Jira key exists.
 
-Flag: `--deep` switches the grill from bounded (≤5 questions) to relentless (until convergence).
+Flags: `--deep` switches the grill from bounded (≤5 questions) to relentless (until convergence).
+`--no-docs` and `--no-prior-art` each turn off one grounding source (see Phase 1).
 
 ---
 
@@ -59,10 +60,18 @@ run — the terminal `commit-artifacts` step skips on it.
 
 ## Phase 1 — Classify the source
 
-Classify the argument (text following the `idea:` trigger) (minus the `--deep` flag) by precedence:
+Classify the argument (text following the `idea:` trigger) **minus every recognised flag** (`--deep`, `--no-docs`, `--no-prior-art`, and `--docs <path>` with its value) by precedence. Strip them all before classifying: an unstripped flag lands inside the `prompt` branch's raw idea text and is handed to `idea-reader` as if the user had written it.
 
-1. Matches the Jira-key regex `^[A-Z][A-Z0-9_]*-\d+$` → **rfe** (an exported Product-Enhancement ticket
-   under `$VAULT_PATH/jira-products/<KEY>/`).
+1. Matches the Jira-key regex `^[A-Z][A-Z0-9_]*-\d+$` → resolve it with `resolve-export-for-key <KEY>`
+   (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`), then type it from the export's
+   **`issue_type` frontmatter** — never from the project prefix, which is a coincidence of Jira
+   configuration:
+   - `ValueIncrement` → **vi** — an existing VI. Prior art the user supplied.
+   - `Product Need` → **rfe** — product feedback, handled as demand evidence exactly as today.
+   - anything else → name the actual `issue_type` in the confirmation below and let the user choose;
+     **default vi**, since a tracked delivery item is closer to prior art than to demand evidence.
+
+   `NOT_FOUND` from the entry point is handled as today (an environment/user halt, never `emit-block`).
 2. An existing `.md` path or an `@wikilink` → **markdown** (a community post is just a markdown file,
    typically under `Projects/Products/…` — the reader tags it `community-post`; an existing `idea.md`
    passed back for re-refinement is detected here too).
@@ -72,9 +81,11 @@ Surface a one-line confirmation before ingesting:
 ```
 choices: ["Read this as <detected-type> (Recommended)", "It's actually a <other-type>", "Cancel", "Other… (describe)"]
 ```
-(A dedicated `--as prompt|file|rfe` override is future work — the confirmation covers a mis-detection.)
+(A dedicated `--as prompt|markdown|rfe|vi` override is future work — the confirmation covers a mis-detection.)
 
 Show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+
+Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` resolved — `ON <vault-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art idea` per that reference to obtain it; it runs exactly once per run.
 
 ---
 
@@ -86,22 +97,29 @@ Dispatch `idea-reader` to read the source and return a structured digest:
   > "Ingest this idea source and return the structured digest:
   >
   > argument:        [the resolved argument]
-  > provenance_hint: [prompt | markdown | community-post | rfe from Phase 1]
+  > provenance_hint: [prompt | markdown | community-post | rfe | vi from Phase 1]
   > vault_path:      [resolved $VAULT_PATH]"
 
-Wait for the digest. If `status: NOT_FOUND` (invalid RFE key / missing file), surface:
+Wait for the digest. If `status: NOT_FOUND` (invalid key / missing file), surface:
 ```
 choices: ["Re-enter the source", "Cancel", "Other… (describe)"]
 ```
 This is an environment/user halt — do NOT `emit-block`. On `OK`, carry forward `raw_context`,
-`signals`, `images`, `candidate_title`, `candidate_slug`, `source_refs`, `provenance`, and the
-followed/broken wikilinks — `source_refs`/`provenance` feed the `sources:` frontmatter entry in Phase 4.
+`signals`, `images`, `candidate_title`, `candidate_slug`, `source_refs`, `provenance`, `tracked` (a
+`vi` source only), and the followed/broken wikilinks — `source_refs`/`provenance` feed the `sources:`
+frontmatter entry in Phase 4, and `tracked` seeds `## Prior art`.
 
 ---
 
-## Phase 2.5 — Documentation grounding (optional)
+## Phase 2.5 — Grounding: documentation + vault prior art (optional)
 
-Run `resolve-docs-grounding idea` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the `idea-reader` digest's problem/outcome, `themes` = its signals; **omit `jira_key`** (idea is keyless, so the git-grep backstop is skipped). Carry the digest into Phase 3 with **grill-rank** consumption — challenges compete for the ≤5 question slots, they do not add slots. When OFF, skip silently.
+Dispatch both grounding agents **in a single response** so they run in parallel. Each is independent; either being OFF never suppresses the other.
+
+**Docs.** Run `resolve-docs-grounding idea` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the `idea-reader` digest's problem/outcome, `themes` = its signals; **omit `jira_key`** (idea is keyless, so the git-grep backstop is skipped). When OFF, skip silently.
+
+**Prior art.** Using the `resolve-prior-art idea` result already obtained in Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` with `feature_summary` = the same problem/outcome, `themes` = the digest's signals, and `known_refs` built from the reader's digest: every `wikilinks_followed` path and every filesystem-path `source_refs` ref as `{path, has_summary: true}` (Task 4's reader already summarised them), plus — for a `vi` source — `{jira_key: <KEY>, has_summary: true}`. Passing the key rather than a path is deliberate: the orchestrator does not know which vault directory holds that VI, and resolving it is the finder's job. The supplied VI is then classified and status-resolved by the same code path as a discovered one. When OFF, skip silently.
+
+Carry both digests into Phase 3 with **grill-rank** consumption — challenges from the two compete together for the ≤5 question slots, they do not add slots. Carry `area_proposal` and the `vi` source's match into Phase 4.
 
 ---
 
@@ -110,8 +128,7 @@ Run `resolve-docs-grounding idea` per `~/.copilot/installed-plugins/ihudak-copil
 **Interview technique (grilling — embedded; no runtime dependency).** Follow the shared technique in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split (look up facts from the `idea-reader` digest / vault, put only decisions to the user), walk the design tree in dependency order. **Depth: bounded by default (below); `--deep` = relentless.**
 
 Scan for gaps against an idea-stage **ambiguity taxonomy**: *problem clarity, target users, desired
-outcome/value, scope boundaries, evidence/demand sufficiency, success signal, terminology.* Rank gaps
-by **Impact × Uncertainty**.
+outcome/value, scope boundaries, evidence/demand sufficiency, success signal, terminology.* Rank gaps by **Impact × Uncertainty**, ranking every `docs_challenges` and `prior_art_challenges` entry from Phase 2.5 into that same list. Challenges **compete** for the slots below; they never add slots.
 
 - **Default (bounded):** ask **≤5** questions across the ranked gaps, then stop. Remaining high-impact
   gaps become `- [NEEDS CLARIFICATION: <question>]` in the `idea.md` **Open questions & assumptions**
@@ -126,8 +143,39 @@ by **Impact × Uncertainty**.
 Author `idea.md` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` into the write root resolved in
 Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 
-- **Path:** `<write-root>/Projects/<area>/<candidate_slug>/idea.md`, where `<area>` = `Products` when
-  the source already lives under `Projects/Products/…`, else `ideas`.
+- **Path (container default):** `<container(source path)>/<candidate_slug>/idea.md`, where the container
+  is derived per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md`. A source already sitting under a
+  `Projects/Products/` grouper lands beside its neighbours in that grouper; an inline prompt, a Jira key
+  with no vault item, and any source outside `Projects/Products/` all resolve to `Projects/ideas/`
+  exactly as before.
+- **Write-path gate.** Assemble **one** `choices:` array, in this row order, and present it verbatim:
+
+  | Row | Included when | Text |
+  |---|---|---|
+  | 1 | `provenance: vi` **and** the finder resolved a vault item directory for that key | `Rewrite <KEY> — write into <item-dir>/` |
+  | 2 | `area_proposal.path` non-null, `confidence: high`, **and** it differs from the container default | `New idea under <area_proposal.path>/<candidate_slug>/` |
+  | 3 | always | `Write to <container default>/<candidate_slug>/ as detected` |
+  | 4 | always | `Enter a different path` |
+  | 5 | always | `Cancel` |
+  | 6 | always | `Other… (describe)` |
+
+  The gate **fires only when at least one of rows 1–2 is present**; otherwise the container default
+  applies silently. Append `(Recommended)` to **exactly one** row, chosen by the **top match** — the
+  `prior_art` entry with the highest `match_confidence`, ties broken by array order — and its
+  `relation`: `supersedes_self` → row 1 **when present, else row 3**; every other relation → row 2 when
+  present, else row 3. Each branch falls back because rows 1 and 2 are conditional: a supplied `vi`
+  whose key has no vault work document classifies `supersedes_self` yet yields `item_dir: null`, so
+  row 1 is absent and a rule that named it would recommend a row nobody can see. Never recommend row 1
+  without `supersedes_self` — extending and paralleling a VI are as common as rewriting one, and a
+  wrong default here silently mints or fails to mint a Jira key. Validate every chosen path sits inside
+  the resolved write root and is writable.
+
+  Record the choice as **`vi_disposition`** — `rewrite` for row 1, `new` for every other row — and carry
+  it into Phase 5. This is the only point in the flow where the three shapes of a supplied VI (extend,
+  parallel, rewrite-in-place) can be told apart.
+- **`## Prior art`:** when Phase 2.5 returned any `prior_art` entry, write the section per
+  `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`; omit it entirely otherwise. A `vi` source appears
+  there **and** in `sources:`.
 - **Existing file:** if `idea.md` already exists at that path, offer:
   ```
   choices: ["Refine the existing idea.md (Recommended)", "Create a new one (you'll be prompted for a slug)", "Cancel", "Other… (describe)"]
@@ -143,11 +191,20 @@ Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plu
 
 Report where `idea.md` was written and its `status`, then offer the next phase — **adapted to status**:
 
-- **`refined`:** *"Idea refined. Next: create the VI — first create an empty Jira workitem, then run
-  `create-vi: <JIRA-KEY> @<idea.md path>`."*
+- **`refined`, `vi_disposition: new`** (and every run with no `vi` source): *"Idea refined. Next: create
+  the VI — first create an empty Jira workitem, then run `create-vi: <JIRA-KEY> @<idea.md
+  path>`."*
+- **`refined`, `vi_disposition: rewrite`:** *"Idea refined. Next: `create-vi: <KEY>
+  @<idea.md path>` — this rewrites the existing VI, so no new Jira workitem is needed. If an authored VI
+  already exists for `<KEY>`, `create-vi:` will redirect you to `update-vi: <KEY>`."*
 - **`draft`** (N open clarifications): *"This idea has N open clarification(s). You can (a) run
-  `idea: @<idea.md path> --deep` to resolve them, or (b) proceed to `create-vi: <JIRA-KEY> @<idea.md
-  path>`, which will grill you on the rest."*
+  `idea: @<idea.md path> --deep` to resolve them, or (b) proceed to
+  `create-vi: <KEY-or-JIRA-KEY> @<idea.md path>`, which will grill you on the rest."* Use
+  the same `vi_disposition` clause as above when a `vi` source was given.
+
+Also report any prior art found — matched keys with their statuses, and the alternative container path
+when one exists — **whether or not the gate fired**, so the user can relocate before `create-vi:` makes
+the path sticky.
 
 `create-vi:` is a separate command; this offer is guidance the user acts on — it never auto-invokes
 another command. (Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` — the plugin-wide
@@ -219,4 +276,5 @@ Report: the `idea.md` path + `status` (refined / draft with N open clarification
 or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; the
 `Specs repo:` outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
-with any guard notice repeated in full; and the adaptive next-phase recommendation.
+with any guard notice repeated in full; any prior art found (keys + statuses) and the resolved
+`vi_disposition`; and the adaptive next-phase recommendation.
