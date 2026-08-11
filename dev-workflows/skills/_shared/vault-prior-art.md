@@ -97,7 +97,7 @@ Given an absolute path `P` inside the write root, its **container** is:
 2. `Projects/Products/` itself, when `P` is a bare `.md` directly under `Projects/Products/`;
 3. `Projects/ideas/` otherwise — including when `P` lies under `Projects/ideas/` (an idea sibling is not an area), when `P` lies elsewhere in the vault or outside it, and when `P` is absent.
 
-An idea is written at `<container>/<candidate_slug>idea:.md`. Cases 2 and 3 are the **flat containers** — they name a root, not a specific area.
+An idea is written at `<container>/<candidate_slug>/idea.md`. Cases 2 and 3 are the **flat containers** — they name a root, not a specific area.
 
 **Choosing `P` for a Jira-key source.** A key has no vault path of its own; its export lives under `jira-products/`, outside `Projects/`, and would always fall to case 3. Instead `P` = the **vault item directory** whose work document carries `jira.id: <KEY>`, when one exists; absent otherwise. So a VI key yields its grouper — a *new sibling* beside the VI, which is right for extending or paralleling it and wrong for rewriting it in place. The write-path gate decides that; this derivation stays a pure path→path function and never guesses intent.
 
