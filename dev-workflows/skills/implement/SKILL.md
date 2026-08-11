@@ -681,10 +681,10 @@ Direct-prompt mode writes none (§1 skip list — no VI anchor).
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
-commits `<KEY> Add dev-workflows session artifacts (implement:)`, and pushes to
-the specs repo's default branch. It NEVER writes into the code repo this run
-just changed — the implementation commit and branch are untouched — NEVER
-touches a docs repo, the vault, or the current working directory; NEVER
+commits `<KEY> Add dev-workflows session artifacts (implement:)`, and pushes
+per §4 step 5. It NEVER writes into the code repo this run just changed — the
+implementation changes and the branch created in Pre-Phase 3 are untouched —
+NEVER touches a docs repo, the vault, or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as

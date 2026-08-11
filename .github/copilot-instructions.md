@@ -134,24 +134,32 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 
 ```
 Lifecycle (each phase writes a reviewable artifact, offers the next):
-idea:            → idea → idea-reader → (problem statement)
-create-vi:       → create-vi → [vi-reviewer@strong] → (Value Increment)
-update-vi:       → update-vi (jira-import-first) → [vi-reviewer@strong] → (refreshed Value Increment)
-create-ard:      → create-ard → [ard-reviewer@strong] → (ARD, resolves decisions)
-specify:         → specify (jira-driven) → [spec-reviewer@strong] → (engineering spec)
-design:          → design → [design-reviewer@strong] → (engineering design)
-epics:           → epics (jira-driven) → jira-reader → [code-scanner×N (parallel, optional)] → writing → [dt-style-checker] → [doc-fixer] → [epic-reviewer@strong] → [doc-fixer] → impl-maintenance
-release-notes:   → release-notes → release-notes-writer: resolve destination + shape per destination + source the {{#context}} label + detect deprecation → (dynatrace-docs block draft: destination-shaped Summary; NEVER written to docs repo)
-ready:           → ready → [readiness-reviewer@strong] → impl-maintenance
+idea:            → idea → idea-reader → (problem statement) → commit-artifacts
+create-vi:       → create-vi → [vi-reviewer@strong] → (Value Increment) → commit-artifacts
+update-vi:       → update-vi (jira-import-first) → [vi-reviewer@strong] → (refreshed Value Increment) → commit-artifacts
+create-ard:      → create-ard → [ard-reviewer@strong] → (ARD, resolves decisions) → commit-artifacts
+specify:         → specify (jira-driven) → [spec-reviewer@strong] → (engineering spec) → commit-artifacts
+design:          → design → [design-reviewer@strong] → (engineering design) → commit-artifacts
+epics:           → epics (jira-driven) → jira-reader → [code-scanner×N (parallel, optional)] → writing → [dt-style-checker] → [doc-fixer] → [epic-reviewer@strong] → [doc-fixer] → impl-maintenance → commit-artifacts
+release-notes:   → release-notes → release-notes-writer: resolve destination + shape per destination + source the {{#context}} label + detect deprecation → (dynatrace-docs block draft: destination-shaped Summary; NEVER written to docs repo) → commit-artifacts
+ready:           → ready → [readiness-reviewer@strong] → impl-maintenance → commit-artifacts
 
 Implementation & maintenance:
-implement:       → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance
+implement:       → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance → commit-artifacts
 document:        → document (dual-mode)
-                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip]
-                    └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip]
-vuln:            → vuln → vuln-research → vuln-fixer → [code-review@strong] → review-fixer → tests → impl-maintenance
-upgrade:         → upgrade → upgrade-planner → upgrade-executor → [code-review@strong] → review-fixer → tests → impl-maintenance
+                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts
+                    └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip] → commit-artifacts
+vuln:            → vuln → vuln-research → vuln-fixer → [code-review@strong] → review-fixer → tests → impl-maintenance → commit-artifacts
+upgrade:         → upgrade → upgrade-planner → upgrade-executor → [code-review@strong] → review-fixer → tests → impl-maintenance → commit-artifacts
 docs-profile:    → docs-profile → (writes .dev-workflows/docs-profile.yml as reviewable PR; consumed by document: jira mode)
+
+All seventeen in-scope skills additionally run `specs-preflight` at run start — as early as
+$SPECS_PATH is known (Phase 0 in most skills, Step 0 in vuln:, the shared mode-detection section
+in document:) — and `commit-artifacts` as their last action (skills/_shared/specs-repo-git.md),
+including the four Utilities below, which have no line of their own here because they are
+single-purpose logging skills rather than pipelines. In prompt-brainstorm: and prompt-grill-me:
+the terminal step runs immediately before their Phase 3, which cedes the session (§4).
+docs-profile: is out of scope — it writes no $SPECS_PATH artifact.
 
 Shared sub-agents:
                     └── test-baseliner    (used by upgrade-executor, vuln-fixer, and implement:)
