@@ -4,6 +4,14 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.16.0] — 2026-08-11
+
+### Fixed
+
+- **Printed next-step suggestions used slash-style names that collide with Copilot's own commands.** Slash-style invocation works in this edition, but Copilot registers `/release-notes`, `/upgrade`, `/feedback`, and `/statusline` as built-in slash commands — four collisions with skill names shipped here, one of which (`/feedback`) the Claude edition does not have. Every skill name printed for the user to invoke now uses this edition's `<name>:` idiom, and `skills/_shared/next-phase-offer.md` rule 6 states the contract. Names that are printed but are not invocation targets are unchanged.
+- **`update-vi:` cited a routing graph it did not appear in.** `skills/update-vi/SKILL.md` names `skills/_shared/next-phase-offer.md` as the authority for its Phase 6 offer, and that file had never mentioned it. It now appears as a PM re-entry node.
+- **`create-vi:` cited the wrong `epics:` phase.** Its Phase 3.5 style check said it mirrored `epics:` Phase 6.1 (*Resolve clarifications*); the style check is Phase 6.2.
+
 ## [2.15.0] — 2026-08-10
 
 ### Fixed

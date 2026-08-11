@@ -5,7 +5,7 @@ surfaces at the end of its run, naming the natural next command(s). Cited by all
 commands so the routing graph and the offer rules live in ONE place (the same shape as
 `emit-block` in `feedback-emission.md`).
 
-## The offer contract (5 rules)
+## The offer contract (6 rules)
 
 1. **Guidance-only** — the offer NAMES the next command(s); it NEVER auto-invokes anything.
 2. **Role-labeled** — it names the concrete command(s) for the next step, tagged with the owning
@@ -26,6 +26,12 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
    only: `create-ard: <VI> <Epic>`, `specify: <VI> <Epic>`, `design: <VI> <Epic>`,
    `implement: <VI> <Epic>`. `document:` and `release-notes:` are VI-level (whole-feature, run
    once after ALL Epics are implemented) and do NOT fan out.
+6. **Printed in this edition's invocation idiom** — every skill name the run PRINTS for the user to
+   invoke is written `<name>:` (e.g. `release-notes: <VI>`). Slash-style `/<name>` does invoke the
+   skill, but it can resolve to a Copilot built-in of the same name instead — Copilot's own
+   `/release-notes`, `/upgrade`, `/feedback`, and `/statusline` all collide today — so the slash
+   form is NEVER printed. Prose that describes the pipeline to a reader of this edition's source
+   keeps the short form.
 
 ## Surface
 
@@ -43,6 +49,10 @@ not required.
 - `create-vi: <JIRA-KEY>` — after the paste-into-Jira + re-import round-trip:
   `release-notes: <VI>` (PM — draft the release note; recommended clear next step); hand to PA
   *(optional)* → `create-ard: <VI>`; or hand to PE → `epics: <VI>` (or `specify: <VI>`).
+- `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an
+  existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira +
+  re-import round-trip it offers the same forward paths as `create-vi:`: `release-notes: <VI>`
+  (PM), `create-ard: <VI>` (PA, if one exists), `specify: <VI>` (PE, if one exists).
 
 **PA — architecture (optional)**
 
