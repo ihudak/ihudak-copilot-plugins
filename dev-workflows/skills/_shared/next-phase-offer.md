@@ -29,7 +29,7 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
 6. **Printed in this edition's invocation idiom** — every skill name the run PRINTS for the user to
    invoke is written `<name>:` (e.g. `release-notes: <VI>`). Slash-style `/<name>` does invoke the
    skill, but it can resolve to a Copilot built-in of the same name instead — Copilot's own
-   `/release-notes`, `/upgrade`, `/feedback`, and `/statusline` all collide today — so the slash
+   `/release-notes`, `/upgrade`, and `/feedback` all collide today — so the slash
    form is NEVER printed. Prose that describes the pipeline to a reader of this edition's source
    keeps the short form.
 
