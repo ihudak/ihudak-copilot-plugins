@@ -125,7 +125,7 @@ flowchart TD
 
 - **Jira** is the source of truth for workflow *status*. The external `jira-workitem-import` tool imports the ticket tree into `$VAULT_PATH/jira-products/<KEY>/`; the plugin reads status but **never sets it**.
 - **`$SPECS_PATH/specifications/<KEY>-<slug>/`** — the shared, team-visible home for the VI, ARD, `specification.md`, and `design.md`.
-- **`$VAULT_PATH`** — your personal store: `Projects/<area>/<slug>/idea.md`, the imported `jira-products/` tree, `jira-drafts/<VI-KEY>/` Epic drafts, and release-notes drafts.
+- **`$VAULT_PATH`** — your personal store: `Projects/…/<slug>/idea.md` (depth per the container rule), the imported `jira-products/` tree, `jira-drafts/<VI-KEY>/` Epic drafts, and release-notes drafts.
 - **`$REPOS_PATH`** — the code clones (`implement:` works on branches + PRs here); product documentation is written into the external **docs repo**.
 - **Plugin-generated artifacts live in the specs repo.** Feedback and follow-up files are written under `<VI-dir>/dev-workflows/` in `$SPECS_PATH` — `<KEY>-feedback.md` and `<KEY>-followups.md`. **Committing and pushing these alongside the specs is expected and encouraged** — team-visible feedback is the point, not clutter. (Unlike the Claude Code edition, there is no `cost/<sid8>.md` — see [Not ported](#not-ported-from-the-claude-code-edition).)
 
