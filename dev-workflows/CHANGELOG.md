@@ -27,6 +27,7 @@ Versions follow semver at the plugin level.
 - **The next-phase offer always said "first create an empty Jira workitem".** When the idea rewrites the Value Increment it came from — same goal, different approach, same key — that instructed the user to mint a key they must not mint. The offer is now driven by `vi_disposition`.
 - **Classification stripped only `--deep`** while the skill honours four flags, so `--no-prior-art` and the rest landed inside the classified idea text and reached `idea-reader` as though the user had typed them.
 - **The `--as` future-work note advertised a `file` source type that never existed** and omitted the new `vi`.
+- **The Phase 4 gate's `(Recommended)` marker could name a row absent from the array.** A supplied Value Increment whose key has no vault work document classifies as `supersedes_self` yet yields no item directory, so the rewrite row is not assembled. Every derivation branch now falls back to the always-present default row.
 - **Several user-facing descriptions still advertised "an exported RFE Jira ticket" as the only Jira source** — the `idea-reader` agent description, the `idea:` skill description, and two README rows — after the widening above made that false.
 - **`skills/_shared/workflow-states.md` spelled a status `Use cases defined` where Jira and every export emit `Usecases defined`.** `readiness-reviewer` string-matches against that table, so the rung never matched.
 
