@@ -8,7 +8,7 @@ Versions follow semver at the plugin level.
 
 ### Fixed
 
-- **Four shared references addressed skills in the Claude edition's idiom.** `docs-grounding.md`, `gate-ledger.md`, `repo-verification-gates.md`, and `toolchain-preflight.md` wrote `/document`, `/idea`, `/create-vi` and friends where every other `_shared` reference in this edition writes `document:`, `idea:`, `create-vi:`. Slash-style invocation works here, so nothing was broken — but a reader learning the idiom from these files would learn the wrong one, and `/release-notes`, `/upgrade` and `/feedback` collide with Copilot's own built-ins. 31 references converted; `next-phase-offer.md` rule 6 keeps its slash-style citations of Copilot's built-in names, which are correct as they stand.
+- **Four shared references addressed skills in the Claude edition's idiom.** `docs-grounding.md`, `gate-ledger.md`, `repo-verification-gates.md`, and `toolchain-preflight.md` wrote `/document`, `/idea`, `/create-vi` and friends where every other `_shared` reference in this edition writes `document:`, `idea:`, `create-vi:`. Slash-style invocation works here, so nothing was broken — but a reader learning the idiom from these files would learn the wrong one, and `/release-notes`, `/upgrade` and `/feedback` collide with Copilot's own built-ins. 32 references converted (31 backticked, plus one unbackticked inside a YAML comment); `next-phase-offer.md` rule 6 keeps its slash-style citations of Copilot's built-in names, which are correct as they stand.
 
 ## [2.16.0] — 2026-08-11
 
