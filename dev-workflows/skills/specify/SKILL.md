@@ -98,7 +98,7 @@ run — the terminal `commit-artifacts` step skips on it.
 
 Use `choices` arrays; the last choice in every array MUST be `"Other… (describe)"`.
 
-At plan/approval, show the `docs grounding: ON <root> | OFF (<reason>)` line (off switch: --no-docs).
+At plan/approval, show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
 
 1. **Feature folder.** Confirm the path resolved in Phase 0:
    ```
@@ -347,6 +347,7 @@ Handle per-repo status after the batch returns:
   ```
   choices: ["Continue with current local state", "Skip this repo", "Cancel"]
   ```
+- `prep.read_only: true` — not a failure. The scan ran at `prep.scanned_ref`. Escalate per the `Read-only mount — ref stale or diverged` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` **only** when `prep.ref_committed_at` is more than 14 days old or `prep.head_divergence.ahead > 0`; otherwise proceed silently and cite evidence at `prep.scanned_ref`.
 
 ---
 

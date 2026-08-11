@@ -320,10 +320,11 @@ Handle per-repo status after the batch returns:
   ```
   choices: ["Continue with current local state", "Skip this repo", "Cancel"]
   ```
+- `prep.read_only: true` — not a failure. The scan ran at `prep.scanned_ref`. Escalate per the `Read-only mount — ref stale or diverged` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` **only** when `prep.ref_committed_at` is more than 14 days old or `prep.head_divergence.ahead > 0`; otherwise proceed silently and cite evidence at `prep.scanned_ref`.
 
 ---
 
-**Documentation grounding (optional, independent of code scan).** Run `resolve-docs-grounding epics` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the VI goal + Epic-set intent, `jira_key` = the VI key, `themes` = the `jira-reader` themes. Carry the digest into Phase 6 with **writer-attach** consumption. When OFF, skip silently. (Runs even when code scan is OFF.)
+**Documentation grounding (optional, independent of code scan).** Run `resolve-docs-grounding epics` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the VI goal + Epic-set intent, `jira_key` = the VI key, `themes` = the `jira-reader` themes. Carry the digest into Phase 6 with **writer-attach** consumption. When OFF, skip silently. (Runs even when code scan is OFF.) Show the `docs grounding:` line that `resolve-docs-grounding` returned, verbatim, in this phase's plan/approval output — including its `retrieval:` value and any index-build, staleness, or shadowing clause (off switch: --no-docs).
 
 ---
 
