@@ -3,7 +3,7 @@
 Single source of truth for verifying, before a run writes anything, that the tools its gates invoke
 are actually present.
 
-Consumed by `/document` (both modes) at Phase 0. Pairs with
+Consumed by `document:` (both modes) at Phase 0. Pairs with
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` — the preflight decides whether to start; the ledger
 records what actually happened.
 
@@ -11,7 +11,7 @@ records what actually happened.
 
 ## 1. Why this runs first
 
-A `/document` run started in a container without `vale` and without `pnpm` still produces a branch, a
+A `document:` run started in a container without `vale` and without `pnpm` still produces a branch, a
 commit, and a PR draft. No linter ran and no server booted, so the documentation is worse — but the PR
 exists and CI is green, and nothing signals that anything went wrong. The failure is silent, and it is
 the run's own environment that caused it.
@@ -47,8 +47,8 @@ de-duplicate by binary name.
    Best-effort: extract named tools and minimum versions where stated. Nothing found ⇒ contribute
    nothing. Never fail the preflight on an unparseable Prerequisites section.
 
-**Direct mode has no profile.** `/document` Mode B resolves `repo_root` as cwd's git root and uses
-sources **2 and 3 only**. Source 1 contributes nothing there. `/document` direct mode reads the same guidance files again in the same pass for `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §2 — do both in one read, not two.
+**Direct mode has no profile.** `document:` Mode B resolves `repo_root` as cwd's git root and uses
+sources **2 and 3 only**. Source 1 contributes nothing there. `document:` direct mode reads the same guidance files again in the same pass for `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §2 — do both in one read, not two.
 
 ## 3. Checking
 

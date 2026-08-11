@@ -2,14 +2,14 @@
 
 Single source of truth for how a command records whether each of its verification gates actually ran.
 
-Consumed by `/document` (both modes). Written generically so other commands can adopt it — see §6.
+Consumed by `document:` (both modes). Written generically so other commands can adopt it — see §6.
 
 ---
 
 ## 1. The problem it solves
 
 A phase that says "Mandatory — never skip on your own judgement" is still skipped when the
-orchestrator finds a plausible-sounding reason. `/document` Phase 6.4 has carried that exact wording
+orchestrator finds a plausible-sounding reason. `document:` Phase 6.4 has carried that exact wording
 since v2.0.0 and was skipped anyway, and Phase 6.5's `(Recommended)` marker was moved onto the Skip
 option on the same run. Emphasis is not enforcement.
 
@@ -58,7 +58,7 @@ gate_ledger:
     findings: <count>                               # RAN / DEGRADED / FAILED
 ```
 
-## 4. The `/document` gate registry
+## 4. The `document:` gate registry
 
 | Gate id | Phase | Precondition | Primary | Fallback |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ The **Phase** column above is Jira mode's. Direct mode runs the same gate ids at
 A gate whose precondition is unmet records `NOT_APPLICABLE` with the precondition named. It is never
 silently absent from the ledger.
 
-**Direct mode** (`/document` Mode B) registers exactly three gates: `toolchain_preflight` (Phase 0),
+**Direct mode** (`document:` Mode B) registers exactly three gates: `toolchain_preflight` (Phase 0),
 `repo_checklist` (Phase 0 extraction, checked at Phase 3.5), and `style_check` (Phase 3.5). The
 other **four** ids never appear in a direct-mode ledger — not even as `NOT_APPLICABLE`:
 
@@ -107,7 +107,7 @@ The orchestrator never selects among these on the user's behalf.
 
 ## 6. The reviewer contract
 
-The caller passes the completed `gate_ledger` to its review gate. For `/document` that is
+The caller passes the completed `gate_ledger` to its review gate. For `document:` that is
 `doc-reviewer`'s **Verification-gate integrity** dimension. The reviewer raises a **BLOCKER** when any
 of these holds:
 
@@ -124,7 +124,7 @@ of these holds:
 
 A command adopting the ledger declares its own registry table in the shape of §4 (gate id, phase,
 precondition, primary, fallback), appends rows per §3, converts `UNAVAILABLE` per §5, and passes the
-block to its review gate with the §6 contract. Nothing in §2, §3, or §5 is `/document`-specific.
+block to its review gate with the §6 contract. Nothing in §2, §3, or §5 is `document:`-specific.
 
 ## 8. Hard rules
 

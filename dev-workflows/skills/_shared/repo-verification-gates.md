@@ -3,7 +3,7 @@
 Single source of truth for extracting a documentation repository's **own** pre-PR checklist and
 applying it to the files a run just wrote.
 
-Consumed by `doc-planner` (`/document` Jira mode) and by `/document` Mode B directly — direct mode has
+Consumed by `doc-planner` (`document:` Jira mode) and by `document:` Mode B directly — direct mode has
 no planner, so its orchestrator performs the extraction itself. Both produce the same block, and both
 feed the `repo_checklist` gate in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md`.
 
@@ -55,10 +55,10 @@ repo_verification_gates:        # [] when the repo publishes no checklist
 
 ## 5. Applying it
 
-- **`/document` Jira mode** — `doc-planner` emits the block during its guidance scan; `doc-reviewer`
-  holds the written files against each entry; `/document` Phase 6.4 records the `repo_checklist`
+- **`document:` Jira mode** — `doc-planner` emits the block during its guidance scan; `doc-reviewer`
+  holds the written files against each entry; `document:` Phase 6.4 records the `repo_checklist`
   ledger row.
-- **`/document` direct mode** — there is no planner. The orchestrator extracts the block itself at
+- **`document:` direct mode** — there is no planner. The orchestrator extracts the block itself at
   Phase 0, in the same pass that reads the repo's `Prerequisites` for
   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §2 source 3, checks the edited files
   against it at Phase 3.5, and records the `repo_checklist` row there.

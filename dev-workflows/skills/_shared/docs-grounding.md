@@ -11,9 +11,9 @@ result is consumed*. It is **read-only**: these commands never write into
 `$DOCS_PATH`. Every miss is a **silent, non-blocking skip** — never an error,
 never `emit-block`.
 
-Consumers: `/idea`, `/create-vi`, `/update-vi`, `/create-ard`, `/specify`
-(grill-rank consumption); `/epics`, `/release-notes` (writer-attach consumption).
-`/document` does **not** consume this file — it only uses `$DOCS_PATH` as a
+Consumers: `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`
+(grill-rank consumption); `epics:`, `release-notes:` (writer-attach consumption).
+`document:` does **not** consume this file — it only uses `$DOCS_PATH` as a
 write-target discovery hint (see its Phase 0).
 
 ## Procedure — `resolve-docs-grounding <command-name>`
@@ -60,7 +60,7 @@ default for this retrieval agent):
   >
   > docs_path:       <docs_root>
   > feature_summary: <2–4 sentences: the goal + capability themes for this run>
-  > jira_key:        <the VI/Epic/ticket key, or omit for keyless /idea>
+  > jira_key:        <the VI/Epic/ticket key, or omit for keyless idea:>
   > themes:          [capability themes, or []]"
 ```
 
@@ -70,14 +70,14 @@ On `status: EMPTY`, proceed as today; the digest simply adds nothing.
 
 ## Consumption
 
-**`grill-rank`** (`/idea`, `/create-vi`, `/update-vi`, `/create-ard`, `/specify`):
+**`grill-rank`** (`idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`):
 Feed `docs_references` to the grill as positive grounding (facts to build on,
 analogous precedents to model after, building-block altitude/permissions).
 **Rank** each `docs_challenges` entry into the command's existing
 Impact × Uncertainty gap list — do **not** append. A docs challenge competes for
-a question slot; it never adds one (this preserves `/idea`'s ≤5-question bound).
+a question slot; it never adds one (this preserves `idea:`'s ≤5-question bound).
 
-**`writer-attach`** (`/epics`, `/release-notes`): Pass the whole digest
+**`writer-attach`** (`epics:`, `release-notes:`): Pass the whole digest
 (`docs_references` + `docs_challenges`) into the writer agent's input handoff as
 `docs_grounding`. The writer uses references for consistency and treats
 challenges as authoring cautions.
