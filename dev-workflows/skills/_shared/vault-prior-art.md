@@ -2,9 +2,9 @@
 
 An idea rarely starts on empty ground. The vault already tracks initiatives that cover the same capability, precede it, parallel it in the other product, or *are* it under a different description. Reaching that prior art **before** authoring changes what gets authored; reaching it afterwards changes only how much gets rewritten.
 
-Prior art arrives two ways and this file governs both. **Supplied** — the user hands `idea:` a Value Increment key. **Discovered** — `vault-prior-art-finder` searches the vault. Both produce the same digest, resolve status the same way, and land in the same `## Prior art` section.
+Prior art arrives two ways and this file governs both. **Supplied** — the user hands `/idea` a Value Increment key. **Discovered** — `vault-prior-art-finder` searches the vault. Both produce the same digest, resolve status the same way, and land in the same `## Prior art` section.
 
-Consumers: `idea:` (grill-rank, write path, `## Prior art`, handoff) and `create-vi:` (grill-rank). **Read-only** — neither ever writes into a matched item. **Advisory only** — never a gate, never a reviewer BLOCKER. Every miss is a silent, non-blocking skip.
+Consumers: `/idea` (grill-rank, write path, `## Prior art`, handoff) and `/create-vi` (grill-rank). **Read-only** — neither ever writes into a matched item. **Advisory only** — never a gate, never a reviewer BLOCKER. Every miss is a silent, non-blocking skip.
 
 ## Procedure — `resolve-prior-art <command-name>`
 
@@ -16,7 +16,7 @@ Consumers: `idea:` (grill-rank, write path, `## Prior art`, handoff) and `create
    - at least one of `Projects/Products/` and `Projects/ideas/` exists under it.
 4. **Return** `{ prior_art, vault_root, reason }`.
 
-There is deliberately **no index, no cache, and no consent prompt**. The corpus is a few hundred markdown files and retrieval is `glob` + `grep`, so this file has no analogue of `docs-grounding.md` step 3.5 — and none should be added.
+There is deliberately **no index, no cache, and no consent prompt**. The corpus is a few hundred markdown files and retrieval is `Glob` + `Grep`, so this file has no analogue of `docs-grounding.md` step 3.5 — and none should be added.
 
 ## Plan-approval line
 
@@ -89,7 +89,7 @@ An unrecognised code is **passed through verbatim** and recorded in `notes` — 
 
 ## Container derivation
 
-One derivation, two callers: `idea:`'s provenance default (from the **source** path) and `area_proposal.path` (from the **match** path). Defining it once is what keeps them from drifting.
+One derivation, two callers: `/idea`'s provenance default (from the **source** path) and `area_proposal.path` (from the **match** path). Defining it once is what keeps them from drifting.
 
 Given an absolute path `P` inside the write root, its **container** is:
 
@@ -101,19 +101,44 @@ An idea is written at `<container>/<candidate_slug>/idea.md`. Cases 2 and 3 are 
 
 **Choosing `P` for a Jira-key source.** A key has no vault path of its own; its export lives under `jira-products/`, outside `Projects/`, and would always fall to case 3. Instead `P` = the **vault item directory** whose work document carries `jira.id: <KEY>`, when one exists; absent otherwise. So a VI key yields its grouper — a *new sibling* beside the VI, which is right for extending or paralleling it and wrong for rewriting it in place. The write-path gate decides that; this derivation stays a pure path→path function and never guesses intent.
 
-**The top match** — used by `area_proposal` below and by `idea:`'s write-path gate — is the `prior_art` entry with the highest `match_confidence`, ties broken by array order. `prior_art` is returned ranked, so the top match is its first entry among those tied at the highest confidence. Defining this once matters: two consumers pick a row and a path from it, and "highest-confidence" is ambiguous the moment two entries tie.
+**The top match** — used by `area_proposal` below and by `/idea`'s write-path gate — is the `prior_art` entry with the highest `match_confidence`, ties broken by array order. `prior_art` is returned ranked, so the top match is its first entry among those tied at the highest confidence. Defining this once matters: two consumers pick a row and a path from it, and "highest-confidence" is ambiguous the moment two entries tie.
 
 **`area_proposal`.** `path` = the container of the top match, except that a **flat container yields `null`** — a root is not an area to propose — and `null` likewise when no match reached `high` confidence. `confidence` = that match's `match_confidence`, downgraded one step when the top two matches resolve to different containers.
 
+## Vocabulary
+
+The closed term sets. `idea-format.md` and `vault-prior-art-finder` both cite this section; it is defined here once so the two cannot drift.
+
+**`relation`** — how a match stands to the new work.
+
+| Term | Meaning |
+|---|---|
+| `same_capability` | The item covers this very capability. |
+| `predecessor_phase` | This idea is the next phase of that item. |
+| `analogous_precedent` | A **parallel** initiative to model this one on — typically the same capability in the other product (an existing SaaS Value Increment ↔ a new Managed one on the 2gen UI). It produces no contradiction by itself; the question is where alignment is required and where divergence is deliberate. |
+| `supersedes_self` | This idea **rewrites the very item it came from**, in place: same goal, different approach, same Jira key. |
+| `adjacent_initiative` | Related but distinct work. |
+
+**`kind`** — the reconciliation question a challenge puts to the author.
+
+| Term | Meaning |
+|---|---|
+| `already_tracked` | An initiative already covers this at status X; how is this different? |
+| `phase_continuation` | This looks like the next phase of `<KEY>`; author it as such? |
+| `precedent_alignment` | The precedent does X (scope shape, altitude, permissions, naming, UX). Should this match it, and where must it diverge? Name the divergence deliberately. |
+| `rewrite_delta` | The item currently specifies X and this idea proposes Y. Is the **goal** unchanged, and which existing content is superseded rather than extended? |
+| `superseded` | The match is `Closed` / `Cancelled` / `Post GA`; does that resolve the problem, or is this a revival? |
+| `adjacent_scope_boundary` | Related work in flight; where is the boundary? |
+
 ## Consumption
 
-**`grill-rank`** (`idea:`, `create-vi:`) — feed `prior_art` to the grill as positive grounding. **Rank** each `prior_art_challenges` entry into the command's existing Impact × Uncertainty gap list together with `docs_challenges`; do **not** append. A challenge competes for a question slot and never adds one — this preserves `idea:`'s ≤5-question bound.
+**`grill-rank`** (`/idea`, `/create-vi`) — feed `prior_art` to the grill as positive grounding. **Rank** each `prior_art_challenges` entry into the command's existing Impact × Uncertainty gap list together with `docs_challenges`; do **not** append. A challenge competes for a question slot and never adds one — this preserves `/idea`'s ≤5-question bound.
 
-**`## Prior art`** (`idea:`) — the durable carrier, written per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`. Fed from both directions: discovered matches and a supplied `vi` source alike.
+**`## Prior art`** (`/idea`) — the durable carrier, written per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`. Fed from both directions: discovered matches and a supplied `vi` source alike.
 
-**Write path** (`idea:` Phase 4) — the container derivation supplies the provenance default; `area_proposal` and a supplied `vi` source supply the gate's rows.
+**Write path** (`/idea` Phase 4) — the container derivation supplies the provenance default; `area_proposal` and a supplied `vi` source supply the gate's rows.
 
-**Handoff** (`idea:` Phase 5) — matched keys with statuses, plus `vi_disposition`.
+**Handoff** (`/idea` Phase 5) — matched keys with statuses, plus `vi_disposition`.
 
 ## Bounding
 
