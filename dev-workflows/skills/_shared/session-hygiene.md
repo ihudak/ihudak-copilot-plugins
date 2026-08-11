@@ -14,30 +14,29 @@ for a compact/clear": the pipeline does the prep and prompts the choice itself.
 ## 1. Prepare-checkpoint (runs FIRST — unconditional for VI-scoped runs)
 
 At command finalization — AFTER the deliverable artifact is saved/committed, AFTER
-`emit-cost` / feedback / follow-up, and BEFORE the terminal `commit-artifacts` step
-(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4) — a VI-scoped run
-writes/overwrites a **resume pointer**. It runs regardless of which suggestion (or none)
-fires: **prepare always, suggest adaptively.**
+the terminal feedback and follow-up steps, and BEFORE the terminal `commit-artifacts`
+step (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+§4) — a VI-scoped run writes/overwrites a **resume pointer**. It runs regardless of
+which suggestion (or none) fires: **prepare always, suggest adaptively.**
 
-**The write is its own terminal step — not part of the printed suggestion, and not part
-of `emit-cost`.** The `### Context hygiene` block in a command's report carries the
-`/compact` | `/clear` | `/rename` guidance only. The pointer is written by a **discrete
-step that runs after the cost phase's `emit-cost` call has returned and before
-`commit-artifacts`** — placed at the end of the command's terminal cost phase, but never
-folded into `emit-cost`'s own procedure. `cost-emission.md` owns that procedure and
-writes no resume pointer; giving it one would split ownership of this file across two
-references. The order is three separate steps, as §5 rule 2 states: **cost →
-`resume.md` → `commit-artifacts`**.
+**The write is its own terminal step — not part of the printed suggestion.** The
+`### Context hygiene` block in a command's report carries the `/compact` | `/clear` |
+`/rename` guidance only. The pointer is written by a **discrete step that runs after
+the terminal feedback and follow-up steps and before `commit-artifacts`** — the last
+step of the skill's terminal feedback/follow-up phase, never folded into the
+feedback- or follow-up-emission procedures themselves. The order is three separate
+steps, as §5 rule 2 states: **follow-ups → `resume.md` → `commit-artifacts`**.
 
 Binding the write to the printed block instead would break it twice over: several
-commands compose their Final Report *before* their follow-up and cost phases run, so the
-write would land before the cost entry it is supposed to follow, and it would stay
-uncommitted, since `commit-artifacts` runs after cost. Prepare-first is still satisfied:
-the write happens before the run ends, and therefore before the user can act on the
-printed suggestion.
+commands compose their Final Report *before* their terminal feedback and follow-up
+steps run, so the write would land before the follow-up entry it is supposed to
+follow, and it would stay uncommitted, since `commit-artifacts` runs after the
+terminal feedback and follow-up steps. Prepare-first is still satisfied: the write
+happens before the run ends, and therefore before the user can act on the printed
+suggestion.
 
-**Skipped** (no VI anchor to write against): `/idea` (pre-VI, keyless), `/implement`
-**direct** mode, `/document` **doc-edit** mode (Mode B), `/vuln`, `/upgrade`. There the
+**Skipped** (no VI anchor to write against): `idea:` (pre-VI, keyless), `implement:`
+**direct** mode, `document:` **doc-edit** mode (Mode B), `vuln:`, `upgrade:`. There the
 durable state is the artifact / branch / PR already on disk; no resume pointer is written.
 
 **Location** (mirror `followup-emission.md` §4 resolution):
@@ -57,7 +56,7 @@ log). It is intentionally tiny:
 - **Last completed:** <command> <args> — <phase or 'command complete'> (<ISO datetime>)
 - **Artifact:** <relative path to the deliverable just written/committed, or 'none (read-only)'>
 - **Next step:** <the exact next command from ### Next step, or 'VI fully processed'>
-- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line when no VI-Key exists yet — e.g. /create-vi)
+- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line when no VI-Key exists yet — e.g. create-vi:)
 - **Carry-forward decisions:** <0–N one-line decisions the next phase needs that are NOT already in the artifact; 'none' if none>
 ```
 
@@ -71,13 +70,13 @@ sensitive value.
 `next-phase-offer.md` already role-labels every next option (PM / PA / PE / Team). For
 each next option the offer names, compare its role to the just-finished command's role:
 
-- **Same role** (e.g. `/design E1 → /design E2`, Team→Team) → suggest **`/compact`** —
+- **Same role** (e.g. `design: E1 → design: E2`, Team→Team) → suggest **`/compact`** —
   context still relevant, keep the thread.
-- **Different role** (e.g. `/epics` PE → `/design` Team) → suggest **`/clear`** as the
+- **Different role** (e.g. `epics:` PE → `design:` Team) → suggest **`/clear`** as the
   better choice when one person keeps wearing both hats (the prior role's reasoning is
   now noise). `/compact` still works if continuing right away; a genuinely different
   person just starts fresh and re-reads disk.
-- Next options **span both** (e.g. `/create-vi` → PM `/release-notes` OR hand to PA/PE) →
+- Next options **span both** (e.g. `create-vi:` → PM `release-notes:` OR hand to PA/PE) →
   present **both branches**: "continuing as PM → `/compact`; handing off (even to
   yourself) → `/clear`."
 - **User is done / ending the session** → suggest nothing.
@@ -88,25 +87,25 @@ own `next-phase-offer` output already carries. The role graph is owned by
 
 ## 3. Mid-phase checkpoints & non-pipeline big commands
 
-- **`/implement` mid-phase checkpoint** (Scope-to-N / per-Epic, per `context-management.md`)
+- **`implement:` mid-phase checkpoint** (Scope-to-N / per-Epic, per `context-management.md`)
   → suggest **`/compact`** to free budget before continuing (mid-command → no role
   transition → never `/clear`).
-- **`/vuln`, `/upgrade`** (big, non-pipeline, no role transition) → a plain end-of-run
+- **`vuln:`, `upgrade:`** (big, non-pipeline, no role transition) → a plain end-of-run
   **`/compact`** suggestion only; no `resume.md` (durable state is the branch/PR).
 
 ## 4. Session-name aid
 
-The VI-Key is first available at **`/release-notes`** and is present for every PA/PE/Team
-command (`/create-ard`, `/epics`, `/specify`, `/design`, `/ready`, `/implement`,
-`/document`, `/release-notes` — all take `<VI>`). For those, print a suggested
+The VI-Key is first available at **`release-notes:`** and is present for every PA/PE/Team
+command (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`,
+`document:`, `release-notes:` — all take `<VI>`). For those, print a suggested
 `/rename <VI-ID>-<slug>-<role>` line so the user can relocate the session in
 `claude --resume` later (e.g. after going home). `<role>` is the just-finished command's
 lane tag (pm / pa / pe / team). Guidance-only — a command cannot run `/rename` itself.
 
-**`/idea` and `/create-vi` are excluded** from the rename aid: the PM ideation phase is
+**`idea:` and `create-vi:` are excluded** from the rename aid: the PM ideation phase is
 short, and on the common path it runs *before* the paste-into-Jira + re-import round-trip
 that mints the VI, so there is usually no VI-ID to name a session after. Two runs do carry
-one — a `vi`-provenance `/idea` source, and a `vi_disposition: rewrite` run whose key is
+one — a `vi`-provenance `idea:` source, and a `vi_disposition: rewrite` run whose key is
 the VI being rewritten — but the phase stays short enough that no label is auto-suggested
 either way; the PM names the session manually if they want one.
 
@@ -116,7 +115,7 @@ either way; the PM names the session manually if they want one.
 2. **Prepare-first** — the disk flush (resume pointer) always happens before the run
    ends, so acting on the printed suggestion is safe. Prepare is unconditional
    (VI-scoped); only the suggestion is adaptive. The canonical terminal order is:
-   **deliverable + handoff → feedback → follow-ups → cost → `resume.md` →
+   **deliverable + handoff → feedback → follow-ups → `resume.md` →
    `commit-artifacts` → the run's last printed output**
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 3. **Role-aware via a single graph** — the compact/clear split reads
@@ -130,6 +129,6 @@ either way; the PM names the session manually if they want one.
 
 A short **`### Context hygiene`** block appended right after the `### Next step` section
 at the END of the command's Final Report (guidance-only prose), plus one invariant citing
-this reference. `/vuln` + `/upgrade` place the `/compact` line near their
-`impl-maintenance` handoff. `/implement` places the mid-phase `/compact` at its Phase 3B
+this reference. `vuln:` + `upgrade:` place the `/compact` line near their
+`impl-maintenance` handoff. `implement:` places the mid-phase `/compact` at its Phase 3B
 checkpoint.

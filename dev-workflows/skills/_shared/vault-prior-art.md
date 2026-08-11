@@ -2,9 +2,9 @@
 
 An idea rarely starts on empty ground. The vault already tracks initiatives that cover the same capability, precede it, parallel it in the other product, or *are* it under a different description. Reaching that prior art **before** authoring changes what gets authored; reaching it afterwards changes only how much gets rewritten.
 
-Prior art arrives two ways and this file governs both. **Supplied** — the user hands `/idea` a Value Increment key. **Discovered** — `vault-prior-art-finder` searches the vault. Both produce the same digest, resolve status the same way, and land in the same `## Prior art` section.
+Prior art arrives two ways and this file governs both. **Supplied** — the user hands `idea:` a Value Increment key. **Discovered** — `vault-prior-art-finder` searches the vault. Both produce the same digest, resolve status the same way, and land in the same `## Prior art` section.
 
-Consumers: `/idea` (grill-rank, write path, `## Prior art`, handoff) and `/create-vi` (grill-rank). **Read-only** — neither ever writes into a matched item. **Advisory only** — never a gate, never a reviewer BLOCKER. Every miss is a silent, non-blocking skip.
+Consumers: `idea:` (grill-rank, write path, `## Prior art`, handoff) and `create-vi:` (grill-rank). **Read-only** — neither ever writes into a matched item. **Advisory only** — never a gate, never a reviewer BLOCKER. Every miss is a silent, non-blocking skip.
 
 ## Procedure — `resolve-prior-art <command-name>`
 
@@ -12,7 +12,7 @@ Consumers: `/idea` (grill-rank, write path, `## Prior art`, handoff) and `/creat
 2. **Resolve the root.** `vault_root = $VAULT_PATH`. Unlike `$DOCS_PATH` this has **no default** — `$VAULT_PATH` is a write root, and write roots deliberately do not default.
 3. **Validity gate — ON only when all hold** (else `OFF` with a one-line reason):
    - `$VAULT_PATH` is non-empty and is an existing, readable directory;
-   - the run writes into that vault — when the command fell back to a user-supplied write root, return `OFF`, `reason: "write root is not the vault"`;
+   - **`idea:` only** — the run writes into that vault: when `idea:` fell back to a user-supplied write root, return `OFF`, `reason: "write root is not the vault"`. This check does not apply to `create-vi:`, which writes to `$SPECS_PATH` by design and never into the vault; applying it there would resolve `OFF` on every run.
    - at least one of `Projects/Products/` and `Projects/ideas/` exists under it.
 4. **Return** `{ prior_art, vault_root, reason }`.
 
@@ -89,7 +89,7 @@ An unrecognised code is **passed through verbatim** and recorded in `notes` — 
 
 ## Container derivation
 
-One derivation, two callers: `/idea`'s provenance default (from the **source** path) and `area_proposal.path` (from the **match** path). Defining it once is what keeps them from drifting.
+One derivation, two callers: `idea:`'s provenance default (from the **source** path) and `area_proposal.path` (from the **match** path). Defining it once is what keeps them from drifting.
 
 Given an absolute path `P` inside the write root, its **container** is:
 
@@ -97,11 +97,11 @@ Given an absolute path `P` inside the write root, its **container** is:
 2. `Projects/Products/` itself, when `P` is a bare `.md` directly under `Projects/Products/`;
 3. `Projects/ideas/` otherwise — including when `P` lies under `Projects/ideas/` (an idea sibling is not an area), when `P` lies elsewhere in the vault or outside it, and when `P` is absent.
 
-An idea is written at `<container>/<candidate_slug>/idea.md`. Cases 2 and 3 are the **flat containers** — they name a root, not a specific area.
+An idea is written at `<container>/<candidate_slug>idea:.md`. Cases 2 and 3 are the **flat containers** — they name a root, not a specific area.
 
 **Choosing `P` for a Jira-key source.** A key has no vault path of its own; its export lives under `jira-products/`, outside `Projects/`, and would always fall to case 3. Instead `P` = the **vault item directory** whose work document carries `jira.id: <KEY>`, when one exists; absent otherwise. So a VI key yields its grouper — a *new sibling* beside the VI, which is right for extending or paralleling it and wrong for rewriting it in place. The write-path gate decides that; this derivation stays a pure path→path function and never guesses intent.
 
-**The top match** — used by `area_proposal` below and by `/idea`'s write-path gate — is the `prior_art` entry with the highest `match_confidence`, ties broken by array order. `prior_art` is returned ranked, so the top match is its first entry among those tied at the highest confidence. Defining this once matters: two consumers pick a row and a path from it, and "highest-confidence" is ambiguous the moment two entries tie.
+**The top match** — used by `area_proposal` below and by `idea:`'s write-path gate — is the `prior_art` entry with the highest `match_confidence`, ties broken by array order. `prior_art` is returned ranked, so the top match is its first entry among those tied at the highest confidence. Defining this once matters: two consumers pick a row and a path from it, and "highest-confidence" is ambiguous the moment two entries tie.
 
 **`area_proposal`.** `path` = the container of the top match, except that a **flat container yields `null`** — a root is not an area to propose — and `null` likewise when no match reached `high` confidence. `confidence` = that match's `match_confidence`, downgraded one step when the top two matches resolve to different containers.
 
@@ -132,13 +132,13 @@ The closed term sets. `idea-format.md` and `vault-prior-art-finder` both cite th
 
 ## Consumption
 
-**`grill-rank`** (`/idea`, `/create-vi`) — feed `prior_art` to the grill as positive grounding. **Rank** each `prior_art_challenges` entry into the command's existing Impact × Uncertainty gap list together with `docs_challenges`; do **not** append. A challenge competes for a question slot and never adds one — this preserves `/idea`'s ≤5-question bound.
+**`grill-rank`** (`idea:`, `create-vi:`) — feed `prior_art` to the grill as positive grounding. **Rank** each `prior_art_challenges` entry into the command's existing Impact × Uncertainty gap list together with `docs_challenges`; do **not** append. A challenge competes for a question slot and never adds one — this preserves `idea:`'s ≤5-question bound.
 
-**`## Prior art`** (`/idea`) — the durable carrier, written per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`. Fed from both directions: discovered matches and a supplied `vi` source alike.
+**`## Prior art`** (`idea:`) — the durable carrier, written per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`. Fed from both directions: discovered matches and a supplied `vi` source alike.
 
-**Write path** (`/idea` Phase 4) — the container derivation supplies the provenance default; `area_proposal` and a supplied `vi` source supply the gate's rows.
+**Write path** (`idea:` Phase 4) — the container derivation supplies the provenance default; `area_proposal` and a supplied `vi` source supply the gate's rows.
 
-**Handoff** (`/idea` Phase 5) — matched keys with statuses, plus `vi_disposition`.
+**Handoff** (`idea:` Phase 5) — matched keys with statuses, plus `vi_disposition`.
 
 ## Bounding
 
