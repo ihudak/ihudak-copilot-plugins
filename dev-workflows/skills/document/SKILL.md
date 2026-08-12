@@ -283,7 +283,7 @@ Present a concise plan:
 - Output filename / path under the resolved `docs_repo_path` (from Phase 1)
 - `$REPOS_PATH` and the slug→clone resolution for the repos that will be examined (inferred from the `jira-reader` output in Phase 3; if Phase 3 hasn't run yet, list "TBD — resolved after Jira read")
 - PR filter (MERGED only / all / specific)
-- Parallelism plan (up to 4 `diff-summarizer` instances per batch; up to 4 repos per Agent message)
+- Parallelism plan (up to 4 `diff-summarizer` instances per batch; up to 4 repos per task message)
 - Write context + whether branching will happen
 - Screenshots: `new_images_wanted` (yes/no, from Phase 1). Phase 5.6 always runs: when yes, its add-list candidates are gathered and confirmed there (specs scan + Jira `attachments[]` + manual paths) — list "candidates resolved in Phase 5.6"; either way, Phase 5.6 also reviews the images already on the edited pages for staleness.
 - Target space(s): the resolved `target_spaces` (`[saas]` / `[managed]` / `[saas, managed]`). State whether it came from the `space_constraint` argument (and that the other space's render is left unchanged) or from the Phase 4.5 auto-determination the user confirmed. If Phase 4.5 hasn't run yet (auto-determine, `space_constraint = none`), list "TBD — determined and confirmed in Phase 4.5".
@@ -387,11 +387,11 @@ Phase 4.5's confirmed value is authoritative — no later phase re-derives `targ
 
 ## Phase 5 — Parallel diff summarisation
 
-Spawn `diff-summarizer` instances in **batches of up to 4 concurrent agents** per Agent message. Wait for each batch to complete before spawning the next. If fewer than 4 repos remain, the final batch is smaller.
+Spawn `diff-summarizer` instances in **batches of up to 4 concurrent agents** per task message. Wait for each batch to complete before spawning the next. If fewer than 4 repos remain, the final batch is smaller.
 
 **Rationale:** Copilot CLI's practical parallel-subagent limit is ~4–5; going above that causes silent serialisation or rate-limiting. Capping at 4 makes runtime deterministic.
 
-For each repo, in the same Agent message:
+For each repo, in the same task message:
 
 → task(agent_type: "dev-workflows:diff-summarizer", model: `<detection_model — §9 / §2.1 detection chain>`):
   > "Summarise this repo's PRs for the brief:
@@ -988,7 +988,7 @@ Notable additions/removals: [new pages, new sections, new snippets, new cross-li
 Doc-review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
 ```
 
-Then spawn all four Phase 4-style maintenance agents in a **single Agent message**. They are independent and run concurrently.
+Then spawn all four Phase 4-style maintenance agents in a **single task message**. They are independent and run concurrently.
 
 **Agent 1 — Documentation** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain>`):
 > "Post-write documentation review. Change summary:

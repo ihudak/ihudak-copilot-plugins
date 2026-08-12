@@ -394,7 +394,7 @@ Notable additions/removals: _readiness.md (over)written with the Phase 4 verdict
 Readiness verdict: [SUPPORTED | PARTIAL | NOT-SUPPORTED]
 ```
 
-Then spawn all four maintenance agents in a **single Agent message**. They are independent and run
+Then spawn all four maintenance agents in a **single task message**. They are independent and run
 concurrently.
 
 **Agent 1 — Documentation** (general-purpose):

@@ -172,7 +172,7 @@ choices: ["Skip and continue without its PRs", "I'll clone it — wait", "Cancel
 
 ## Phase 5 — Diff summarisation (only if diff grounding is ON)
 
-Spawn `diff-summarizer` in batches of up to 4 concurrent agents per Agent message, passing each resolved absolute `repo_path` plus `repo_url_slug` and the PRs filtered to that repo. Collect the outputs into a `diff_summaries` array.
+Spawn `diff-summarizer` in batches of up to 4 concurrent agents per task message, passing each resolved absolute `repo_path` plus `repo_url_slug` and the PRs filtered to that repo. Collect the outputs into a `diff_summaries` array.
 
 **Per-repo summarizer status.** Handle each returned status before continuing:
 

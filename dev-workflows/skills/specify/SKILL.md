@@ -309,7 +309,7 @@ Resolve any ARD for this item by citing `~/.copilot/installed-plugins/ihudak-cop
 
 ## Phase 4 — Light code scan
 
-Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per Agent message, on the
+Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per task message, on the
 mounted candidates resolved in Phase 3. Wait for each batch before spawning the next. This is
 deliberately a **light** scan relative to `epics:`' — grounding for feasibility and to avoid
 contradicting existing behaviour, not a full reuse audit.
