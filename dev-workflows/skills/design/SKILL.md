@@ -207,7 +207,7 @@ Resolve any ARD for this item by citing `~/.copilot/installed-plugins/ihudak-cop
 
 ## Phase 4 — Code scan
 
-Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per Agent message over
+Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per task message over
 **all** confirmed, mounted repos (the scan runs over the full set regardless of classification — only
 grill depth / sections / review scale by tier). Wait for each batch before the next.
 

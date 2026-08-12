@@ -134,7 +134,7 @@ Present a concise plan:
 - Repos to scan (or "code scan off")
 - Docs grounding: the `docs grounding:` line that `resolve-docs-grounding` returned, verbatim — including its `retrieval:` value and any index-build, staleness, or shadowing clause (off switch: --no-docs)
 - Output directory with one file per new Epic; propose a name stub per Epic if the themes already suggest them
-- Parallelism plan (up to 4 `code-scanner` instances per batch, single Agent message per batch)
+- Parallelism plan (up to 4 `code-scanner` instances per batch, single task message per batch)
 - Proposed Epic sizing/sequencing — prefer fewer, larger Epics where the VI direction is validated; split only at a genuine risk / feedback-loop boundary; order so that no Epic depends on a later one
 - **Wide-refactor exception** — a blast-radius-wide *mechanical* change (rename/retype a shared symbol, column, or type) that genuinely cannot be tracer-bulleted into independent vertical slices is sequenced **expand → migrate-in-batches → contract**: one Epic adds the new form alongside the old, one-or-more Epics migrate call sites in batches, and a final Epic removes the old form (blocked by every migrate-batch). Prefer this over forcing the change into an awkward vertical slice
 
@@ -297,7 +297,7 @@ If code scan is ON:
 
 If code scan is OFF, skip to Phase 6.
 
-Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per Agent message. Wait for each batch before spawning the next.
+Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per task message. Wait for each batch before spawning the next.
 
 For each repo in the batch:
 
@@ -484,7 +484,7 @@ Notable additions/removals: [new Epics by slug — one line each]
 Epic-review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
 ```
 
-Then spawn all four maintenance agents in a **single Agent message**. They are independent and run concurrently.
+Then spawn all four maintenance agents in a **single task message**. They are independent and run concurrently.
 
 **Agent 1 — Documentation** (general-purpose):
 > "Post-write documentation review. Change summary:

@@ -13,7 +13,7 @@ information, scope tweaks, wording) and the rare obstacle-driven re-do (a human 
 discussed it in Jira, and decided the VI must change). The VI is **product-level** — what / why /
 for-whom, not how. Zero code scan; no repos.
 
-Usage: `update-vi: <KEY> [@transcript-or-notes ...]`.
+Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs]` (`--no-docs` turns off documentation grounding for the run — see Phase 1).
 
 ---
 

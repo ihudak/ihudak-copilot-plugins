@@ -85,7 +85,7 @@ There are no PRs at ARD time, so repos are **architect-driven**, not PR-derived:
 1. **Cheap discovery.** List the top-level directories under each `$REPOS_PATH` entry (`ls`). Optionally attach each dir's one-line identity — `timeout 5 git -C <dir> remote get-url origin 2>/dev/null` (slug) or its README first heading. Do **not** deep-scan to guess relevance.
 2. **Propose + ask.** From the VI/Epic themes, propose a `theme → repo` mapping against those dirs, and **ask the architect to confirm / correct / add**. For any requirement that maps to no obvious repo, **ask outright**: "which repo covers `<X>`?"
 3. **Missing repo → consolidated mount-or-descope gate:** `choices: ["Mount now & re-scan", "Ground only the confirmed-mounted set (record the rest as open questions)", "Specify an absolute path for this repo", "Cancel", "Other… (describe)"]`.
-4. **Ground the confirmed set.** Spawn `code-scanner` in batches of up to 4 concurrent agents per Agent message on the confirmed repos (wait for each batch), scoped by the themes:
+4. **Ground the confirmed set.** Spawn `code-scanner` in batches of up to 4 concurrent agents per task message on the confirmed repos (wait for each batch), scoped by the themes:
 
    → task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
      > "repo_path: <resolved absolute path>

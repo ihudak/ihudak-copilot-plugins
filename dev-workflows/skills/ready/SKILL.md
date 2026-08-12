@@ -64,7 +64,7 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
    the key and a human-adjusted slug — the same tolerance `ard-resolution.md` and `design:` use). When
    `focus_key` is set, additionally resolve the per-Epic subdir
    `<VI-dir>/<EPIC>-<eslug>/` by the same tolerance. **Unlike `design:`, a missing dir is NOT a hard
-   stop** — an early-lifecycle VI (e.g. `Open` / `Problem Stated`) legitimately has no specs-repo
+   stop** — an early-lifecycle VI (e.g. `Open` / `Problem stated`) legitimately has no specs-repo
    footprint yet, and "nothing exists" is itself readiness-relevant data, not an error. Record whichever
    dir(s) resolved (or "not found — no specs-repo footprint yet").
 
@@ -394,7 +394,7 @@ Notable additions/removals: _readiness.md (over)written with the Phase 4 verdict
 Readiness verdict: [SUPPORTED | PARTIAL | NOT-SUPPORTED]
 ```
 
-Then spawn all four maintenance agents in a **single Agent message**. They are independent and run
+Then spawn all four maintenance agents in a **single task message**. They are independent and run
 concurrently.
 
 **Agent 1 — Documentation** (general-purpose):

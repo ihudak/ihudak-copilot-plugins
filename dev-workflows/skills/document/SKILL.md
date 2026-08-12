@@ -283,7 +283,7 @@ Present a concise plan:
 - Output filename / path under the resolved `docs_repo_path` (from Phase 1)
 - `$REPOS_PATH` and the slug→clone resolution for the repos that will be examined (inferred from the `jira-reader` output in Phase 3; if Phase 3 hasn't run yet, list "TBD — resolved after Jira read")
 - PR filter (MERGED only / all / specific)
-- Parallelism plan (up to 4 `diff-summarizer` instances per batch; up to 4 repos per Agent message)
+- Parallelism plan (up to 4 `diff-summarizer` instances per batch; up to 4 repos per task message)
 - Write context + whether branching will happen
 - Screenshots: `new_images_wanted` (yes/no, from Phase 1). Phase 5.6 always runs: when yes, its add-list candidates are gathered and confirmed there (specs scan + Jira `attachments[]` + manual paths) — list "candidates resolved in Phase 5.6"; either way, Phase 5.6 also reviews the images already on the edited pages for staleness.
 - Target space(s): the resolved `target_spaces` (`[saas]` / `[managed]` / `[saas, managed]`). State whether it came from the `space_constraint` argument (and that the other space's render is left unchanged) or from the Phase 4.5 auto-determination the user confirmed. If Phase 4.5 hasn't run yet (auto-determine, `space_constraint = none`), list "TBD — determined and confirmed in Phase 4.5".
@@ -387,11 +387,11 @@ Phase 4.5's confirmed value is authoritative — no later phase re-derives `targ
 
 ## Phase 5 — Parallel diff summarisation
 
-Spawn `diff-summarizer` instances in **batches of up to 4 concurrent agents** per Agent message. Wait for each batch to complete before spawning the next. If fewer than 4 repos remain, the final batch is smaller.
+Spawn `diff-summarizer` instances in **batches of up to 4 concurrent agents** per task message. Wait for each batch to complete before spawning the next. If fewer than 4 repos remain, the final batch is smaller.
 
 **Rationale:** Copilot CLI's practical parallel-subagent limit is ~4–5; going above that causes silent serialisation or rate-limiting. Capping at 4 makes runtime deterministic.
 
-For each repo, in the same Agent message:
+For each repo, in the same task message:
 
 → task(agent_type: "dev-workflows:diff-summarizer", model: `<detection_model — §9 / §2.1 detection chain>`):
   > "Summarise this repo's PRs for the brief:
@@ -528,7 +528,7 @@ When both lists are empty, skip presenting this prompt — there is nothing to s
 - **Cancel** → stop and summarise.
 - **Other… (describe)** → takes free text and resolves to one of the three dispositions above — "Review both lists item by item", "Add-list only", or "Nothing to do" — and the run then behaves exactly as if that option had been chosen directly, including which ledger row it writes. There is no fourth disposition and no "skip on my own judgement" path here.
 
-**Append the `image_review` ledger row once this phase's outcome is settled — by the user's answer to the merged prompt above, or by the both-lists-empty precondition when that prompt itself was skipped — outside any conditional branch above**, so every path through this phase writes exactly one row (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3; registry entry: §4, added by Task 8):
+**Append the `image_review` ledger row once this phase's outcome is settled — by the user's answer to the merged prompt above, or by the both-lists-empty precondition when that prompt itself was skipped — outside any conditional branch above**, so every path through this phase writes exactly one row (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3; registry entry: §4):
 - `RAN` — the choice was "Review both lists item by item" and at least one of the two lists was non-empty; `mechanism: "per-item user review of the add list and the existing-image list built from extend-existing write targets"`; `findings:` = the count of existing-image occurrences reviewed.
 - `SKIPPED_BY_USER` — the choice was "Add-list only — existing images are current" or "Nothing to do — no image work this run"; `user_decision` quotes the choice verbatim.
 - `NOT_APPLICABLE` — both lists were empty (the prompt above was skipped); `precondition_unmet: "no add-list candidates and no image references on any extend-existing write target"`.
@@ -988,7 +988,7 @@ Notable additions/removals: [new pages, new sections, new snippets, new cross-li
 Doc-review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
 ```
 
-Then spawn all four Phase 4-style maintenance agents in a **single Agent message**. They are independent and run concurrently.
+Then spawn all four Phase 4-style maintenance agents in a **single task message**. They are independent and run concurrently.
 
 **Agent 1 — Documentation** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain>`):
 > "Post-write documentation review. Change summary:
