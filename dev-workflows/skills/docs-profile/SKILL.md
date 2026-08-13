@@ -252,7 +252,7 @@ Branch <name> created with 1 commit on <repo-root>. NOT pushed and NOT merged �
 ## Invariants (always enforced)
 
 - ALWAYS validate the target is a writeable git work tree (Phase 0); stop with a named error if not
-- ALWAYS pin detection to the §2.1 mid-tier Sonnet chain via the `task` `model:` override — never inherit the session model — and record `detection_model`
+- ALWAYS pin detection to the §2.1 detection chain via the `task` `model:` override — never inherit the session model — and record `detection_model`
 - ALWAYS run the synthesis on the §2 powerful (Opus) chain via the `task` `model:` override
 - ALWAYS conform the written profile to `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/docs-profile-schema.md`
 - ALWAYS treat `frontmatter:` as pointers to the dynatrace-docs-frontmatter skill; NEVER copy changelog/owners rules into the profile
