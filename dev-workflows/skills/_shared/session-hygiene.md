@@ -116,7 +116,13 @@ either way; the PM names the session manually if they want one.
    ends, so acting on the printed suggestion is safe. Prepare is unconditional
    (VI-scoped); only the suggestion is adaptive. The canonical terminal order is:
    **deliverable + handoff → feedback → follow-ups → `resume.md` →
-   `commit-artifacts` → the run's last printed output**
+   `commit-artifacts` → the run's last printed output**. What binds every
+   skill is the **emitter tail** — feedback → follow-ups → `resume.md` →
+   `commit-artifacts`. A skill's deliverable-side finish may precede the tail
+   at whatever point suits it: `document:`'s conditional `Phase 8.5 — Finish &
+   handoff` is the docs-repo git finish, while `emit-auto` writes into
+   `$SPECS_PATH`, so the two touch different repositories and their relative
+   order carries no consequence
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 3. **Role-aware via a single graph** — the compact/clear split reads
    `next-phase-offer.md`'s role labels; the role graph is not duplicated here.
