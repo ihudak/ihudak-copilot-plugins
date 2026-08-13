@@ -30,8 +30,10 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
    invoke is written `<name>:` (e.g. `release-notes: <VI>`). Slash-style `/<name>` does invoke the
    skill, but it can resolve to a Copilot built-in of the same name instead — Copilot's own
    `/release-notes`, `/upgrade`, and `/feedback` all collide today — so the slash
-   form is NEVER printed. Prose that describes the pipeline to a reader of this edition's source
-   keeps the short form.
+   form is NEVER printed. Narrative prose that describes the pipeline's shape to a reader of this
+   edition's source may keep the short form — but ANY text that tells a reader what to type
+   (usage blocks, example invocation tables, quick-starts, tips) is bound by this rule regardless
+   of which file it appears in.
 
 ## Surface
 

@@ -24,7 +24,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 ## Phase 1 — Compatibility Planning (no files changed)
 
-1. **Inventory** — Detect all components and their current versions from build files, runtime version files, and CI YAML. Use `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/upgrade/ecosystems.md`.
+1. **Inventory** — Detect all components and their current versions from build files, runtime version files, and CI YAML. Use `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/upgrade/ecosystems.md`. For Java, version declarations span build files, `.sdkmanrc`, `.java-version`, `.tool-versions`, Dockerfiles, and GitHub Actions workflow files — `upgrade: java:lts` (and any other Java target) updates all of them consistently, never just the build file.
 
 2. **Resolve requested targets** — Apply the `Version Resolution` section below to each requested token.
 
@@ -62,7 +62,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 4. **Collect planner results**
    - `READY` → candidate for execution
    - `NOT_FOUND` → warn and skip
-   - `CONFLICT` → surface `conflict_details` and ranked `alternatives`; do not proceed until the conflict is resolved or the component is skipped
+   - `CONFLICT` → surface `conflict_details` and ranked `alternatives`; do not proceed until the conflict is resolved or the component is skipped. **Incompatible explicit versions** — e.g. `upgrade: gradle:9 java:11` requests two explicit versions that won't work together (Gradle 9 requires Java 17+): the planner stops and offers ranked alternatives — the highest Gradle version compatible with Java 11, or upgrading Java to 17 so Gradle 9 becomes compatible
 
    For each `READY` component, write its planner handoff to a temp file (`mktemp -t dw-upgrade-plan-XXXX.md`, never inside a repo tree) and record its absolute path as the component's `plan_file` (it persists into Phase 2); the risk-planner, executor, and resume steps below receive this path instead of the pasted handoff.
 

@@ -147,10 +147,10 @@ ready:           → ready → [readiness-reviewer@strong] → impl-maintenance 
 Implementation & maintenance:
 implement:       → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance → commit-artifacts
 document:        → document (dual-mode)
-                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts
+                    ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts   (no doc-reviewer gate in this mode)
                     └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip] → commit-artifacts
 vuln:            → vuln → vuln-research → vuln-fixer → [code-review@strong] → review-fixer → tests → impl-maintenance → commit-artifacts
-upgrade:         → upgrade → upgrade-planner → upgrade-executor → [code-review@strong] → review-fixer → tests → impl-maintenance → commit-artifacts
+upgrade:         → upgrade → upgrade-planner → [risk-planner@strong] → upgrade-executor → [code-review@strong] → review-fixer → tests → impl-maintenance → commit-artifacts
 docs-profile:    → docs-profile → (writes .dev-workflows/docs-profile.yml as reviewable PR; consumed by document: jira mode)
 
 All seventeen in-scope skills additionally run `specs-preflight` at run start — as early as
@@ -162,16 +162,16 @@ the terminal step runs immediately before their Phase 3, which cedes the session
 docs-profile: is out of scope — it writes no $SPECS_PATH artifact.
 
 Shared sub-agents:
-                    └── test-baseliner    (used by upgrade-executor, vuln-fixer, and implement:)
+                    └── test-baseliner    (used by implement:, and by upgrade: and vuln: both directly and via upgrade-executor / vuln-fixer)
                     └── test-writer       (used by implement: only — Phase 3.7)
-                    └── risk-planner      (used by implement: — Phase 2.5, replaces rubber-duck)
+                    └── risk-planner      (used by implement: — Phase 2.5, replaces rubber-duck; and upgrade: — SIGNIFICANT/HIGH-RISK components)
                     └── code-review       (used by implement: — Phase 3.9, vuln, upgrade)
-                    └── doc-reviewer      (used by document: doc-edit Phase 3.5, and jira mode Phase 7)
+                    └── doc-reviewer      (used by document: jira mode Phase 7 only — doc-edit mode has no reviewer gate)
                     └── doc-fixer         (used by document: Phase 3.5, jira mode Phases 6.7/7, epics:)
                     └── doc-location-finder (used by document: jira mode Phase 5.6)
                     └── counterpart-finder (used by document: jira mode Phase 5.6.5, space-constrained runs)
                     └── doc-planner       (used by document: jira mode Phase 5.7)
-                    └── docs-style-checker (used by document: Phase 6.7)
+                    └── docs-style-checker (used by document:, both modes — doc-edit Phase 3.5, jira mode Phase 6.7)
                     └── dt-style-checker  (from dt-style-guide plugin; fallback for docs-style-checker, primary for epics)
                     └── epic-reviewer     (used by epics: Phase 7)
 
@@ -199,8 +199,8 @@ Key invariants for `implement:` specifically:
 Key invariants for `document:` doc-edit mode:
 - **No branch creation by default** — works on current branch unless user requests one
 - **No test-baseliner, no test-writer, no code-review** — docs-only phases only
-- `doc-reviewer` sub-agent (Phase 3.5) performs comprehensive review: links, headings, wikilinks, style, completeness
-- BLOCKER findings trigger a fix cycle via `doc-fixer` sub-agent (max one fix + one re-review); CONCERNs are recorded and may be fixed inline
+- **No `doc-reviewer` gate** — this mode is deliberately lightweight: a mandatory style check (Phase 3.5) and `doc-fixer`, but no strong-tier review
+- Style-check findings are fixed via `doc-fixer`; with no reviewer gate there is no BLOCKER fix cycle and no re-review in this mode
 - Mixed code + docs changes must use `implement:` instead
 
 Key invariants for `document:` jira mode and `epics:`:
@@ -209,7 +209,7 @@ Key invariants for `document:` jira mode and `epics:`:
 - `jira-reader` is strictly read-only — never modifies vault files
 - Parallel sub-agent invocation: all diff-summarizers (`document:` jira mode) or code-scanners (`epics:`) are launched in a **single response** (one `task()` per repo)
 - Branch setup happens **before** writing output files — never after
-- Branch policy: walk up cwd for `.obsidian/` → `obsidian` (never branch); else `git rev-parse` → `git_repo` (branch opt-in) or `plain_dir` (never branch). User can override at plan approval
+- Branch policy: `epics:` never branches. `document:` classifies its write context against the resolved `docs_repo_path` (not necessarily cwd) — walk up for `.obsidian/` → `obsidian` (never branch); else `git rev-parse` plus docs signals → `docs_repo` (branch opt-in, confirmed at plan approval) or `non_docs_repo` (user confirmation promotes it to `docs_repo` behaviour); else `plain_dir` (never branch)
 - `doc-location-finder` (`document:` jira mode only) identifies write targets before writing begins
 - `doc-planner` (`document:` jira mode only) synthesises Jira + diffs into a documentation checklist
 - Counterpart-space grounding (`counterpart-finder`, Phase 5.6.5) runs only on space-constrained runs; it is **read-only** — never copies counterpart-space-specific detail or screenshots into the target doc; `--counterpart <JiraID|PR-url>` reaches an unmerged counterpart PR by reusing `document:`'s existing PR-diff resolver (`diff-summarizer`, no new external-API surface); nothing found ⇒ the run behaves exactly as today

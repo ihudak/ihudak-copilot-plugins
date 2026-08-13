@@ -51,6 +51,14 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
    under `$SPECS_PATH/specifications/`. If `$SPECS_PATH` is unset, stop with a clear error naming
    `SPECS_PATH`: `choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`.
 
+**Specs-repo preflight.** Cite
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from
+an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free and
+silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice;
+if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+`commit-artifacts` step skips on it.
+
 3. **Read from a clean specs-repo main — never a branch.** The specs repo's `main` (or `master`) branch
    is the handoff surface for every artifact `ready:` judges (per `design:`'s Phase 0 rule). Check
    `git -C $SPECS_PATH branch --show-current` and `git -C $SPECS_PATH status --porcelain`:
@@ -70,14 +78,6 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
 
 `ready:` is **cwd-agnostic** — it reads an absolute `$SPECS_PATH`-rooted feature folder and (Phase 3)
 best-effort-checks repos under `$REPOS_PATH`; cwd need not be inside either.
-
-**Specs-repo preflight.** Cite
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
-and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from
-an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free and
-silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice;
-if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
-`commit-artifacts` step skips on it.
 
 ---
 
