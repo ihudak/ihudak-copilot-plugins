@@ -128,24 +128,26 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 
 `skills/_shared/dynatrace-docs/anchor-conventions.md` is the **single source of truth** for heading-anchor mechanics on dynatrace-docs pages — one `{:#id}` per heading (multi-anchor unsupported), the four verified internal-link forms, the `pnpm docstack validate-anchors` contract, and the rule that a product `dt-url` deep link's anchor wins reconciliation. Consumed by `doc-writer`, `doc-reviewer`, and `doc-planner`.
 
-`skills/_shared/specs-repo-git.md` is the **single source of truth** for the two specs-repo git entry points shared by all seventeen skills that write into `$SPECS_PATH`: `specs-preflight` (run start — flush leftover artifacts, retry an unpushed artifact commit, settle the branch) and `commit-artifacts` (terminal — stage the bounded artifact paths, commit, push). Owns the bounded write authority (two path shapes; `^(vi|ard|spec|design)/` branches only), the three preflight guards and their four-part notice contract, the branch-disposition table, and the `Specs repo:` outcome line. Always `git -C "$SPECS_PATH"`, never a `cd`; never force-pushes; never fails the run.
+`skills/_shared/specs-repo-git.md` is the **single source of truth** for the two specs-repo git entry points shared by all seventeen skills that write into `$SPECS_PATH`: `specs-preflight` (run start — flush leftover artifacts, retry an unpushed artifact commit, settle the branch) and `commit-artifacts` (terminal — stage the bounded artifact paths, commit, push). Owns the bounded write authority (two path shapes; `^(idea|vi|ard|spec|design|ready)/` branches only — the six-prefix authority), the three preflight guards and their four-part notice contract, the branch-disposition table, and the `Specs repo:` outcome line. Always `git -C "$SPECS_PATH"`, never a `cd`; never force-pushes; never fails the run. Deliverable handoff — a different concern, committing the phase's own authored artifact rather than plugin bookkeeping — is owned by `skills/_shared/phase-handoff.md`, not this file.
+
+`skills/_shared/phase-handoff.md` is the **single source of truth** for the two entry points that move a phase deliverable onto `$SPECS_PATH`'s default branch: `handoff-to-main` (§2, the producer side — resolves or reuses a plugin branch, stages the deliverable by enumeration, commits with a carried `Co-authored-by` trailer, pushes, and opens a pull request via a `gh` capability probe) and `require-on-main` (§3, the consumer side — a ten-state gate, rows H/I/A/B/C′/C/D/E/F/G, first matching row applies, tested against `origin/<default>` by ref rather than by worktree contents). §3.4 carries the row-F delegation table naming each caller's pre-existing absent-input behaviour, so the gate never turns an optional artifact into a hard prerequisite; §4.1 defines the single `Phase handoff:` outcome line every producer emits exactly once; §4.3 defines the three-choice consent array every producer presents verbatim. Eight producers call `handoff-to-main`: `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `implement:` (Phase 4.5, for spec/design-conformance notes), and `ready:` (for its `_readiness.md` snapshot). Seven consumers call `require-on-main`: `create-vi:` (its own `idea.md`), `create-ard:` (the VI), `specify:` (the VI), `design:` (`specification.md`), `implement:` (its in-scope `specification.md`/`design.md`), `epics:` (the VI-level `specification.md`), and `ready:` (every `specification.md`/`design.md` in its artifact inventory) — `update-vi:` deliberately calls neither, since its authoritative base is the Jira import and gating its read-only secondary grounding would block a legitimate refresh over an unrelated branch.
 
 ## `dev-workflows` plugin — skill relationships
 
 ```
 Lifecycle (each phase writes a reviewable artifact, offers the next):
-idea:            → idea → idea-reader → [code-scanner×N (--ground-code, cap 4, broad-then-narrow)] → (problem statement) → commit-artifacts
-create-vi:       → create-vi → [vi-reviewer@strong] → (Value Increment) → commit-artifacts
-update-vi:       → update-vi (jira-import-first) → [vi-reviewer@strong] → (refreshed Value Increment) → commit-artifacts
-create-ard:      → create-ard → [ard-reviewer@strong] → (ARD, resolves decisions) → commit-artifacts
-specify:         → specify (jira-driven) → [spec-reviewer@strong] → (engineering spec) → commit-artifacts
-design:          → design → [design-reviewer@strong] → (engineering design) → commit-artifacts
-epics:           → epics (jira-driven) → jira-reader → [code-scanner×N (parallel, optional)] → writing → [dt-style-checker] → [doc-fixer] → [epic-reviewer@strong] → [doc-fixer] → impl-maintenance → commit-artifacts
+idea:            → idea → idea-reader → [code-scanner×N (--ground-code, cap 4, broad-then-narrow)] → (embedded grilling) → write idea.md → relocate idea.md → [handoff-to-main: idea.md] → commit-artifacts
+create-vi:       → [require-on-main: idea.md] → create-vi → [vi-reviewer@strong] → (Value Increment) → [handoff-to-main: VI] → commit-artifacts
+update-vi:       → update-vi (jira-import-first) → [vi-reviewer@strong] → (refreshed Value Increment) → [handoff-to-main: VI] → commit-artifacts
+create-ard:      → [require-on-main: VI] → create-ard → [ard-reviewer@strong] → (ARD, resolves decisions) → [handoff-to-main: ARD] → commit-artifacts
+specify:         → [require-on-main: VI] → specify (jira-driven) → [spec-reviewer@strong] → (engineering spec) → [handoff-to-main: specification.md] → commit-artifacts
+design:          → [require-on-main: specification.md] → design → [design-reviewer@strong] → (engineering design) → [handoff-to-main: design.md] → commit-artifacts
+epics:           → epics (jira-driven) → jira-reader → [code-scanner×N (parallel, optional)] → [require-on-main: VI-level specification.md — a deliberate exception to phase-handoff.md §5 rule 2's ordering] → writing → [dt-style-checker] → [doc-fixer] → [epic-reviewer@strong] → [doc-fixer] → impl-maintenance → commit-artifacts
 release-notes:   → release-notes → release-notes-writer: resolve destination + shape per destination + source the {{#context}} label + detect deprecation → (dynatrace-docs block draft: destination-shaped Summary; NEVER written to docs repo) → commit-artifacts
-ready:           → ready → [readiness-reviewer@strong] → impl-maintenance → commit-artifacts
+ready:           → [require-on-main: spec/design paths — gates as a finding capping PARTIAL, never stops] → ready → [readiness-reviewer@strong] → [handoff-to-main: _readiness.md] → impl-maintenance → commit-artifacts
 
 Implementation & maintenance:
-implement:       → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance → commit-artifacts
+implement:       → [require-on-main: in-scope specification.md/design.md] → implement → [risk-planner@strong plan critique] → [code-review@strong] → review-fixer → test-writer → tests → impl-maintenance → [handoff-to-main: escalated spec/design notes, when any] → commit-artifacts
 document:        → document (dual-mode)
                     ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts   (no doc-reviewer gate in this mode)
                     └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip] → commit-artifacts
@@ -183,6 +185,12 @@ Utilities: feedback:, prompt:, prompt-brainstorm:, prompt-grill-me:
 
 "@strong" = strong reasoning tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller.
 ```
+
+Key invariants for the VI-creation flow (`idea:`, `create-vi:`, `create-ard:`, `specify:`, `design:`, `implement:`, `epics:`, `ready:`):
+- `idea:` Phase 5 relocates `idea.md` into `$SPECS_PATH/specifications/<KEY>-<slug>/` and hands it off via `handoff-to-main` (`skills/_shared/phase-handoff.md` §2) behind the §4.3 consent choice; relocation is `idea:`'s alone — `create-vi: <KEY>` finds it there and never moves it
+- `create-vi: <KEY>` derives `idea.md` in-contract from the resolved feature folder and gates it via `require-on-main` (`skills/_shared/phase-handoff.md` §3); an explicit `@<path>` argument is out-of-contract — read where it sits, never relocated, never gated
+- `ready:` is **read-only for Jira status** — it verifies status against the ARD/spec/design, never sets it, and never stops on an unmerged artifact (`skills/_shared/phase-handoff.md` §3.3 rows D/E, a readiness finding capping the verdict at `PARTIAL`) or a missing one (row F, delegated per §3.4, recorded as a coverage gap); it commits the deliverable or the `_readiness.md` snapshot only through `phase-handoff.md` §4.3's consent choice via `handoff-to-main` (§2), never automatically
+- A phase is not finished until its artifact is on the specs repo's default branch — every producer offers branch + commit + push + PR, and every consumer executes `require-on-main` before expensive work; an absent optional input still delegates to the command's pre-existing behaviour and never becomes a prerequisite
 
 Key invariants enforced by all three code orchestrators (`implement:`, `vuln:`, `upgrade:`):
 - Branch created before any file is touched (`feat/<slug>` or equivalent)

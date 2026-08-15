@@ -35,6 +35,8 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
    (usage blocks, example invocation tables, quick-starts, tips) is bound by this rule regardless
    of which file it appears in.
 
+**A next-step offer that names a downstream command must also name the merge.** The downstream command executes `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) and stops while this phase's pull request is open, so an offer that reads "next: `create-ard: <KEY>`" without "once the pull request is merged" sends the user into a stop they were not warned about.
+
 ## Surface
 
 The universal minimum is an adaptive **`### Next step`** section at the END of the command's
