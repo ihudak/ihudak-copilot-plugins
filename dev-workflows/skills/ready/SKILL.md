@@ -535,12 +535,7 @@ re-emitting that notice. Because the Phase 5 report was composed before this pha
 outcome line here**, as the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
 
-ADDITIVE — this phase itself NEVER fails the run and touches neither `_readiness.md`'s commit nor its
-branch (whichever of those happened, happened earlier, in Phase 5 step 3, behind the §4.3 consent
-choice — `ready/<KEY>-<slug>` is the only branch `ready:` ever creates, and this terminal step neither
-creates it nor undoes it; it only commits the bounded session-artifact paths in `$SPECS_PATH` onto
-whatever branch Phase 5 left checked out), and NEVER writes to Jira or into `jira-products/`,
-`jira_export_root`, or the current working directory.
+ADDITIVE — this phase itself NEVER fails the run and touches neither `_readiness.md`'s commit nor its branch (whichever of those happened, happened earlier, in Phase 5 step 3, behind the §4.3 consent choice — `ready/<KEY>-<slug>` is the only branch `ready:` ever creates, and this terminal step neither creates it nor undoes it; it only commits the bounded session-artifact paths in `$SPECS_PATH` onto whatever branch Phase 5 left checked out), and NEVER writes to Jira or into `jira-products/`, `jira_export_root`, or the current working directory; no user name is ever written.
 
 ---
 

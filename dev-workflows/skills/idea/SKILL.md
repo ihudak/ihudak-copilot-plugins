@@ -335,9 +335,7 @@ abandoned at the block still records the gap. NEVER `emit-block` for an environm
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
    §1 skip list — pre-VI and keyless).
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea.md carries no git offer
-of its own — the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`),
-and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea.md itself is handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2, behind Phase 5's §4.3 consent choice; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`), and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
 
 ---
 

@@ -712,7 +712,7 @@ report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the implementation remains uncommitted on the branch created in Pre-Phase 3; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`; the spec/design conformance notes from step 7.5 are handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2), and NEVER writes into the code repo or the current working directory.
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the implementation remains uncommitted on the branch created in Pre-Phase 3; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`; the spec/design conformance notes from step 7.5 are handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2), and NEVER writes into the code repo or the current working directory; no user name is ever written.
 
 ---
 
