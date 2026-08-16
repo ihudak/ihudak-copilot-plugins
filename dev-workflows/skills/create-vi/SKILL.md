@@ -24,7 +24,7 @@ Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hyb
 2. **Profile.** `--lean | --hybrid | --full`; default `--hybrid`.
 2a. **`--from-vi <VI-KEY|path>` (optional seed).** When present, this run authors a **new** VI (the positional `<JIRA-KEY>`) seeded read-only by another VI. Resolve the seed via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi` — Jira-import-first, 3-day freshness) for a key, or read the given path directly. The seed is **grounding, not content** (Phase 3 adapts it; it is never copied wholesale).
 3. **Resolve `idea.md` (ladder — stop at first hit):**
-   1. **in-contract** — `specifications/<KEY>-<slug>/idea.md`, resolved from `<KEY>`. Execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against it. On `pass`/`pass_amending`, use it — **do not relocate**, `idea:` already did. On a stopping state, stop per §4.4. On `absent`, fall through to rung 2 — likewise on `unmanaged`: this ladder runs before step 4 validates `$SPECS_PATH`, so `unmanaged` (the §3.1 gate could not run) is reachable here, and it behaves as `absent` because there is nothing to verify; step 4 still stops immediately afterward on an unset `$SPECS_PATH`, so nothing is lost by not stopping here;
+   1. **in-contract** — `specifications/<KEY>-<slug>/idea.md`, resolved from `<KEY>`. Execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against it, mapping its §3.7 return value by `stopped` first, never by `on_main` alone. Any stopping state → stop per §4.4. Otherwise (`stopped: false`): on `pass`/`pass_amending`, use it — **do not relocate**, `idea:` already did; on `absent`, fall through to rung 2 — likewise on `unmanaged`: this ladder runs before step 4 validates `$SPECS_PATH`, so `unmanaged` (the §3.1 gate could not run) is reachable here, and it behaves as `absent` because there is nothing to verify; step 4 still stops immediately afterward on an unset `$SPECS_PATH`, so nothing is lost by not stopping here;
    2. **out-of-contract `@path`** — explicit `@path` argument; read the idea where it sits, **never move it**, and do not gate it. Report once: *"out-of-contract: reading `<path>` in place; it will not be relocated or gated."*;
    3. **same-session** — if `idea:` ran earlier in this session, use its recorded output path (confirm with the user) — out-of-contract, as rung 2;
    4. **discover** — `find "$VAULT_PATH/Projects" -type f -name idea.md` (recent first); if any, present a picker — out-of-contract, as rung 2;
@@ -216,7 +216,7 @@ choices: ["Draft the release note now — release-notes: <KEY> (PM) (Recommended
 ```
 
 - **`release-notes: <KEY>`** (PM) — draft the customer-facing release note now.
-- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document.
+- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document; it won't start reading this VI until the pull request above is merged to the specs repo's main.
 - **`epics: <KEY>`** (PE) — hand to a Product Engineer to split the VI into Epics (or author a VI-level spec → `specify: <KEY>`).
 
 Guidance only — never auto-invokes another command. Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`.
