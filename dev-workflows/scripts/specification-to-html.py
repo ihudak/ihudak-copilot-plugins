@@ -14,7 +14,7 @@ stdlib only, Python 3.8+.
 
 # Provenance: verbatim snapshot from mgd-specifications
 # .claude/skills/specification-to-html/scripts/specification-to-html.py, imported 2026-07-07.
-# Embedded so /specify is self-sufficient (no runtime dependency on that repo). Re-sync manually.
+# Embedded so specify: is self-sufficient (no runtime dependency on that repo). Re-sync manually.
 
 import sys
 import os
