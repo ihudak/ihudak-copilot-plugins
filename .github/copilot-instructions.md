@@ -290,6 +290,10 @@ handles everything natively after the marketplace is registered.
 
 `pluginRoot: "."` means plugin directories are at the repo root. `source` is the subdirectory name.
 
+**A plugin `description` is a stable capability blurb, never a changelog.** Hard budget: **1024 characters**, in both `.plugin/plugin.json` and the `marketplace.json` entry. Copilot CLI enforces this limit and rejects the **entire catalog** when any one entry exceeds it — every plugin in the marketplace then fails to install or update, not just the offending one, which is what the error `plugins.0.description: String must contain at most 1024 character(s)` means. A new capability **replaces** wording; it never appends. Release detail belongs in `CHANGELOG.md`.
+
+`scripts/validate-catalog.py` enforces this — it fails above 1024 and warns above 900, and also catches version drift between a `plugin.json` and the catalog entry advertising it. It runs on every push via `.github/workflows/validate-catalog.yml`; run it locally with `python3 scripts/validate-catalog.py` before pushing. The Claude editions of this marketplace enforce no such limit upstream, so their blurbs grew to 2788 characters unnoticed and the overflow arrived here at port time — trimmed by hand three times before this check existed.
+
 ## Adding a new plugin
 
 1. Create `<plugin-name>/` at the repo root
