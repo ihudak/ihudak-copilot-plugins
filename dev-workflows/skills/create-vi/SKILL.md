@@ -199,7 +199,7 @@ Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is alread
 choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]
 ```
 
-On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`, `feature_folder` as resolved in Phase 0, `deliverable_paths` = the VI file, `title: <KEY> Add Value Increment — <summary>`; emit its §4.1 outcome line in the Final report.
+On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`, `feature_folder` as resolved in Phase 0, `deliverable_paths` = the VI file, `title: <KEY> Add Value Increment — <summary>`, and `body_facts` = the resolved profile (`--lean`/`--hybrid`/`--full`), the adapt-in clusters pulled, the user-story and acceptance-criteria counts, any `[NEEDS CLARIFICATION]` markers carried in, and the `vi-reviewer` verdict; emit its §4.1 outcome line in the Final report.
 
 ### Jira round-trip (document to the user — they will otherwise miss it)
 
