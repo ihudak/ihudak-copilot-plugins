@@ -214,7 +214,7 @@ are **33** sub-agents:
 | `spec-reviewer` | Strong tier, caller-pinned | Specification reviewer for `specify:` — checks problem/scope clarity, user-story and acceptance-criteria testability, test-case coverage, open-question resolution (BLOCKER on unresolved items that could be resolved live), and adherence to the org-standard `specification.md` format. |
 | `design-reviewer` | Strong tier, caller-pinned | Engineering-design reviewer for `design:` — validates `design.md` against the design-format authority and traceability to its `specification.md` (every in-scope requirement covered; BLOCKER on a gap), plus interface concreteness, seam/test-strategy soundness, and risk coverage. Treats any unresolved `design.md` open question as a BLOCKER. |
 | `vi-reviewer` | Strong tier, caller-pinned | Value-Increment reviewer for `create-vi:` — validates the VI against `vi-format.md`: mandatory-spine completeness, testable acceptance criteria, scope/success-metric clarity, and hollow-prose / filler (MAJOR). |
-| `ard-reviewer` | Strong tier, caller-pinned | Architecture-decision-record reviewer for `create-ard:` — checks each `AD-N` has a concrete Binds/Prevents/Rule, grounding findings cite real `file:line`, the cross-repo map is coherent, and open questions are surfaced. |
+| `ard-reviewer` | Strong tier, caller-pinned | Architecture-decision-record reviewer for `create-ard:` — checks each `AD#N` has a concrete Binds/Prevents/Rule, grounding findings cite real `file:line`, the cross-repo map is coherent, and open questions are surfaced. |
 | `readiness-reviewer` | Strong tier, caller-pinned | Readiness reviewer for `ready:` — verifies the Jira status against the actual ARD/spec/design artifacts and returns a SUPPORTED / PARTIAL / NOT-SUPPORTED readiness verdict. Read-only; never sets Jira status. |
 | `test-baseliner` | Caller-assigned | Runs the test suite in `capture` or `verify` mode; `verify` diffs against a prior baseline and returns a structured regression report. Framework detection: Maven, Gradle, npm, pytest, Makefile. |
 | `test-writer` | Caller-assigned | Writes tests for new or changed behaviour based on a diff. Never runs tests. Framework detection mirrors `test-baseliner`; returns "not detected" immediately if no framework is configured. |
@@ -348,7 +348,7 @@ These skills run fine on a bare host, but depend on a few external tools for the
 - `model-routing.md` — four-level complexity taxonomy, model fallback chain, and the 8-dimension Opus code-review checklist
 - `idea-format.md` — the lean one-page `idea.md` format authored by `idea:`
 - `vi-format.md` — the Value-Increment format authored by `create-vi:`
-- `ard-format.md` — the ARD format (`AD-N: Binds/Prevents/Rule`) authored by `create-ard:`
+- `ard-format.md` — the ARD format (`AD#N: Binds/Prevents/Rule`) authored by `create-ard:`
 - `specification-format.md` — the org-standard `specification.md` format authored by `specify:`
 - `design-format.md` — the engineering `design.md` format authored by `design:`
 - `bug-diagnosis.md` — bug-diagnosis discipline for `implement:`: a red-capable repro before hypothesising, ranked falsifiable hypotheses, `[DEBUG-xxxx]` instrumentation with a cleanup gate, and a regression test at a correct seam
@@ -391,7 +391,7 @@ These skills run fine on a bare host, but depend on a few external tools for the
 
 ## Architecture (ARD) consumption
 
-`create-ard:`, `design:`, `implement:`, `specify:`, `epics:`, and `ready:` respect the applicable **ARD** (produced by `create-ard:`) when one exists — resolved via `_shared/ard-resolution.md` (most-specific first: per-area → Epic-level → inherited VI-level `AD-N`). An artifact (design, implementation, spec, or Epic draft) that violates an `AD-N` Rule without a recorded "ARD deviation" (flagged to the architect) is a reviewer **BLOCKER**; `ready:` applies the same rule read-only, treating an unflagged violation in any artifact it reads as a BLOCKER for its own verdict. When no ARD exists these skills behave exactly as before — the check is skipped — and `vuln:` / `upgrade:` are unaffected.
+`create-ard:`, `design:`, `implement:`, `specify:`, `epics:`, and `ready:` respect the applicable **ARD** (produced by `create-ard:`) when one exists — resolved via `_shared/ard-resolution.md` (most-specific first: per-area → Epic-level → inherited VI-level `AD#N`). An artifact (design, implementation, spec, or Epic draft) that violates an `AD#N` Rule without a recorded "ARD deviation" (flagged to the architect) is a reviewer **BLOCKER**; `ready:` applies the same rule read-only, treating an unflagged violation in any artifact it reads as a BLOCKER for its own verdict. When no ARD exists these skills behave exactly as before — the check is skipped — and `vuln:` / `upgrade:` are unaffected.
 
 ## Dependencies & companions
 
