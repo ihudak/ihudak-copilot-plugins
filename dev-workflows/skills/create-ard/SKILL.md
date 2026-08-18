@@ -125,10 +125,11 @@ Author the ARD live against `~/.copilot/installed-plugins/ihudak-copilot-plugins
 ## Phase 4.5 — Structural pre-lint
 
 Before the review gate, run the deterministic checks in
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the drafted `*_ARD.md`: the **Universal checks**
-plus the **ARD** block (incl. that every `### [AD#N]` carries `**Binds:**` / `**Prevents:**` /
-`**Rule:**`). Surface every finding; inline-fix the mechanical ones (renumber a duplicate `[AD#N]`,
-delete a stray placeholder token); leave content gaps for the grill/author. **Advisory** — never blocks;
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the drafted `*_ARD.md`: the **Universal checks**,
+the **Jira-key collision** check (run on the ARD body below the frontmatter), and the **ARD** block
+(incl. that every `### [AD#N]` carries `**Binds:**` / `**Prevents:**` / `**Rule:**`). Surface every
+finding; inline-fix the mechanical ones (renumber a duplicate `[AD#N]`, delete a stray placeholder
+token); leave content gaps for the grill/author. **Advisory** — never blocks;
 proceed to Phase 5 once findings are surfaced. `ard-reviewer` remains the gate.
 
 ## Phase 5 — Review gate

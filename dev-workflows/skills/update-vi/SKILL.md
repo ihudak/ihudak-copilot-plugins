@@ -99,7 +99,7 @@ Act on the return: `OK` → proceed; `VIOLATIONS_FOUND` → apply the MAJOR fixe
 ## Phase 3.6 — Structural pre-lint
 
 Before the review gate, run the deterministic checks in
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the updated file: the **Universal checks** plus the **VI** block. Surface every finding; inline-fix the mechanical ones; leave content gaps for the grill. **Advisory** — never blocks; `vi-reviewer` remains the gate.
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the updated file: the **Universal checks**, the **Jira-key collision** check (run on the body below the frontmatter), and the **VI** block. Surface every finding; inline-fix the mechanical ones; leave content gaps for the grill. **Advisory** — never blocks; `vi-reviewer` remains the gate.
 
 ---
 

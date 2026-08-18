@@ -294,6 +294,12 @@ handles everything natively after the marketplace is registered.
 
 `scripts/validate-catalog.py` enforces this — it fails above 1024 and warns above 900, and also catches version drift between a `plugin.json` and the catalog entry advertising it. It runs on every push via `.github/workflows/validate-catalog.yml`; run it locally with `python3 scripts/validate-catalog.py` before pushing. The Claude editions of this marketplace enforce no such limit upstream, so their blurbs grew to 2788 characters unnoticed and the overflow arrived here at port time — trimmed by hand three times before this check existed.
 
+## Requirement-ID grammar
+
+Every requirement ID a plugin doc teaches is the bracketed `[PREFIX#N]` form — `[US#1]`, `[AC#1]`, `[SM#1]`, `[SMC#1]`, `[UC#1]`, `[FR#1]` in a VI and `[AD#1]` in an ARD — never the dash-separated form. A dash-separated ID has the shape of a Jira issue key, so pasting a VI, ARD, or Epic draft into Jira auto-links it to an unrelated real ticket in any project sharing the prefix, and the vault importer rewrites it into a triple-bracketed wikilink on export. `skills/_shared/pre-lint.md`'s `## Jira-key collision` check catches it at authoring time in `create-vi:`, `update-vi:`, `create-ard:`, and `epics:`; `vi-reviewer`, `ard-reviewer`, `epic-reviewer`, and `readiness-reviewer` treat a survivor as a BLOCKER.
+
+`scripts/check-id-grammar.sh` enforces it across the repo — run `./scripts/check-id-grammar.sh --root .` locally before pushing; it also runs on every push via `.github/workflows/validate-catalog.yml`. `CHANGELOG.md` is excluded (history keeps the old form), and a line that has to quote the forbidden form in order to forbid it carries an `id-grammar-ok` HTML-comment marker — nine such lines across five files, audited per file so the marker never becomes a general escape hatch. The `specify:` / `design:` numbered-ID namespace is deliberately outside this grammar and unchanged; `scripts/spec-id-baseline.txt` is its census tripwire.
+
 ## Adding a new plugin
 
 1. Create `<plugin-name>/` at the repo root

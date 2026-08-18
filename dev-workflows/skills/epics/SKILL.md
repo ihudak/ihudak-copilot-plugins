@@ -416,8 +416,9 @@ If `dt-style-checker` is unavailable (agent file not found), proceed directly to
 ## Phase 6.3 — Structural pre-lint
 
 Before the review gate, run the deterministic checks in
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against each drafted Epic file: the **Universal checks**
-plus the **Epic** block (required headings incl. `## Independent Test`; Given/When/Then acceptance
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against each drafted Epic file: the **Universal checks**,
+the **Jira-key collision** check (run on the whole Epic file — the template has no frontmatter), and
+the **Epic** block (required headings incl. `## Independent Test`; Given/When/Then acceptance
 criteria; `[NEEDS CLARIFICATION]` ≤ 3 per Epic; `_coverage.md` present). Surface every finding;
 inline-fix the mechanical ones (delete a stray placeholder token); leave content gaps for the author.
 **Advisory** — never blocks; proceed to Phase 7 once findings are surfaced. `epic-reviewer` remains the

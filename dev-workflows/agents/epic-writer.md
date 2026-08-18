@@ -76,7 +76,7 @@ For each new Epic, emit a markdown file under the resolved output directory (def
 - ...
 
 ## Covers
-- <VI requirement IDs this Epic satisfies, e.g. [US#2], [AC#4], [AC#5], [SM#1]>
+- <VI requirement IDs this Epic satisfies, bracketed — e.g. [US#2], [AC#4], [AC#5], [SM#1]>
 
 ## Suggested stories
 - <high-level breakdown; each story plausibly pickup-ready without further scoping>
