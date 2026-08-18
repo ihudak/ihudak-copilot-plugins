@@ -77,7 +77,7 @@ Then run `resolve-docs-grounding update-vi` per `~/.copilot/installed-plugins/ih
 
 **Interview technique (grilling — embedded; no runtime dependency).** Conduct a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split, walk the design tree in dependency order.
 
-Update the VI live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`, **diffing against the base** rather than authoring from blank: surface what changed and why (drawing on comments / ARD / spec / transcript), resolve open questions, keep the VI product-level. Apply the **self-consistency check** — no `[AC-N]` delivering an Out-of-scope behaviour, no `## Goal` vs `## Scope` contradiction, no conflicting `[US-N]`; record a deliberately-kept tension under `## Assumptions & open questions`. Preserve the frontmatter provenance fields (`sources`, `derived_from`, `seeded_from_vi` if present).
+Update the VI live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`, **diffing against the base** rather than authoring from blank: surface what changed and why (drawing on comments / ARD / spec / transcript), resolve open questions, keep the VI product-level. Apply the **self-consistency check** — no `[AC#N]` delivering an Out-of-scope behaviour, no `## Goal` vs `## Scope` contradiction, no conflicting `[US#N]`; record a deliberately-kept tension under `## Assumptions & open questions`. Preserve the frontmatter provenance fields (`sources`, `derived_from`, `seeded_from_vi` if present).
 
 ---
 
@@ -99,7 +99,7 @@ Act on the return: `OK` → proceed; `VIOLATIONS_FOUND` → apply the MAJOR fixe
 ## Phase 3.6 — Structural pre-lint
 
 Before the review gate, run the deterministic checks in
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the updated file: the **Universal checks** plus the **VI** block. Surface every finding; inline-fix the mechanical ones; leave content gaps for the grill. **Advisory** — never blocks; `vi-reviewer` remains the gate.
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/pre-lint.md` against the updated file: the **Universal checks**, the **Jira-key collision** check (run on the body below the frontmatter), and the **VI** block. Surface every finding; inline-fix the mechanical ones; leave content gaps for the grill. **Advisory** — never blocks; `vi-reviewer` remains the gate.
 
 ---
 

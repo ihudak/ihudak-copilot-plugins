@@ -4,6 +4,19 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.23.0] — 2026-08-18
+
+### Changed
+
+- **VI, ARD, and Epic requirement IDs now use `[PREFIX#N]` (`[AC#1]`, `[US#1]`, `[AD#1]`) instead of the dash form `[AC-1]`.** The dash form has the shape of a Jira issue key, so pasting an artifact into Jira auto-linked its criteria to unrelated tickets in any project sharing the prefix, and the vault importer rewrote them into `[[[AC-1]]]` on export. `vi-reviewer`, `ard-reviewer`, `epic-reviewer`, and `readiness-reviewer` now treat a surviving dash-form ID as a BLOCKER (for `readiness-reviewer`, that means a `NOT-SUPPORTED` verdict).
+- **`epic-writer`'s `## Covers` now emits bracketed IDs** (e.g. `[US#2]`, `[AC#4]`) instead of the bare `US-2, AC-4` that both Jira and the importer mangled the same way.
+- **`jira-reader` accepts both grammars inside requirement-bearing sections and always emits the `#` form,** so a VI already published under the dash form still parses; elsewhere (notably `## References / linked issues`) a `KEY-123` token is still read as a real Jira key, never as a legacy requirement ID.
+
+### Added
+
+- **`skills/_shared/pre-lint.md` gains a `## Jira-key collision` check for VI, ARD, and Epic files.** Flags any `\b[A-Z]{2,10}-[0-9]+\b` token surviving outside a wikilink, a markdown link, or a fenced code block — inline code is deliberately NOT excluded, since there is no tested evidence Jira leaves an inline-code key unlinked. Scans the VI and ARD below their frontmatter (which legitimately carries `jira_key:`/`ref:`/`seeded_from_vi:`/`revision_of:`) and the whole Epic file (no frontmatter there). Every surviving hit falls into one of three branches: a requirement ID is a BLOCKER fixed mechanically under the standard pre-lint contract; a real ticket is a BLOCKER wrapped as a wikilink after confirming the key; a standards or protocol reference such as `ISO-8601` or `RFC-8446` is a MINOR, reported and left exactly as written — never converted, never wrapped. `pre-lint.md`'s contract sentence and the four skills producing those artifacts (`create-vi:`, `update-vi:`, `create-ard:`, `epics:`) name the check explicitly, so it actually runs; `specify:` and `design:` do not, because its scope excludes `specification.md` / `design.md`. Pre-lint itself stays advisory.
+- **`scripts/check-id-grammar.sh` (+ `scripts/fixtures/vi-good.md`/`vi-bad.md`) gates this repo against reintroducing the dash form.** `scripts/spec-id-baseline.txt` records a census of the separate, unrelated `specify:`/`design:` numbered-ID namespace (untouched by this change) so a future change can be diffed against it and confirmed to have left that namespace alone. The gate runs on every push via `.github/workflows/validate-catalog.yml`, and `.github/copilot-instructions.md` documents the grammar it enforces.
+
 ## [2.22.0] — 2026-08-15
 
 ### Breaking changes
