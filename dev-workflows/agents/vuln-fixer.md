@@ -21,6 +21,11 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 Receive the research report for **one CVE** with `status: READY`. The report may be provided inline or as an absolute file path — `view` the file first when given a path.
 
+On a read failure, follow the **read-failure contract** in
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md` — the research report is an *evidence* input:
+hard stop, return `status: BLOCKED` naming the unreadable path, and never re-research the CVE to
+reconstruct it.
+
 > **Phase resume.** If the input includes `phase: verify-resume`, **skip
 > steps 1, 2, and 3** — the baseline was captured (by the orchestrator), the
 > fix was applied, and the build was run on the prior invocation. Resume at

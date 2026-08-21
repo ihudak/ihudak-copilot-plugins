@@ -60,7 +60,7 @@ related:
 
 ```markdown
 ## Upgrade Result: spring-boot
-status: OK              # OK | BUILD_FAILED | SKIPPED | TEST_REGRESSION | TEST_REGRESSION_KEPT | TEST_REGRESSION_REVERTED | AWAITING_REVIEW
+status: OK              # OK | BUILD_FAILED | SKIPPED | TEST_REGRESSION | TEST_REGRESSION_KEPT | TEST_REGRESSION_REVERTED | AWAITING_REVIEW | BLOCKED
 component: spring-boot
 from: "3.1.4"
 to: "3.3.11"
@@ -89,6 +89,11 @@ model_routing:           # echoed back when present in input
   applied and the build succeeded, but tests have **not** been run yet.
   The orchestrator must perform the Opus code review, then re-invoke this
   agent with `phase: verify-resume` to continue from the Verify step.
+- `BLOCKED` — the upgrade plan could not be read at the path the orchestrator supplied;
+  nothing was changed. Per the read-failure contract
+  (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`), the orchestrator must not
+  re-run upgrade-planner to reconstruct the plan — surface the unreadable path to the user
+  and stop the upgrade for this component.
 
 ### TEST_REGRESSION output shape
 

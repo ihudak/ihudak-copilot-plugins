@@ -20,6 +20,11 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 Receive one upgrade plan with `status: READY`. The plan may be provided inline or as an absolute file path — `view` the file first when given a path.
 
+On a read failure, follow the **read-failure contract** in
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md` — the upgrade plan is an *evidence* input:
+hard stop, return `status: BLOCKED` naming the unreadable path, and never re-plan the upgrade to
+reconstruct it.
+
 > **Phase resume.** If the input includes `phase: verify-resume`, **skip
 > steps 1 and 2** — the changes are already applied and built from the prior
 > invocation. Resume at step 3 (Verify). Treat any `baseline` in the input
