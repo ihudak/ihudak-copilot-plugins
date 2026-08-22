@@ -4,6 +4,18 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.26.2] — 2026-08-22
+
+### Fixed
+- **`api-guideline-reviewer` declared an unused `bash` grant.** The agent reviews OpenAPI specs by
+  reading them; it names no executable, and `references/api-guidelines/` holds only markdown and a YAML
+  template — there is no script to run. Every other read-only reviewer declares `[view, glob, grep]`, and
+  every other `bash` holder either uses it (`code-scanner`, `diff-summarizer`, `docs-grounder`,
+  `guideline-reviewer`, `test-baseliner`) or bounds it explicitly (`risk-planner`, `interface-designer`,
+  `doc-writer`). This one did neither. Its sibling `guideline-reviewer` keeps `bash`: it genuinely runs
+  `references/guidelines/check_guidelines.py`, so the pair now diverges at the agent level for a real
+  reason.
+
 ## [2.26.1] — 2026-08-22
 
 ### Fixed
