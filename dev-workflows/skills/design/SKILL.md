@@ -5,7 +5,8 @@ description: >
   specs repo's main branch, grounds strictly in the fully-mounted implementation code, and authors a
   reviewed engineering design.md through a relentless one-question-at-a-time grill that challenges
   the spec and designs the implementation; gates on the Opus design-reviewer and lands design.md +
-  the spec's engineering-review edits on main via branch + PR for implement:.
+  the spec's engineering-review edits on main via branch + PR for implement:. Optional --design-twice
+  forces the Phase 5 interface fan-out even when no contested-interface signal fired.
   Activated when the user prompt starts with "design:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -24,12 +25,14 @@ Key distinction from `specify:`: `specify:` (PE) *authors* the requirements spec
 (soft repo gate); `design:` (Dev) *challenges* that spec and *designs* the implementation, and must see
 **all** implementation repos — its repo gate is **strict** (hard-stop on any unmounted repo).
 
+Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-bearing interface, even when no contested-interface signal fired (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md` `## Seams`).
+
 ---
 
 ## Phase 0 — Resolve input
 
-1. **Resolve the Jira input via the shared front-end.** Execute
-   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `design:` trigger). `design:` is
+1. **Resolve the Jira input via the shared front-end.** Classify the argument (text following the `design:` trigger) **minus every recognised flag** (`--design-twice`) before resolving — strip it first, exactly as `skills/idea/SKILL.md`'s Phase 1 strips its own flags: an unstripped `--design-twice` is parsed as part of the Jira key and the run resolves the wrong feature, or fails. Execute
+   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument. `design:` is
    **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
    `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward:
@@ -242,12 +245,64 @@ Run **two intertwined tracks**, authoring `design.md` live against
   Risks & mitigations, Migration / rollout / backward-compatibility, Out of scope. Omit a
   non-applicable section with a one-line `_N/A — why_`.
 
-As each decision settles, append it to `_design-session.md`; capture a genuinely-ambiguous term in
-`_design-glossary.md`. **Resolve `design.md` open questions to zero** — the design is the last gate
+As each decision settles, append it to `_design-session.md`. **For an interface decision, record each
+live candidate shape there as it arises** — not only the settled outcome — and strike a candidate when it
+is eliminated: the fourth contested-interface signal in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md` `## Seams`
+counts exactly those recorded, un-eliminated candidates, and a settled-only log leaves it nothing to
+count. Capture a genuinely-ambiguous term in `_design-glossary.md`. **Resolve `design.md` open questions to zero** — the design is the last gate
 before code. A residual engineering unknown that truly cannot be resolved is either (a) pushed onto the
 `specification.md` as a spec-level `- [ ]` for the PM (and the design waits on it), or (b) kept as a
 `design.md` `- [ ]` that will **block handoff** (Phase 6/7). A repo gap surfacing here → hard-stop (the
 Phase 3 strict gate); resumable from `_design-session.md`.
+
+**Interface fan-out (offered on a signal; forced by `--design-twice`).** When the interview reaches an
+interface decision that is **contested** — any signal in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md`
+`## Seams` — say which interface is contested, which signal fired, and your own read of the trade-off,
+then offer. **Neither option carries a `(Recommended)` marker, and neither is recommended by default**:
+this list is shown only once the interface is *already* contested, so which way to go depends on how
+contested it actually is — a judgement that belongs to the user rather than to a marker, per the
+"no option safe to recommend" remedy in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`.
+
+```
+choices: ["Design it three ways (3 parallel takes, then compare)", "Decide it in the interview", "Other… (describe)"]
+```
+
+Declining costs nothing and changes nothing: the interview continues and the `### Alternatives considered` requirement is satisfied by hand as it would have been anyway.
+
+**With `--design-twice` the offer does not run at all.** The flag forces the **fan-out**, not the
+opportunity: say that the flag forced it and on which interface, then dispatch the three takes directly.
+A user who typed the flag has already given the answer the offer would ask for, and re-asking is a
+prompt that changes nothing.
+
+On acceptance — or immediately, when `--design-twice` forced it — dispatch **three takes in a single
+response** (the plugin's existing parallel fan-out pattern), each blind to the others. One constraint per
+take, labelled **A**, **B**, and **C** in that order; those are the labels the Final report's
+`chose <A|B|C|hybrid>` refers to:
+
+→ task(agent_type: "dev-workflows:interface-designer", model: `<detection_model — §2.1 detection chain>`) ×3:
+  > "Produce one interface proposal for this brief:
+  >
+  > constraint: [A — Minimise the interface | B — Maximise flexibility | C — Optimise for the most common caller]
+  > problem_frame: [what the interface is for, the constraints any proposal must satisfy, the seam it sits at]
+  > code_context: [the Phase 4 code-scanner findings for the relevant repo(s) — inline, or an absolute path]
+  > dependency_category: [the seam's category if already settled, else omit]"
+
+**Handle a take that stops.** A take returning `status: BLOCKED` could not read its `code_context` (the
+read-failure contract in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`). Name the unreadable path, and do
+**not** count it as a take. Then either re-dispatch that one constraint with a valid `code_context`, or
+proceed with the takes that did return — saying which constraint is missing and that the comparison runs
+on fewer than three. Never write the missing take yourself: a constraint the fan-out never explored is a
+gap in the comparison, not a gap for the orchestrator to fill.
+
+When the takes return, present them, then compare **on named axes, not impressions**: **depth**
+(behaviour reached per unit of interface a caller must learn), **locality** (where change, bugs, and
+verification concentrate), **seam placement** (whether the boundary falls where things actually vary).
+Give an opinionated recommendation, and propose a **hybrid** where the strongest ideas split across
+takes — that is a common outcome, not indecision.
+
+The user chooses. Record the chosen interface in `## Interfaces / contracts`, and record the losing
+takes in `### Alternatives considered` (take, constraint, why it lost) per
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md` section 3. Then resume the interview.
 
 ---
 
@@ -389,6 +444,10 @@ opened); the `Specs repo:` outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
 with any guard notice repeated in full;
 and the `### Next step` recommendation (below).
+
+The report always states exactly one of the Phase 5 interface fan-out outcomes whenever the run reaches the Final report (a Phase 1.5 model gate or a Phase 3 strict-repo hard stop ends the run before it):
+
+- **Interface fan-out:** [one of — `ran — <interface>, <N> of 3 takes returned, chose <A|B|C|hybrid>` — `<N>` counted from the takes that actually returned, naming the constraint of any that returned `BLOCKED` | `offered and declined — <interface>` | `not offered — no contested interface (no signal in design-format.md ## Seams)`]
 
 ### Next step
 
