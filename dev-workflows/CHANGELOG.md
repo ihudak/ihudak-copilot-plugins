@@ -21,10 +21,13 @@ Versions follow semver at the plugin level.
   verification concentrate), and **seam placement** (whether the boundary falls where things actually
   vary) — named axes instead of impressions, so the comparison is repeatable. Declining costs nothing:
   the interview continues and `### Alternatives considered` is filled by hand as it always was.
-- **`--design-twice`** forces the fan-out even when no contested-interface signal fired. It forces the
-  *opportunity*, not the spend — the offer still runs through its normal accept/decline choice.
-- **`### Alternatives considered` is now unconditional** in `design-format.md`'s `## Architecture`
-  section — every `design.md` records at least one genuinely rejected alternative and why, whether or
+- **`--design-twice`** forces the fan-out even when no contested-interface signal fired: the offer is
+  skipped and the three takes are dispatched directly. A user who typed the flag has already given the
+  answer the offer would ask for, so re-asking would be a prompt that changes nothing. The offer itself
+  carries **no `(Recommended)` marker on either option** — it is shown only once the interface is already
+  contested, so no option is safe to recommend across the runs that reach it.
+- **`### Alternatives considered` is now unconditional** in `design-format.md`'s
+  `## Architecture & components` section — every `design.md` records at least one genuinely rejected alternative and why, whether or
   not the fan-out ran. `risk-planner` already holds plans to this bar ("name at least one alternative
   that was rejected and the reason"); a design was the weaker artifact for not matching it. Making it
   unconditional turns the fan-out into a quality upgrade to a requirement that already fires every time,
@@ -44,6 +47,11 @@ Versions follow semver at the plugin level.
 - **The `design:` final report always states the fan-out outcome** — `ran`, `offered and declined`, or
   `not offered — no contested interface`. A run where the signal was too narrow to fire is now visible in
   the report instead of silently indistinguishable from a run where the fan-out was never relevant.
+
+### Fixed
+- **The repo README's directory-structure diagram claimed the wrong agent count.** Its `agents/` line read
+  `32 sub-agents` — stale by two rounds, and invisible to every count audit run against the spelled-out
+  form because it is a bare numeral inside a box-drawing diagram. Now derived from the tree (`34`).
 
 ## [2.25.0] — 2026-08-22
 

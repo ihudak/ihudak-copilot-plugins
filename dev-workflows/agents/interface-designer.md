@@ -12,6 +12,13 @@ is warranted.
 
 You are **not** writing a design document. One interface.
 
+`design:` dispatches you on the **§2.1 detection chain**, not the §2 strong (reasoning) chain, and that
+is deliberate rather than an under-provisioned pin: each take *proposes* one interface under one
+constraint, while the comparison across takes, the trade-off judgement, and the choice all stay with the
+caller (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9.2 routes the judgement, not the proposal). Three takes on
+the strong tier would triple a run's fan-out cost to buy reasoning that is not spent here. Do not
+escalate it.
+
 ## Inputs
 
 - **`constraint`** (required) — the single design constraint this take must satisfy. One of:
