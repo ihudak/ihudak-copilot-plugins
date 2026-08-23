@@ -210,7 +210,7 @@ Mirror `scripts/fixtures/docs/pass/` from canonical but in this edition's shape:
 ./scripts/check-docs.sh --root scripts/fixtures/docs/pass | tail -3
 ./scripts/check-docs.sh --selftest | tail -3
 ```
-Expected: fixture PASSes; selftest prints `skip  4 cost cases (this edition has no cost subsystem)` and `SELFTEST PASS` with **32** ok lines (36 minus the 4 cost cases).
+Expected: fixture PASSes; selftest prints `skip  5 cost cases (this edition has no cost subsystem)` and `SELFTEST PASS` with **32** ok lines — 37 total minus the 5 cost-dependent cases. (Task 2 added a case, and its review established that five cases depend on the cost subsystem, not four: the three `emit-cost` check-8 cases, the section-7-row case, and the check-9 cost-emitting count.)
 
 - [ ] **Step 4: Prove the body never diverged**
 
