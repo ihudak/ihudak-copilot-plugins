@@ -215,8 +215,8 @@ Expected: fixture PASSes; selftest prints `skip  5 cost cases (this edition has 
 - [ ] **Step 4: Prove the body never diverged**
 
 ```bash
-diff <(sed '/edition config/,/^HAS_COST/d' scripts/check-docs.sh) \
-     <(sed '/edition config/,/^HAS_COST/d' /workspace/ihudak-claude-plugins/scripts/check-docs.sh) \
+diff <(sed '/edition config/,/^RUNTIME_VARS_FROZEN/d' scripts/check-docs.sh) \
+     <(sed '/edition config/,/^RUNTIME_VARS_FROZEN/d' /workspace/ihudak-claude-plugins/scripts/check-docs.sh) \
   && echo "bodies identical -- the invariant holds"
 ```
 Expected: empty diff. **This is the plan's central invariant; a non-empty diff here fails the task.**
@@ -826,8 +826,8 @@ If it drifted, record the delta and the reason in the file's header before regen
 ./scripts/check-id-grammar.sh --root .   | tail -1
 python3 scripts/validate-catalog.py | tail -1
 find dev-workflows/docs -name '*.md' | wc -l        # expect 32
-diff <(sed '/edition config/,/^HAS_COST/d' scripts/check-docs.sh) \
-     <(sed '/edition config/,/^HAS_COST/d' /workspace/ihudak-claude-plugins/scripts/check-docs.sh)
+diff <(sed '/edition config/,/^RUNTIME_VARS_FROZEN/d' scripts/check-docs.sh) \
+     <(sed '/edition config/,/^RUNTIME_VARS_FROZEN/d' /workspace/ihudak-claude-plugins/scripts/check-docs.sh)
 ```
 Expected: all pass, 32 pages, empty diff.
 
