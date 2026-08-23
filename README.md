@@ -6,10 +6,10 @@ Ivan Gudak's private GitHub Copilot plugin marketplace.
 
 | Plugin | Description |
 |--------|-------------|
-| [dev-workflows](dev-workflows/) | Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow — idea refinement, VI / ARD authoring, VI updates, Epic drafting, specification and engineering-design authoring, structured implementation, feature documentation, release notes, vulnerability remediation, dependency upgrades, and API / UI guideline compliance — with strong-tier (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5) planning, code review, and doc / Epic / design review gates. |
+| [dev-workflows](dev-workflows/) | Twenty keyword-triggered skills for the PM → PA → PE → Dev pipeline — idea to VI, ARD, Epics, spec/design, implementation, docs, release notes, plus CVE, upgrade, and guideline review. |
 | [dt-style-guide](dt-style-guide/) | Dynatrace corporate style guide enforcement: `/dt-review-pr`, `/dt-review-docs`, `/dt-style-refresh`, and sub-agents used by `dev-workflows` for style checking Epics and feature docs |
 | [obsidian-llm-wiki](obsidian-llm-wiki/) | Eleven slash-command skills for compiling Obsidian vault knowledge into a persistent, cross-referenced wiki with task management; supports GitHub Copilot and Claude Code |
-| [acli](acli/) | Atlassian CLI (`acli`) reference skill for Jira and Confluence — JQL search, work items, comments, links, attachments, watchers, projects, sprints, boards, filters, and Confluence spaces/pages/blog posts. Derived from [ziegenberg/pi-skill-acli](https://github.com/ziegenberg/pi-skill-acli) (MIT). |
+| [acli](acli/) | Atlassian CLI (`acli`) reference skill for Jira and Confluence — search, work items, comments, boards, spaces/pages. From [pi-skill-acli](https://github.com/ziegenberg/pi-skill-acli) (MIT). |
 
 ## Prerequisites
 
@@ -41,19 +41,21 @@ copilot plugin install acli@ihudak-copilot-plugins
 
 ### 3. Configure environment variables
 
-`dev-workflows` resolves its inputs and outputs through three core environment variables — plus an optional, read-only `DOCS_PATH` for documentation grounding. Export them in your shell profile (or rely on the AI-Containers defaults):
+`dev-workflows` resolves its inputs and outputs through three core environment variables — plus two optional ones, `DOCS_PATH` for documentation grounding and `GIT_USER_INITIALS` for branch-name identity. Export them in your shell profile (or rely on the AI-Containers defaults):
 
 ```bash
 export VAULT_PATH="$HOME/obsidian"     # personal store: Jira imports + idea/project files
 export SPECS_PATH="/workspace/specs"   # shared store: specifications, designs, ARDs
 export REPOS_PATH="/workspace"         # where your code clones live (default: /workspace)
 export DOCS_PATH="/workspace/docs"     # optional, read-only: product docs for grounding (default: /workspace/docs)
+export GIT_USER_INITIALS="iv-gu"       # optional: identity segment for branch names
 ```
 
 - **`VAULT_PATH`** — your personal store. Holds `jira-products/<KEY>/` (produced by `jira-workitem-import`) and `Projects/<area>/<slug>/` (idea and project files).
 - **`SPECS_PATH`** — the shared, team-visible store for a ticket's `specification.md` / `design.md` / ARD under `specifications/<KEY>-<slug>/…`. Required by the specs-authoring skills (`create-vi:`, `create-ard:`, `specify:`, `design:`, `ready:`); advisory for `implement:`; additive for `document:`.
 - **`REPOS_PATH`** — where code clones live; a single directory or a colon-separated list. Defaults to `/workspace`. Repos are matched by their `git remote get-url origin` slug, not by directory name.
 - **`DOCS_PATH`** *(optional)* — a **read-only** clone of the product documentation (default `/workspace/docs`). When it is an existing directory containing markdown, `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, and `release-notes:` automatically ground on the existing shipped docs (via the read-only `docs-grounder` agent), and `document:` prefers it as a docs-repo discovery hint. Never written to; every miss is a silent, non-blocking skip. Disable per-run with `--no-docs`, or override the root with `--docs <path>`.
+- **`GIT_USER_INITIALS`** *(optional)* — the identity placeholder every branch-creating skill (`implement:`, `document:`, `docs-profile:`, `upgrade:`, and `vuln:` via `vuln-fixer`) fills into a target repo's own documented branch-naming pattern. Falls back to `git config user.initials`, then inference from existing branches, then a prompt.
 
 ### 4. Update after new releases
 
@@ -94,7 +96,7 @@ ihudak-copilot-plugins/
 │       ├── vuln/
 │       ├── upgrade/
 │       ├── _shared/          ← model-routing.md + other cross-skill reference docs
-│       └── <15 more lifecycle/utility skills>
+│       └── <16 more lifecycle/utility skills>
 ├── dt-style-guide/
 │   ├── .plugin/plugin.json
 │   ├── README.md

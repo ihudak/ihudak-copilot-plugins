@@ -60,7 +60,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (frontmatter-pinned; recorded, no override)
+    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>"
@@ -103,7 +103,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (frontmatter-pinned; recorded, no override)
+    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>
@@ -153,7 +153,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (frontmatter-pinned; recorded, no override)
+    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: true
     notes: <any §2 / §2.1 fallback or degradation>
@@ -164,7 +164,7 @@ task(
 
 3. **Handle a `vuln-fixer` stop.** If the fixer returns `status: BLOCKED`, the research report at `research_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE (do not retry with a fresh research pass, and do not proceed to Opus review). Otherwise, if the fixer returns `AWAITING_REVIEW`, run Opus code review before tests:
    - Capture the diff to a temp file: write `git add -N . && git diff` to `mktemp -t dw-vuln-diff-XXXX.patch` (never inside a repo tree) and record its path as `review_diff_file`
-   - Write the fixer output to a temp file (`mktemp -t dw-vuln-claims-XXXX.md`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (frontmatter-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
+   - Write the fixer output to a temp file (`mktemp -t dw-vuln-claims-XXXX.md`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this CVE, marking it `BLOCKED` in the Step 4 summary table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
    - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings

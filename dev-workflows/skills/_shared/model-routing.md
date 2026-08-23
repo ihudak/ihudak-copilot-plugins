@@ -483,7 +483,7 @@ against the §2 (strong) and §2.1 (detection) chains.
 |------|-------|
 | Synthesis / planner (e.g. `doc-planner`) | §2 strong |
 | Reader / summarizer / locator / style-checker / fixer / maintenance (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `docs-style-checker`, `doc-fixer`, maintenance agents) | §2.1 detection |
-| Domain reviewer (`doc-reviewer`, `epic-reviewer`) | §2 strong — usually already frontmatter-pinned; the orchestrator records it and adds **no** override |
+| Domain reviewer (`doc-reviewer`, `epic-reviewer`) | §2 strong — dispatch-pinned to this chain at every call (no agent in this edition carries a `model:` frontmatter field); the orchestrator records it and adds **no** override |
 | Delegated writer (`doc-writer` / `epic-writer`) | §2 strong for SIGNIFICANT/judgment writing; §2.1 detection for MODERATE writing |
 | Coordination + interactive gates (the orchestrator itself) | session model; narrowed-window advisory for large non-strong-tier runs (§9.1) |
 

@@ -357,17 +357,17 @@ plugin-gap halt (see Invariants).
    The next phase runs once it is merged." or the declined/gate-failed/nothing-to-commit variant]
 
    ### Next step
-   [Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` — guidance only, never auto-invoked. SUPPORTED → Team →
-   `implement: <VI> [<Epic>]`. PARTIAL / NOT-SUPPORTED → resolve the named gaps above and update the
+   [Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` — guidance only, never auto-invoked. SUPPORTED →
+   `implement: <VI> [<Epic>]` (same lane, no handoff). PARTIAL / NOT-SUPPORTED → resolve the named gaps above and update the
    Jira status to match reality, then re-run `ready: <VI> [<Epic>]`.]
 
    ### Context hygiene
    The resume pointer is written in the terminal follow-up phase (Phase 7), per
    `session-hygiene.md` §1, recording the readiness verdict as a carry-forward line. Then:
 
-   - **SUPPORTED → `implement: <VI> [<Epic>]` (still Team)?** → run **`/compact`** — context stays relevant.
+   - **SUPPORTED → `implement: <VI> [<Epic>]` (still Dev)?** → run **`/compact`** — context stays relevant.
    - **PARTIAL / NOT-SUPPORTED → resolving the gaps yourself now?** → **`/compact`**.
-   - Consider **`/rename <VI-ID>-<slug>-team`** to relocate this session later.
+   - Consider **`/rename <VI-ID>-<slug>-dev`** to relocate this session later.
 
    Guidance only — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`.
    ```
@@ -581,4 +581,4 @@ ADDITIVE — this phase itself NEVER fails the run and touches neither `_readine
   byte-identical to before
 - ALL written claims trace to Jira keys (from `jira-reader`) or artifact paths actually read; never
   invent content the sources don't contain
-- ALWAYS end with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write — carrying the verdict as carry-forward — runs later, in the terminal follow-up phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a same-role `/compact` suggestion + `/rename <VI-ID>-<slug>-team`; guidance only, never auto-run.
+- ALWAYS end with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write — carrying the verdict as carry-forward — runs later, in the terminal follow-up phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a same-role `/compact` suggestion + `/rename <VI-ID>-<slug>-dev`; guidance only, never auto-run.
