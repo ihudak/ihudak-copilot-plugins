@@ -24,15 +24,16 @@ ihudak-copilot-plugins/
     ├── hooks/                  ← lifecycle hooks (Stop, UserPromptSubmit, PostToolUse)
     │   ├── hooks.json          ← registration; use ${PLUGIN_ROOT} for paths
     │   └── *.sh                ← hook scripts, each must exit 0
-    └── skills/
-        ├── _shared/            ← cross-skill reference docs (not a skill itself)
-        └── <skill-name>/
-            ├── SKILL.md        ← orchestrator skill (user-facing, slash-command trigger)
-            └── references/     ← optional supporting docs read at runtime
-                                  (kept under skills/<sub-agent>/references/ for
-                                   sub-agents that used to be skills — the SKILL.md
-                                   was promoted to agents/<name>.md but the handoff
-                                   docs stayed where they were)
+    ├── skills/
+    │   ├── _shared/            ← cross-skill reference docs (not a skill itself)
+    │   └── <skill-name>/
+    │       ├── SKILL.md        ← orchestrator skill (user-facing, slash-command trigger)
+    │       └── references/     ← optional supporting docs read at runtime
+    │                             (kept under skills/<sub-agent>/references/ for
+    │                              sub-agents that used to be skills — the SKILL.md
+    │                              was promoted to agents/<name>.md but the handoff
+    │                              docs stayed where they were)
+    └── docs/                   ← human-facing docs tree (index, per-skill, reference pages)
 ```
 
 **Hooks note.** Copilot CLI runs plugin hooks but does **not** support Claude Code's `matcher` field, so every `PostToolUse` hook fires on *every* tool use. Each script must therefore return fast and exit 0 for invocations it does not care about — `test-notify.sh` returns unless the command is a test runner, `changelog-owners-reminder.sh` unless the edited file is a docs content page. Hook scripts must never block the agent.
@@ -140,6 +141,8 @@ All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `f
 `skills/_shared/finding-triage.md` is the **single source of truth** for the step between a reviewer's findings and a fixer's edits — run by the **orchestrator**, never by the fixer, because a dismissal must not sit at a weaker station than the strong-tier reviewer that produced the finding. It owns the attachment rule (wherever a reasoned-claim producer feeds a fixer: `code-review` → `review-fixer` in `implement:` / `vuln:` / `upgrade:`, `doc-reviewer` → `doc-fixer` in `document:` Jira mode, `epic-reviewer` → `doc-fixer` in `epics:`; **never** a style checker → `doc-fixer`, and where a skill dispatches a fixer more than once it attaches to the reviewer-fed dispatch only), the three-step process (verify each finding's own claimed consequence at the location it names, keep or dismiss, record every dismissal with a reason that disposes of that finding's own claim — there is no silent-drop disposition), the patch gate (auto-fix only a defect that actually occurs, missing coverage for a specific case, or a broken gate/convention — never a state nothing reaches, and never a fix that guards state the finding did not demonstrate), the reporting contract (findings reviewed, survivors, and every dismissal with its reason — a triage that reports only survivors is indistinguishable from a reviewer that found less), and the disposition when triage empties the survivor set (never dispatch a fixer with nothing to apply, never run the unresolved-BLOCKER escalation on a refuted BLOCKER, and never silently promote a non-PASS verdict — the user settles a verdict its own findings no longer support). Consumed by `implement:`, `vuln:`, `upgrade:`, `document:` (Jira mode), and `epics:`, and by `review-fixer` and `doc-fixer` for the patch gate.
 
 `skills/_shared/instruction-file-maintenance.md` is the **single source of truth** for changes to agent-instruction files (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, rules files, and this plugin's own `_shared/*.md`) — verify every command claim against the thing that runs it; a rewrite that narrows a rule is a deletion and is itemised separately; a pointer names an observable trigger, never one the agent must judge; two live contradictory instructions is a defect; retirement needs grounds, never "it looks derivable" and never "nothing has failed on it lately". Consumed by `impl-maintenance`, and binding on hand edits to this file.
+
+**`dev-workflows`'s human-facing documentation lives in `dev-workflows/docs/`, not in its README.** 32 pages — `docs/README.md` (the index), `getting-started.md`, `workflow.md`, `roles.md`, 20 skill pages under `docs/skills/`, and 8 reference pages under `docs/reference/` — with the plugin `README.md` reduced to a role-indexed pointer table. **A Claude edition's page is a source of topics, never a source of facts**: every claim on a page here must be re-derived from this edition's own shipped tree — this edition's `agents/`, this edition's own skill triggers and phases, this edition's own env-var reads — never copied across from a Claude-edition page's wording, numbers, or examples. `scripts/check-docs.sh` enforces the tree: run `./scripts/check-docs.sh --root .` before pushing, and it runs on every push via `.github/workflows/validate-catalog.yml`, preceded there by `--selftest`. Nine checks, shared byte-for-byte with the Claude editions below the edition-config block at the top of the script: links and anchors resolve; no page is unreachable from `docs/README.md`; the skill/agent/reference-file/hook inventories match the shipped tree in both directions; every plugin-read environment variable is documented and every documented one is actually read; no table cell exceeds 200 characters; `getting-started.md`'s install commands match the repo-root `README.md` verbatim; every skill handing `emit-cost` a fixed `phase`/`role` pair has a matching `cost-emission.md` §7 row; and every prose count matches the tree. **State the checks accurately for this edition, never copy the Claude numbers**: this edition sets `HAS_COST=0` — no cost subsystem exists here (`skills/_shared/specs-repo-git.md:54` states it) — which makes check 8 and check 9's cost-emitting-skills assertion inert-and-reported rather than gating, so `--selftest` runs **32 cases, not 37** — the other 5 are cost-only mechanics this edition can never trip. **Identity quarantine:** no page under `docs/` may name a marketplace or a container repo — `getting-started.md` is the single sanctioned exception, pinned by check 7, which is why it carries the install commands inline instead of linking out.
 
 ## `dev-workflows` plugin — skill relationships
 
