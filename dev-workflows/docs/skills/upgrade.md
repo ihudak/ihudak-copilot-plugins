@@ -10,7 +10,7 @@ Upgrades libraries, frameworks, runtimes, or build tools to a specified or lates
 
     upgrade: <component[:1.2.3|:minor|:latest|:lts]> [<component[...]> ...]
 
-Each token is one component and an optional target: `component:1.2.3` (exact), `component:minor` (latest patch on the current minor), `component:latest` (latest stable), `component:lts` (latest LTS), or a bare `component` (latest version compatible with everything else already in the repo). `component` can be a library, a framework, a language runtime, a build tool, or a path such as `.github/workflows`. All changes are left **uncommitted** on the current branch — this skill never commits the upgrade itself.
+Each token is one component and an optional target: `component:1.2.3` (exact), `component:minor` (latest patch on the current minor), `component:latest` (latest stable), `component:lts` (latest LTS), or a bare `component` (latest version compatible with everything else already in the repo). `component` can be a library, a framework, a language runtime, a build tool, or a path such as `.github/workflows`. All changes are left **uncommitted** on the feature branch Phase 2 prep creates (`git checkout -b`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md`) — this skill never commits the upgrade itself.
 
 ## How it runs
 

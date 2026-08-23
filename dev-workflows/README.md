@@ -1,6 +1,6 @@
 # dev-workflows
 
-A role-based pipeline of 20 slash commands — invoked in this edition via a `name:` colon keyword rather than a leading slash (`specify:`, not `/specify`; `/clear`, `/compact`, and `/rename` are Copilot's own built-ins and keep their slashes). Its spine runs idea refinement → Value Increment → architecture → Epic breakdown → specification → design → implementation → readiness → documentation → release notes, with strong-tier planning, code review, and doc/design review gates along the way; around that spine sit CVE remediation, dependency upgrades, guideline reviews, and the plugin's own feedback skills. The table below is the complete list.
+A role-based pipeline of 20 skills — invoked in this edition via a `name:` colon keyword rather than a leading slash (`specify:`, not `/specify`; `/clear`, `/compact`, and `/rename` are Copilot's own built-ins and keep their slashes). The Claude edition of this plugin calls this same set 20 slash commands; this edition has no slash commands at all. Its spine runs idea refinement → Value Increment → architecture → Epic breakdown → specification → design → implementation → readiness → documentation → release notes, with strong-tier planning, code review, and doc/design review gates along the way; around that spine sit CVE remediation, dependency upgrades, guideline reviews, and the plugin's own feedback skills. The table below is the complete list.
 
 > Part of the `ihudak-copilot-plugins` marketplace — see the [repo-root setup guide](../README.md) for marketplace install + prerequisites.
 

@@ -56,8 +56,7 @@ The run resolves the VI, confirms the specs repo is on a clean main, builds the 
 ## See also
 
 - [Roles](../roles.md) — "The handover model" names `ready:` as the one caller allowed to keep going past a stop every other consumer treats as fatal.
-- [`design:`](design.md), [`implement:`](implement.md), and [`document:`](document.md) — the three sibling Dev-role skills whose artifacts `ready:` verifies but never authors.
-- [`create-ard:`](create-ard.md) — the optional upstream skill whose ARD `ready:` checks for conformance.
+- [`create-ard:`](create-ard.md), [`specify:`](specify.md), and [`design:`](design.md) — the three upstream skills whose artifacts (the optional ARD, `specification.md`, and `design.md`) `ready:` verifies but never authors, spanning three roles (PA, PE, Dev) rather than one; `implement:` and `document:` are Dev-role siblings, but neither authors an artifact `ready:` reads.
 - [`model-routing.md`](../../skills/_shared/model-routing.md) — the classification rules and the `readiness-reviewer` strong-reasoning pin.
 - [`workflow-states.md`](../../skills/_shared/workflow-states.md) — the VI/Epic status ladders and their "Expected artifacts" columns Phase 3(b) checks against.
 - [`ard-resolution.md`](../../skills/_shared/ard-resolution.md) — how the optional ARD is resolved and carried into the reviewer's ARD-conformance dimension.

@@ -27,7 +27,7 @@ ihudak-copilot-plugins/
     ├── skills/
     │   ├── _shared/            ← cross-skill reference docs (not a skill itself)
     │   └── <skill-name>/
-    │       ├── SKILL.md        ← orchestrator skill (user-facing, slash-command trigger)
+    │       ├── SKILL.md        ← orchestrator skill (user-facing, keyword trigger, e.g. `implement:`)
     │       └── references/     ← optional supporting docs read at runtime
     │                             (kept under skills/<sub-agent>/references/ for
     │                              sub-agents that used to be skills — the SKILL.md
@@ -61,7 +61,7 @@ Do **not** put `plugin.json` under `.github/plugin/` — that path is not read b
 
 ## SKILL.md vs agent .md — when to use which
 
-**Skills** are user-facing slash-command triggers (e.g. `/impl:code`). They run in the
+**Skills** are user-facing keyword triggers (e.g. `implement:`, activated when the user prompt starts with that string — never a slash command in this edition). They run in the
 main session context with the user's selected model. They MUST have `allowed-tools:` in
 YAML frontmatter.
 
@@ -118,7 +118,7 @@ When adding a new skill that references shared content, always reference via the
 - The `model_routing` YAML block format passed between orchestrators and sub-agents
 - The `phase: verify-resume` protocol for gating tests on Opus review
 
-All orchestrators that dispatch sub-agents (`impl`, `impl-docs`, `impl-jira`, `fix-vuln`, `upgrade`) must load and follow `model-routing.md` at the start of every invocation. Standalone review orchestrators (`api-guideline-reviewer`, `guideline-reviewer`) are exempt — they do not classify complexity or route models. Sub-agents receive the `model_routing` block in their prompt; they do not re-read the file.
+All fourteen pipeline orchestrators (`implement:`, `vuln:`, `upgrade:`, `document:`, `epics:`, `release-notes:`, `docs-profile:`, `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `ready:`) must load and follow `model-routing.md` at the start of every invocation. Standalone review orchestrators (`api-guideline-reviewer:`, `guideline-reviewer:`) and the utility surfaces (`feedback:`, `prompt:`, `prompt-brainstorm:`, `prompt-grill-me:`) are exempt — they do not classify complexity or route models. Sub-agents receive the `model_routing` block in their prompt; they do not re-read the file.
 
 `skills/_shared/release-note-types.md` is the **single source of truth** for the release-note **destination map** (`breaking-changes.md` / `feature-updates.md` / `fixes.md`), the per-destination **draft shape** (label + title + prose, vs one bare sentence for `fixes`), the per-destination prose rules, the deprecation-note rule (end-of-life date required, end-of-support optional), and Change Type sourcing (import → infer). It is consulted by `release-notes-writer`; `release-notes:` cites it for its own invariants but never re-derives the writer's decision. The Change Type is never rendered as text.
 
@@ -177,15 +177,15 @@ docs-profile: is out of scope — it writes no $SPECS_PATH artifact.
 
 Shared sub-agents:
                     └── test-baseliner    (used by implement:, and by upgrade: and vuln: both directly and via upgrade-executor / vuln-fixer)
-                    └── test-writer       (used by implement: only — Phase 3.7)
-                    └── risk-planner      (used by implement: — Phase 2.5, replaces rubber-duck; and upgrade: — SIGNIFICANT/HIGH-RISK components)
-                    └── code-review       (used by implement: — Phase 3.9, vuln, upgrade)
+                    └── test-writer       (used by implement: only — Phase 3.5 SIMPLE/MODERATE, Phase 3B SIGNIFICANT/HIGH-RISK)
+                    └── risk-planner      (used by implement: — Phase 2B, replaces rubber-duck; and upgrade: — SIGNIFICANT/HIGH-RISK components)
+                    └── code-review       (used by implement: — Phase 3B, vuln, upgrade)
                     └── doc-reviewer      (used by document: jira mode Phase 7 only — doc-edit mode has no reviewer gate)
-                    └── doc-fixer         (used by document: Phase 3.5, jira mode Phases 6.7/7, epics:)
-                    └── doc-location-finder (used by document: jira mode Phase 5.6)
+                    └── doc-fixer         (used by document: doc-edit Phase 3.5, jira mode Phases 6.4/7, epics:)
+                    └── doc-location-finder (used by document: jira mode Phase 5.5)
                     └── counterpart-finder (used by document: jira mode Phase 5.6.5, space-constrained runs)
                     └── doc-planner       (used by document: jira mode Phase 5.7)
-                    └── docs-style-checker (used by document:, both modes — doc-edit Phase 3.5, jira mode Phase 6.7)
+                    └── docs-style-checker (used by document:, both modes — doc-edit Phase 3.5, jira mode Phase 6.4)
                     └── dt-style-checker  (from dt-style-guide plugin; fallback for docs-style-checker, primary for epics)
                     └── epic-reviewer     (used by epics: Phase 7)
 

@@ -14,7 +14,7 @@ The positional input resolves through the shared Jira-input front-end: a **VI Ji
 
 ## How it runs
 
-`epics/SKILL.md` carries 19 `## Phase` headings — the most of the four skills in this batch. The diagram below keeps every phase but collapses the ones that form one user-visible step, and shows the one real fork that changes which phases run at all: whether code examination is on.
+`epics/SKILL.md` carries 19 `## Phase` headings. The diagram below keeps every phase but collapses the ones that form one user-visible step, and shows the one real fork that changes which phases run at all: whether code examination is on.
 
 ```mermaid
 flowchart TD
