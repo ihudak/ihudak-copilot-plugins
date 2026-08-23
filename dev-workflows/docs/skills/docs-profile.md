@@ -36,5 +36,5 @@ The run validates the repo, detects it as a multi-space/docstack repo (via `dev_
 ## See also
 
 - [`document:`](document.md) — the Jira-mode skill whose Phase 0 preflight-discovers this profile, bootstrapping it on demand via this skill when absent.
-- The `dynatrace-docs-frontmatter` skill — owns changelog-entry and managed-docs-owners conventions this skill's `frontmatter:` pointers defer to, never re-specifying them. `docs-profile/SKILL.md` references it by name, but it is not bundled in this edition (no page here — see [References](../reference/references.md#skills)).
+- The `dynatrace-docs-frontmatter` skill — owns changelog-entry and managed-docs-owners conventions this skill's `frontmatter:` pointers defer to, never re-specifying them. `docs-profile/SKILL.md` references it by name, but this skill was never ported to this edition (canonical and mgd bundle it; this is a known gap, not an external dependency — no page here, see [References](../reference/references.md#skills)).
 - [`model-routing.md`](../../skills/_shared/model-routing.md) — the detection-chain / strong-reasoning-chain split Phase 1 records and Phases 2–3 apply via `task(model:)`.

@@ -12,9 +12,33 @@
 # regenerate the baseline instead of investigating. It also destroyed the
 # cross-edition comparability that an earlier version of this header wrongly
 # claimed as the reason to include it: the three editions keep different
-# changelogs, so counting them made the numbers diverge. With CHANGELOG.md
-# excluded all three editions produce this file's numbers exactly, so drift in
-# one edition is now visible as a difference from the other two.
+# changelogs, so counting them made the numbers diverge.
+#
+# Unlike in the canonical and mgd editions -- where, with CHANGELOG.md excluded,
+# this file's numbers DO match exactly, because those two editions keep
+# dev-workflows/ near byte-identical -- this Copilot edition's numbers are NOT
+# expected to match canonical/mgd's, and a mismatch against those two editions is
+# not what this file guards here. This edition's second scan root
+# (.github/copilot-instructions.md) folds in prose the other two editions instead
+# split across CLAUDE.md and several docs/reference/*.md pages outside this scan,
+# and this edition's skills/docs prose is independently authored, not copied --
+# so a higher or lower raw count than canonical/mgd is expected, not drift. What
+# this file guards, in every edition including this one, is drift WITHIN that
+# edition: a change to these numbers between two runs of the regenerate command
+# below with no dated note recorded beneath this header explaining why.
+#
+# 2026-08-23 (2.27.2): regenerated at +1 for each of [Uxx], [ACxx], [TCxx]. The
+# 2.27.0 docs restructure removed the plugin README's old converge-check
+# sentence -- the one line that carried all three placeholders together -- but
+# added two new docs/skills/ pages, design.md:46 and specify.md:56, that each
+# independently reference the same three placeholders, netting +1 per form
+# instead of the -1 a straight removal alone would have produced. The baseline
+# was never regenerated after that restructure landed, so its tripwire had been
+# silently inert (any further edit to those two mentions could not fail it, and
+# --root . could not tell "the census still matches" from "no one has checked").
+# Verified before regenerating: the ONLY delta from the previous baseline is +1
+# on each of the three placeholder forms; every concrete [U01]/[AC01]/[TC01]
+# -style identifier is unmoved, which is what the tripwire actually guards.
 #
 # Regenerate, preserving this header:
 #   ( grep '^#' scripts/spec-id-baseline.txt; \
@@ -29,10 +53,10 @@
 #   | diff <(grep -v '^#' scripts/spec-id-baseline.txt) -
       1 [AC01]
       1 [AC03]
-     19 [ACxx]
+     20 [ACxx]
       2 [TC01]
       1 [TC07]
-     17 [TCxx]
+     18 [TCxx]
       1 [U01]
       1 [U02]
-     21 [Uxx]
+     22 [Uxx]
