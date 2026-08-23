@@ -160,15 +160,15 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator is running under>   # = the inline implementation coding
   detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer
-  planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; frontmatter-pinned, recorded, no override)
-  review_model:  <§2 Opus chain>    # code-review (Phase 3B; frontmatter-pinned, recorded, no override)
+  planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override)
+  review_model:  <§2 Opus chain>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override)
   implementation_model: <= current_model>   # coding done inline by the orchestrator
   fixes_model: <= detection_model>          # review-fixer (Phase 3B)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2 / §2.1 fallback or degradation>
 ```
 
-Each subagent dispatch below cites its chain (§9 role→chain map); mechanical steps pin `detection_model` via `model:`, and the frontmatter-Opus gates (`risk-planner`, `code-review`) are recorded but never overridden.
+Each subagent dispatch below cites its chain (§9 role→chain map); mechanical steps pin `detection_model` via `model:`, and the dispatch-pinned Opus gates (`risk-planner`, `code-review`) are recorded but never overridden.
 
 **Detect task shape.** Inspect the description for defect signals (fix / bug / regression / broken / incorrect / wrong output / crash / fails). If bug-shaped, set `task_shape: bug`. `task_shape: bug` only affects the SIGNIFICANT / HIGH-RISK path (Phase 2B/3B); for SIMPLE / MODERATE it is guidance only (no extra question). On the SIGNIFICANT / HIGH-RISK path, if it is genuinely ambiguous whether this is a defect fix or new work, ask with a `choices` prompt (last choice `"Other… (describe)"`).
 
@@ -286,7 +286,7 @@ Once the file map is returned, delegate planning to Opus.
 
 When a `specification.md`/`design.md` is in scope, extract its **in-scope** `[Uxx]`/`[ACxx]`/`[TCxx]` IDs (reuse the specs resolved in Phase 0) into `in_scope_ids` for the review dispatch below. When `task_shape: bug`, the plan will lead with a repro step and a ranked-hypotheses section — surface them in the normal plan-approval gate (no extra interrupt) **when the ranking is present**. When the planner instead returns `Ranking withheld — no red-capable repro`, the withheld-repro branch below fires first and the normal gate does not run.
 
-→ task(agent_type: "dev-workflows:risk-planner"):  # planning_model — §2 Opus chain; frontmatter-pinned, recorded in model_routing, no override added
+→ task(agent_type: "dev-workflows:risk-planner"):  # planning_model — §2 Opus chain; dispatch-pinned to this chain, recorded in model_routing, no override added
   > "Produce the risk-weighted plan for the following brief:
   >
   > Task description: [substitute full description]
@@ -473,7 +473,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 5. After all changes are written: **DO NOT run tests yet.** When `task_shape: bug`, first **strip every `[DEBUG-xxxx]` probe** added during diagnosis (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/bug-diagnosis.md`); the review diff must contain no debug instrumentation. Capture the diff and the project root. Use `git add -N . && git diff` — this includes intent-to-add untracked new files so the diff is never empty for implementations that only create new files, and it now also includes the test files from step 4a. Write this diff to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `review_diff_file`; the code-review dispatch (step 6) receives this path. Also capture `git diff --stat` for the summary (small — kept inline).
 6. **Opus code review** — spawn.
 
-   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2 Opus chain; frontmatter-pinned, recorded in model_routing, no override added
+   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2 Opus chain; dispatch-pinned to this chain, recorded in model_routing, no override added
      > "Produce the Opus code review for this brief:
      >
      > Task description: [substitute full description]

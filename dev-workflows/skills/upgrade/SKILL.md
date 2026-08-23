@@ -51,8 +51,8 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
        detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; frontmatter-pinned, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (frontmatter-pinned; recorded, no override)
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: <true for SIGNIFICANT/HIGH-RISK, false otherwise>
        notes: <any §2 / §2.1 fallback or degradation>"
@@ -68,7 +68,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 5. **Classify each READY component** — Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then record: the actual resolved change, related upgrades, and planner findings. Print one classification line per component. When in doubt, escalate to `SIGNIFICANT`.
 
-6. **Risk plan for SIGNIFICANT / HIGH-RISK components** — For every component classified `SIGNIFICANT` or `HIGH-RISK`, invoke `risk-planner` before execution (frontmatter-pinned to Opus; recorded as `planning_model` above, no `model:` override needed):
+6. **Risk plan for SIGNIFICANT / HIGH-RISK components** — For every component classified `SIGNIFICANT` or `HIGH-RISK`, invoke `risk-planner` before execution (dispatch-pinned to Opus; recorded as `planning_model` above, no `model:` override needed):
 
    ```
    task(
@@ -134,8 +134,8 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
        detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; frontmatter-pinned, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (frontmatter-pinned; recorded, no override)
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: [true for SIGNIFICANT / HIGH-RISK, false otherwise]
        notes: <any §2 / §2.1 fallback or degradation>
@@ -148,7 +148,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 4. **Review gate for SIGNIFICANT / HIGH-RISK** — If the executor returns `status: AWAITING_REVIEW`, run the Opus code-review gate before any test verification:
    - Capture the diff to a temp file: write `git add -N . && git diff` to `mktemp -t dw-upgrade-diff-XXXX.patch` (never inside a repo tree) and record its path as `review_diff_file`
-   - Write the executor output to a temp file (`mktemp -t dw-upgrade-claims-XXXX.md`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` using the approved risk plan, the diff (from `review_diff_file`), and `claims_file: [the path]` (frontmatter-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
+   - Write the executor output to a temp file (`mktemp -t dw-upgrade-claims-XXXX.md`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` using the approved risk plan, the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this component, marking it `BLOCKED` in the Step 7 results table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
    - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
