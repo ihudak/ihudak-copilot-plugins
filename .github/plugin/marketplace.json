@@ -14,7 +14,7 @@
       "name": "dev-workflows",
       "source": "dev-workflows",
       "description": "Full product-development lifecycle workflow skills for GitHub Copilot CLI: idea → create-vi → create-ard → specify → design → epics → implement → document → release-notes → ready, plus vuln (CVE remediation), upgrade, update-vi, api-guideline-reviewer, guideline-reviewer, docs-profile, feedback, and prompt utilities. Strong-tier model routing (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), branch management, dispatched review sub-agents, and automated maintenance. Each phase hands its artifact to the next through the specs repo's default branch, and the consuming skill refuses to start until it has landed. Optional read-only grounding: on shipped product docs ($DOCS_PATH), on tracked vault prior art ($VAULT_PATH), on the counterpart space's docs for space-constrained document: runs, and on mounted code for idea: --ground-code. 20 user-facing skills + 34 sub-agents.",
-      "version": "2.27.1",
+      "version": "2.27.2",
       "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/dev-workflows"
     },
     {

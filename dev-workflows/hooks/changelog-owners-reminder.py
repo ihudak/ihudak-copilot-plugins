@@ -126,8 +126,16 @@ def main():
                     issues.append("owners: add " + ", ".join(missing))
 
     if issues:
-        msg = "dynatrace-docs %s — %s. Run the dynatrace-docs-frontmatter skill." % (
-            os.path.basename(path), "; ".join(issues)
+        root = os.environ.get("PLUGIN_ROOT", "")
+        guide_dir = (
+            os.path.join(root, "skills", "_shared", "dynatrace-docs")
+            if root
+            else "skills/_shared/dynatrace-docs"
+        )
+        msg = (
+            "dynatrace-docs %s — %s. This edition has no dynatrace-docs-frontmatter "
+            "skill to run; see %s/changelog-guidelines.md and %s/managed-owners.txt."
+            % (os.path.basename(path), "; ".join(issues), guide_dir, guide_dir)
         )
         print(json.dumps({"systemMessage": msg}))
 

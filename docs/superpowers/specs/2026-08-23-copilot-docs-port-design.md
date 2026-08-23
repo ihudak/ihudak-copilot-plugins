@@ -29,7 +29,7 @@ Verified against this edition's own files, not assumed.
 
 **No cost subsystem.** `skills/_shared/specs-repo-git.md:54` states it outright: *"no cost subsystem — there is no `cost-emission.md`, no `emit-cost`"*. There is no `cost-emission.md` and no `cost-prices.yaml`. Consequences:
 - `docs/reference/session-cost.md` **is not created.**
-- `roles-and-phases.md` carries **roles only**. Its Claude counterpart's entire second half is the ten cost-attribution phases; none of that exists here.
+- `roles.md` carries **roles only**. Its Claude counterpart, `roles-and-phases.md`, has an entire second half of ten cost-attribution phases; none of that exists here, hence the shorter shipped name.
 - All 20 skill pages open on role/phase in the Claude tree. Here they are **rewritten**, not translated.
 - `DEV_WORKFLOWS_COST_PRICES` does not exist → **5** user-settable variables (`MODEL_ROUTING` and `PLUGIN_ROOT` are *not* among them: `MODEL_ROUTING` is assigned as a hook-local shell variable at `hooks/preload-context.sh:52`, the same shape as canonical's `ROOT`) (`VAULT_PATH`, `SPECS_PATH`, `REPOS_PATH`, `DOCS_PATH`, `GIT_USER_INITIALS`), not 6.
 
@@ -41,7 +41,7 @@ Verified against this edition's own files, not assumed.
 
 ## 3. Scope — 32 pages
 
-- 4 orientation: `docs/README.md`, `getting-started.md`, `workflow.md`, `roles-and-phases.md` (roles only)
+- 4 orientation: `docs/README.md`, `getting-started.md`, `workflow.md`, `roles.md` (roles only)
 - 20 skill pages under `docs/skills/` — one per `skills/<name>/`, `_shared` excluded
 - 8 reference pages under `docs/reference/`: `agents.md`, `references.md`, `environment.md`, `hooks.md`, `model-routing.md`, `session-feedback.md`, `follow-ups.md`, `resume-and-checkpoints.md`
 
