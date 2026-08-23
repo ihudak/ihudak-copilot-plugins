@@ -56,7 +56,8 @@ not required.
 - `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an
   existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira +
   re-import round-trip it offers the same forward paths as `create-vi:`: `release-notes: <VI>`
-  (PM), `create-ard: <VI>` (PA, if one exists), `specify: <VI>` (PE, if one exists).
+  (PM), `create-ard: <VI>` (PA, if one exists), `epics: <VI>` (PE), `specify: <VI>` (PE, if one
+  exists).
 
 **PA — architecture (optional)**
 
