@@ -6,7 +6,7 @@ Ivan Gudak's private GitHub Copilot plugin marketplace.
 
 | Plugin | Description |
 |--------|-------------|
-| [dev-workflows](dev-workflows/) | Twenty keyword-triggered skills for the PM → PA → PE → Dev pipeline — idea to VI, ARD, Epics, spec/design, implementation, docs, release notes, plus CVE, upgrade, and guideline review. |
+| [dev-workflows](dev-workflows/) | Twenty-one keyword-triggered skills for the PM → PA → PE → Dev pipeline — idea to VI, ARD, Epics, spec/design, implementation, docs, release notes, CVE, upgrade, guideline/frontmatter review. |
 | [dt-style-guide](dt-style-guide/) | Dynatrace corporate style guide enforcement: `/dt-review-pr`, `/dt-review-docs`, `/dt-style-refresh`, and sub-agents used by `dev-workflows` for style checking Epics and feature docs |
 | [obsidian-llm-wiki](obsidian-llm-wiki/) | Eleven slash-command skills for compiling Obsidian vault knowledge into a persistent, cross-referenced wiki with task management; supports GitHub Copilot and Claude Code |
 | [acli](acli/) | Atlassian CLI (`acli`) reference skill for Jira and Confluence — search, work items, comments, boards, spaces/pages. From [pi-skill-acli](https://github.com/ziegenberg/pi-skill-acli) (MIT). |
@@ -96,7 +96,7 @@ ihudak-copilot-plugins/
 │       ├── vuln/
 │       ├── upgrade/
 │       ├── _shared/          ← model-routing.md + other cross-skill reference docs
-│       └── <16 more lifecycle/utility skills>
+│       └── <17 more lifecycle/utility skills>
 ├── dt-style-guide/
 │   ├── .plugin/plugin.json
 │   ├── README.md

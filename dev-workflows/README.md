@@ -1,12 +1,12 @@
 # dev-workflows
 
-A role-based pipeline of 20 skills — invoked in this edition via a `name:` colon keyword rather than a leading slash (`specify:`, not `/specify`; `/clear`, `/compact`, and `/rename` are Copilot's own built-ins and keep their slashes). This edition has no slash commands at all. The Claude edition of this plugin calls these same 20 skills 20 slash commands, and adds one more of its own, `/statusline` — a 21st slash command with no counterpart here, since this edition bundles no `statusline:` skill. Its spine runs idea refinement → Value Increment → architecture → Epic breakdown → specification → design → implementation → readiness → documentation → release notes, with strong-tier planning, code review, and doc/design review gates along the way; around that spine sit CVE remediation, dependency upgrades, guideline reviews, and the plugin's own feedback skills. The table below is the complete list.
+A role-based pipeline of 21 skills — invoked in this edition via a `name:` colon keyword rather than a leading slash (`specify:`, not `/specify`; `/clear`, `/compact`, and `/rename` are Copilot's own built-ins and keep their slashes). This edition has no slash commands at all. The Claude edition of this plugin has twenty-one slash commands in total: the same 20 pipeline skills as this edition, plus one more of its own, `/statusline` — with no counterpart here, since this edition bundles no `statusline:` skill. This edition's 21st skill, `dynatrace-docs-frontmatter:`, is not a pipeline step and has no Claude-edition slash-command counterpart either — it mirrors a Claude-edition skill of the same name that likewise sits outside `commands/`, alongside `model-routing`, which this edition inlines as a flat reference file rather than a skill. Its spine runs idea refinement → Value Increment → architecture → Epic breakdown → specification → design → implementation → readiness → documentation → release notes, with strong-tier planning, code review, and doc/design review gates along the way; around that spine sit CVE remediation, dependency upgrades, guideline reviews, dynatrace-docs conventions, and the plugin's own feedback skills. The table below is the complete list.
 
 > Part of the `ihudak-copilot-plugins` marketplace — see the [repo-root setup guide](../README.md) for marketplace install + prerequisites.
 
 ## What it does
 
-Every skill owns one role's step in the pipeline and hands a concrete artifact to the next. See [Workflow overview](docs/workflow.md) for the diagram and [Roles](docs/roles.md) for what each role is accountable for.
+Every pipeline skill owns one role's step in the pipeline and hands a concrete artifact to the next; `dynatrace-docs-frontmatter:` is the one exception — a conventions-application skill invoked while editing a dynatrace-docs page rather than owning a pipeline step of its own. See [Workflow overview](docs/workflow.md) for the diagram and [Roles](docs/roles.md) for what each role is accountable for.
 
 | Role | Skills | What it does |
 |------|--------|--------------|
@@ -16,6 +16,7 @@ Every skill owns one role's step in the pipeline and hands a concrete artifact t
 | Dev | `design:`, `implement:`, `ready:`, `document:`, `release-notes:` *(final run)* | Design against the spec, implement it under review gates, verify a Jira status against the record, document the result, and draft the final release-notes note. |
 | Anytime — maintenance | `vuln:`, `upgrade:`, `docs-profile:` | Remediate a CVE, upgrade a dependency, or profile a docs repo. |
 | Anytime — guideline review | `api-guideline-reviewer:`, `guideline-reviewer:` | Review an OpenAPI spec or app UI against the bundled guidelines. |
+| Anytime — docs conventions | `dynatrace-docs-frontmatter:` | Apply dynatrace-docs changelog-entry and managed-owners frontmatter conventions when editing a docs page. |
 | Anytime — plugin feedback | `feedback:`, `prompt:`, `prompt-brainstorm:`, `prompt-grill-me:` | Log friction about the plugin itself, or capture and act on a correction. |
 
 `release-notes:` is the one skill in two rows — the same skill run at two points in a Value Increment's life, attributed by inference rather than a fixed role.
