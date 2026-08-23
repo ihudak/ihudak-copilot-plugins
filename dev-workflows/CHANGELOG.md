@@ -4,6 +4,12 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.26.3] — 2026-08-23
+
+### Fixed
+- **`.github/copilot-instructions.md`'s repository-structure block omitted `hooks/`.** This edition ships four hooks and a `hooks.json`, its README documents them in a `## Hooks` table, and the `hooks.json` is genuinely Copilot-adapted — `${PLUGIN_ROOT}` rather than `${CLAUDE_PLUGIN_ROOT}`, a `bash:` key rather than `command:`, and a comment recording that **Copilot CLI does not support Claude Code's `matcher` field**, so both `PostToolUse` hooks fire on every tool use. Nobody writes that about a system with no hooks. The layout spec was simply stale, which meant the file an agent reads to learn this repo's shape denied the existence of a directory the repo runs. Added, with the matcher limitation stated where an author will hit it.
+- **The repo-root README's Prerequisites list omitted `superpowers`.** `prompt-brainstorm:` cedes its Phase 3 to `superpowers:brainstorming`; both Claude editions have listed it as a recommended weak dependency all along and this one never did. Added, along with the distinction that gets the two confused: brainstorming is external, **grilling is not** — that technique is bundled at `dev-workflows/skills/_shared/grilling-technique.md`.
+
 ## [2.26.2] — 2026-08-22
 
 ### Fixed

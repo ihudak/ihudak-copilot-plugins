@@ -21,6 +21,9 @@ ihudak-copilot-plugins/
     ├── README.md
     ├── agents/                 ← Copilot custom agents (one .md per agent)
     │   └── <agent-name>.md     ← dispatched via task(agent_type: "<plugin>:<agent-name>")
+    ├── hooks/                  ← lifecycle hooks (Stop, UserPromptSubmit, PostToolUse)
+    │   ├── hooks.json          ← registration; use ${PLUGIN_ROOT} for paths
+    │   └── *.sh                ← hook scripts, each must exit 0
     └── skills/
         ├── _shared/            ← cross-skill reference docs (not a skill itself)
         └── <skill-name>/
@@ -31,6 +34,8 @@ ihudak-copilot-plugins/
                                    was promoted to agents/<name>.md but the handoff
                                    docs stayed where they were)
 ```
+
+**Hooks note.** Copilot CLI runs plugin hooks but does **not** support Claude Code's `matcher` field, so every `PostToolUse` hook fires on *every* tool use. Each script must therefore return fast and exit 0 for invocations it does not care about — `test-notify.sh` returns unless the command is a test runner, `changelog-owners-reminder.sh` unless the edited file is a docs content page. Hook scripts must never block the agent.
 
 ## Plugin manifest format
 
