@@ -256,7 +256,7 @@ Expected: check 7 passes (install lines match the root README); check 3 will sti
 git add dev-workflows/docs && git commit -m "docs(dev-workflows): index and getting-started"
 ```
 
-## Task 6: `docs/workflow.md` and `docs/roles-and-phases.md`
+## Task 6: `docs/workflow.md` and `docs/roles.md`
 
 **Files:**
 - Create: `dev-workflows/docs/workflow.md`, `dev-workflows/docs/roles-and-phases.md`
@@ -276,17 +276,19 @@ The handover model and the four role sections (PM, PA, PE, Dev) **only**. No "Co
 git add dev-workflows/docs && git commit -m "docs(dev-workflows): workflow overview and roles"
 ```
 
-## Tasks 7–11: the 20 skill pages
+## Task 7: Skill pages — PM
 
-Five tasks, four pages each, batched by role so a reviewer sees a coherent slice.
+**Files:**
+- Create: `dev-workflows/docs/skills/idea.md`
+- Create: `dev-workflows/docs/skills/create-vi.md`
+- Create: `dev-workflows/docs/skills/update-vi.md`
+- Create: `dev-workflows/docs/skills/feedback.md`
 
-- **Task 7 (PM):** `idea`, `create-vi`, `update-vi`, `feedback`
-- **Task 8 (PA/PE):** `create-ard`, `epics`, `specify`, `prompt`
-- **Task 9 (Dev):** `design`, `implement`, `document`, `ready`
-- **Task 10 (delivery + maintenance):** `release-notes`, `vuln`, `upgrade`, `docs-profile`
-- **Task 11 (review + feedback):** `api-guideline-reviewer`, `guideline-reviewer`, `prompt-brainstorm`, `prompt-grill-me`
+**Interfaces:**
+- Consumes: `docs/roles.md`'s heading anchors from Task 6 — `#pm-product-management`, `#pa-product-architecture`, `#pe-product-engineering`, `#dev-build-verify-and-deliver`, `#the-handover-model`. Link to these exact slugs; check 2 fails on any other.
+- Produces: four pages `docs/README.md` already links to.
 
-**Files (each task):** Create `dev-workflows/docs/skills/<name>.md` ×4
+The four skills in this task: `idea:`, `create-vi:`, `update-vi:`, `feedback:`.
 
 Each page carries these sections, in this order:
 
@@ -353,31 +355,427 @@ grep -c '/clear\|/compact\|/rename' dev-workflows/docs/skills/*.md       # these
 git add dev-workflows/docs/skills && git commit -m "docs(dev-workflows): skill pages — <group>"
 ```
 
-## Tasks 12–14: the 8 reference pages
 
-- **Task 12:** `agents.md` (34 agents, table derived from `agents/*.md` frontmatter), `references.md` (36 flat `_shared` files + 6 subtrees with counts + the 3 per-skill `references/` subdirs + the 20 skills)
-- **Task 13:** `environment.md` (**5** variables), `hooks.md` (4 hooks — **must state the no-matcher limitation**, which the Claude page does not)
-- **Task 14:** `model-routing.md`, `session-feedback.md`, `follow-ups.md`, `resume-and-checkpoints.md`
+## Task 8: Skill pages — PA and PE
 
-**Files:** Create `dev-workflows/docs/reference/<name>.md`
+**Files:**
+- Create: `dev-workflows/docs/skills/create-ard.md`
+- Create: `dev-workflows/docs/skills/epics.md`
+- Create: `dev-workflows/docs/skills/specify.md`
+- Create: `dev-workflows/docs/skills/prompt.md`
 
-- [ ] **Step 1: Derive every inventory from the tree**
+**Interfaces:**
+- Consumes: `docs/roles.md`'s heading anchors from Task 6 — `#pm-product-management`, `#pa-product-architecture`, `#pe-product-engineering`, `#dev-build-verify-and-deliver`, `#the-handover-model`. Link to these exact slugs; check 2 fails on any other.
+- Produces: four pages `docs/README.md` already links to.
 
-```bash
-ls dev-workflows/agents/*.md | wc -l                                   # 34
-ls dev-workflows/skills/_shared/*.md | wc -l                           # 36
-find dev-workflows/skills/_shared -mindepth 1 -maxdepth 1 -type d      # 6 subtrees
-for d in $(find dev-workflows/skills/_shared -mindepth 1 -maxdepth 1 -type d); do
-  printf "%s %s\n" "$(basename $d)" "$(find $d -name '*.md' | wc -l)"; done
-ls dev-workflows/hooks/*.sh | wc -l                                    # 4
+The four skills in this task: `create-ard:`, `epics:`, `specify:`, `prompt:`.
+
+Each page carries these sections, in this order:
+
+1. `## Who runs it` — role only. **No cost phase, no role label from a §7 table** — none exists.
+2. `## Synopsis` — the invocation form (`<name>: <args>`) and argument resolution, derived from the skill's own `SKILL.md`.
+3. `## How it runs` — only when the skill dispatches ≥2 distinct `dev-workflows:<agent>` agents for which `agents/<agent>.md` exists. Mermaid phase diagram, node labels quoted **verbatim** from the skill's own `## Phase N` headings.
+4. `## What it needs` · 5. `## What it produces` · 6. `## Gates` · 7. `## Example` · 8. `## See also`
+
+- [ ] **Step 1 (each task): Derive, do not translate**
+
+For each of the four skills, read `dev-workflows/skills/<name>/SKILL.md` in full first. Count its `## Phase` headings and its distinct `dev-workflows:<agent>` tokens before writing any count into the page.
+
+- [ ] **Step 2: Write the four pages**
+
+Worked shape, using `idea` as the model — every page follows it:
+
+```markdown
+# idea:
+
+<one sentence, derived from skills/idea/SKILL.md's own description field>
+
+## Who runs it
+
+`idea:` runs in the **PM** role. This edition records no cost attribution, so
+there is no phase or role label on the run's output.
+
+## Synopsis
+
+    idea: <prompt | @file | community-post URL | VI key> [--deep] [--ground-code]
+
+<argument resolution, derived from the skill's own Phase 0>
+
+## How it runs
+
+<included ONLY if the skill dispatches >=2 distinct dev-workflows:<agent> tokens
+ for which agents/<agent>.md exists. Mermaid node labels quoted VERBATIM from the
+ skill's own `## Phase N` headings.>
+
+## What it needs      ## What it produces      ## Gates
+## Example            ## See also
 ```
 
-- [ ] **Step 2: Write the pages. `session-cost.md` is NOT created** — see spec §2.
+Before writing each page run, for that skill:
 
+```bash
+S=dev-workflows/skills/<name>/SKILL.md
+grep -cE '^## Phase' $S                                     # phase count for the page
+grep -oE 'dev-workflows:[a-z-]+' $S | sort -u | while read a; do
+  n=${a#dev-workflows:}; [ -f dev-workflows/agents/$n.md ] && echo "$n"; done | wc -l
+```
+The second number decides whether `## How it runs` gets a diagram, and is the number the page may state. Command self-references and skill invocations do not count.
+
+- [ ] **Step 3: Verify**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep -E 'check [1246]' ; echo "---"
+grep -c '/design\|/implement\|/specify' dev-workflows/docs/skills/*.md   # expect 0 -- colon form only
+grep -c '/clear\|/compact\|/rename' dev-workflows/docs/skills/*.md       # these MAY appear -- host commands
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add dev-workflows/docs/skills && git commit -m "docs(dev-workflows): skill pages — <group>"
+```
+
+
+## Task 9: Skill pages — Dev
+
+**Files:**
+- Create: `dev-workflows/docs/skills/design.md`
+- Create: `dev-workflows/docs/skills/implement.md`
+- Create: `dev-workflows/docs/skills/document.md`
+- Create: `dev-workflows/docs/skills/ready.md`
+
+**Interfaces:**
+- Consumes: `docs/roles.md`'s heading anchors from Task 6 — `#pm-product-management`, `#pa-product-architecture`, `#pe-product-engineering`, `#dev-build-verify-and-deliver`, `#the-handover-model`. Link to these exact slugs; check 2 fails on any other.
+- Produces: four pages `docs/README.md` already links to.
+
+The four skills in this task: `design:`, `implement:`, `document:`, `ready:`.
+
+Each page carries these sections, in this order:
+
+1. `## Who runs it` — role only. **No cost phase, no role label from a §7 table** — none exists.
+2. `## Synopsis` — the invocation form (`<name>: <args>`) and argument resolution, derived from the skill's own `SKILL.md`.
+3. `## How it runs` — only when the skill dispatches ≥2 distinct `dev-workflows:<agent>` agents for which `agents/<agent>.md` exists. Mermaid phase diagram, node labels quoted **verbatim** from the skill's own `## Phase N` headings.
+4. `## What it needs` · 5. `## What it produces` · 6. `## Gates` · 7. `## Example` · 8. `## See also`
+
+- [ ] **Step 1 (each task): Derive, do not translate**
+
+For each of the four skills, read `dev-workflows/skills/<name>/SKILL.md` in full first. Count its `## Phase` headings and its distinct `dev-workflows:<agent>` tokens before writing any count into the page.
+
+- [ ] **Step 2: Write the four pages**
+
+Worked shape, using `idea` as the model — every page follows it:
+
+```markdown
+# idea:
+
+<one sentence, derived from skills/idea/SKILL.md's own description field>
+
+## Who runs it
+
+`idea:` runs in the **PM** role. This edition records no cost attribution, so
+there is no phase or role label on the run's output.
+
+## Synopsis
+
+    idea: <prompt | @file | community-post URL | VI key> [--deep] [--ground-code]
+
+<argument resolution, derived from the skill's own Phase 0>
+
+## How it runs
+
+<included ONLY if the skill dispatches >=2 distinct dev-workflows:<agent> tokens
+ for which agents/<agent>.md exists. Mermaid node labels quoted VERBATIM from the
+ skill's own `## Phase N` headings.>
+
+## What it needs      ## What it produces      ## Gates
+## Example            ## See also
+```
+
+Before writing each page run, for that skill:
+
+```bash
+S=dev-workflows/skills/<name>/SKILL.md
+grep -cE '^## Phase' $S                                     # phase count for the page
+grep -oE 'dev-workflows:[a-z-]+' $S | sort -u | while read a; do
+  n=${a#dev-workflows:}; [ -f dev-workflows/agents/$n.md ] && echo "$n"; done | wc -l
+```
+The second number decides whether `## How it runs` gets a diagram, and is the number the page may state. Command self-references and skill invocations do not count.
+
+- [ ] **Step 3: Verify**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep -E 'check [1246]' ; echo "---"
+grep -c '/design\|/implement\|/specify' dev-workflows/docs/skills/*.md   # expect 0 -- colon form only
+grep -c '/clear\|/compact\|/rename' dev-workflows/docs/skills/*.md       # these MAY appear -- host commands
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add dev-workflows/docs/skills && git commit -m "docs(dev-workflows): skill pages — <group>"
+```
+
+
+## Task 10: Skill pages — delivery and maintenance
+
+**Files:**
+- Create: `dev-workflows/docs/skills/release-notes.md`
+- Create: `dev-workflows/docs/skills/vuln.md`
+- Create: `dev-workflows/docs/skills/upgrade.md`
+- Create: `dev-workflows/docs/skills/docs-profile.md`
+
+**Interfaces:**
+- Consumes: `docs/roles.md`'s heading anchors from Task 6 — `#pm-product-management`, `#pa-product-architecture`, `#pe-product-engineering`, `#dev-build-verify-and-deliver`, `#the-handover-model`. Link to these exact slugs; check 2 fails on any other.
+- Produces: four pages `docs/README.md` already links to.
+
+The four skills in this task: `release-notes:`, `vuln:`, `upgrade:`, `docs-profile:`.
+
+Each page carries these sections, in this order:
+
+1. `## Who runs it` — role only. **No cost phase, no role label from a §7 table** — none exists.
+2. `## Synopsis` — the invocation form (`<name>: <args>`) and argument resolution, derived from the skill's own `SKILL.md`.
+3. `## How it runs` — only when the skill dispatches ≥2 distinct `dev-workflows:<agent>` agents for which `agents/<agent>.md` exists. Mermaid phase diagram, node labels quoted **verbatim** from the skill's own `## Phase N` headings.
+4. `## What it needs` · 5. `## What it produces` · 6. `## Gates` · 7. `## Example` · 8. `## See also`
+
+- [ ] **Step 1 (each task): Derive, do not translate**
+
+For each of the four skills, read `dev-workflows/skills/<name>/SKILL.md` in full first. Count its `## Phase` headings and its distinct `dev-workflows:<agent>` tokens before writing any count into the page.
+
+- [ ] **Step 2: Write the four pages**
+
+Worked shape, using `idea` as the model — every page follows it:
+
+```markdown
+# idea:
+
+<one sentence, derived from skills/idea/SKILL.md's own description field>
+
+## Who runs it
+
+`idea:` runs in the **PM** role. This edition records no cost attribution, so
+there is no phase or role label on the run's output.
+
+## Synopsis
+
+    idea: <prompt | @file | community-post URL | VI key> [--deep] [--ground-code]
+
+<argument resolution, derived from the skill's own Phase 0>
+
+## How it runs
+
+<included ONLY if the skill dispatches >=2 distinct dev-workflows:<agent> tokens
+ for which agents/<agent>.md exists. Mermaid node labels quoted VERBATIM from the
+ skill's own `## Phase N` headings.>
+
+## What it needs      ## What it produces      ## Gates
+## Example            ## See also
+```
+
+Before writing each page run, for that skill:
+
+```bash
+S=dev-workflows/skills/<name>/SKILL.md
+grep -cE '^## Phase' $S                                     # phase count for the page
+grep -oE 'dev-workflows:[a-z-]+' $S | sort -u | while read a; do
+  n=${a#dev-workflows:}; [ -f dev-workflows/agents/$n.md ] && echo "$n"; done | wc -l
+```
+The second number decides whether `## How it runs` gets a diagram, and is the number the page may state. Command self-references and skill invocations do not count.
+
+- [ ] **Step 3: Verify**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep -E 'check [1246]' ; echo "---"
+grep -c '/design\|/implement\|/specify' dev-workflows/docs/skills/*.md   # expect 0 -- colon form only
+grep -c '/clear\|/compact\|/rename' dev-workflows/docs/skills/*.md       # these MAY appear -- host commands
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add dev-workflows/docs/skills && git commit -m "docs(dev-workflows): skill pages — <group>"
+```
+
+
+## Task 11: Skill pages — review and feedback
+
+**Files:**
+- Create: `dev-workflows/docs/skills/api-guideline-reviewer.md`
+- Create: `dev-workflows/docs/skills/guideline-reviewer.md`
+- Create: `dev-workflows/docs/skills/prompt-brainstorm.md`
+- Create: `dev-workflows/docs/skills/prompt-grill-me.md`
+
+**Interfaces:**
+- Consumes: `docs/roles.md`'s heading anchors from Task 6 — `#pm-product-management`, `#pa-product-architecture`, `#pe-product-engineering`, `#dev-build-verify-and-deliver`, `#the-handover-model`. Link to these exact slugs; check 2 fails on any other.
+- Produces: four pages `docs/README.md` already links to.
+
+The four skills in this task: `api-guideline-reviewer:`, `guideline-reviewer:`, `prompt-brainstorm:`, `prompt-grill-me:`.
+
+Each page carries these sections, in this order:
+
+1. `## Who runs it` — role only. **No cost phase, no role label from a §7 table** — none exists.
+2. `## Synopsis` — the invocation form (`<name>: <args>`) and argument resolution, derived from the skill's own `SKILL.md`.
+3. `## How it runs` — only when the skill dispatches ≥2 distinct `dev-workflows:<agent>` agents for which `agents/<agent>.md` exists. Mermaid phase diagram, node labels quoted **verbatim** from the skill's own `## Phase N` headings.
+4. `## What it needs` · 5. `## What it produces` · 6. `## Gates` · 7. `## Example` · 8. `## See also`
+
+- [ ] **Step 1 (each task): Derive, do not translate**
+
+For each of the four skills, read `dev-workflows/skills/<name>/SKILL.md` in full first. Count its `## Phase` headings and its distinct `dev-workflows:<agent>` tokens before writing any count into the page.
+
+- [ ] **Step 2: Write the four pages**
+
+Worked shape, using `idea` as the model — every page follows it:
+
+```markdown
+# idea:
+
+<one sentence, derived from skills/idea/SKILL.md's own description field>
+
+## Who runs it
+
+`idea:` runs in the **PM** role. This edition records no cost attribution, so
+there is no phase or role label on the run's output.
+
+## Synopsis
+
+    idea: <prompt | @file | community-post URL | VI key> [--deep] [--ground-code]
+
+<argument resolution, derived from the skill's own Phase 0>
+
+## How it runs
+
+<included ONLY if the skill dispatches >=2 distinct dev-workflows:<agent> tokens
+ for which agents/<agent>.md exists. Mermaid node labels quoted VERBATIM from the
+ skill's own `## Phase N` headings.>
+
+## What it needs      ## What it produces      ## Gates
+## Example            ## See also
+```
+
+Before writing each page run, for that skill:
+
+```bash
+S=dev-workflows/skills/<name>/SKILL.md
+grep -cE '^## Phase' $S                                     # phase count for the page
+grep -oE 'dev-workflows:[a-z-]+' $S | sort -u | while read a; do
+  n=${a#dev-workflows:}; [ -f dev-workflows/agents/$n.md ] && echo "$n"; done | wc -l
+```
+The second number decides whether `## How it runs` gets a diagram, and is the number the page may state. Command self-references and skill invocations do not count.
+
+- [ ] **Step 3: Verify**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep -E 'check [1246]' ; echo "---"
+grep -c '/design\|/implement\|/specify' dev-workflows/docs/skills/*.md   # expect 0 -- colon form only
+grep -c '/clear\|/compact\|/rename' dev-workflows/docs/skills/*.md       # these MAY appear -- host commands
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add dev-workflows/docs/skills && git commit -m "docs(dev-workflows): skill pages — <group>"
+```
+
+
+## Task 12: Reference pages — `agents.md`, `references.md`
+
+**Files:**
+- Create: `dev-workflows/docs/reference/agents.md`
+- Create: `dev-workflows/docs/reference/references.md`
+
+**Interfaces:**
+- Consumes: nothing from sibling tasks.
+- Produces: pages `docs/README.md`'s Reference section already links to.
+
+Covers the 34 agents, and the reference inventory: 36 flat `_shared` files, its 6 subtrees with counts, the 3 per-skill `references/` subdirs, and the 20 skills.
+
+**Derive every inventory from the tree, never from a Claude page or from a number written into another page:**
+
+```bash
+ls dev-workflows/agents/*.md | wc -l
+ls dev-workflows/skills/_shared/*.md | wc -l
+for d in $(find dev-workflows/skills/_shared -mindepth 1 -maxdepth 1 -type d); do
+  printf "%s %s\n" "$(basename $d)" "$(find $d -name '*.md' | wc -l)"; done
+ls dev-workflows/hooks/*.sh | wc -l
+```
+
+**`session-cost.md` is NOT created** — this edition has no cost subsystem (spec §2).
+
+- [ ] **Step 1: Derive the inventories with the commands above, before writing prose**
+- [ ] **Step 2: Write the pages**
 - [ ] **Step 3: Verify both directions of check 4**
 
 ```bash
-./scripts/check-docs.sh --root . 2>&1 | grep 'check 4' || echo "inventories agree in both directions"
+./scripts/check-docs.sh --root . 2>&1 | grep 'check 4' || echo "inventories agree both ways"
+```
+
+- [ ] **Step 4: Commit**
+
+## Task 13: Reference pages — `environment.md`, `hooks.md`
+
+**Files:**
+- Create: `dev-workflows/docs/reference/environment.md`
+- Create: `dev-workflows/docs/reference/hooks.md`
+
+**Interfaces:**
+- Consumes: nothing from sibling tasks.
+- Produces: pages `docs/README.md`'s Reference section already links to.
+
+Covers the **5** user-settable variables, and the 4 hooks — `hooks.md` **must** state that Copilot CLI does not support Claude Code's `matcher` field, so both `PostToolUse` hooks fire on every tool use; the Claude page has no such note.
+
+**Derive every inventory from the tree, never from a Claude page or from a number written into another page:**
+
+```bash
+ls dev-workflows/agents/*.md | wc -l
+ls dev-workflows/skills/_shared/*.md | wc -l
+for d in $(find dev-workflows/skills/_shared -mindepth 1 -maxdepth 1 -type d); do
+  printf "%s %s\n" "$(basename $d)" "$(find $d -name '*.md' | wc -l)"; done
+ls dev-workflows/hooks/*.sh | wc -l
+```
+
+**`session-cost.md` is NOT created** — this edition has no cost subsystem (spec §2).
+
+- [ ] **Step 1: Derive the inventories with the commands above, before writing prose**
+- [ ] **Step 2: Write the pages**
+- [ ] **Step 3: Verify both directions of check 4**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep 'check 4' || echo "inventories agree both ways"
+```
+
+- [ ] **Step 4: Commit**
+
+## Task 14: Reference pages — `model-routing.md`, `session-feedback.md`, `follow-ups.md`, `resume-and-checkpoints.md`
+
+**Files:**
+- Create: `dev-workflows/docs/reference/model-routing.md`
+- Create: `dev-workflows/docs/reference/session-feedback.md`
+- Create: `dev-workflows/docs/reference/follow-ups.md`
+- Create: `dev-workflows/docs/reference/resume-and-checkpoints.md`
+
+**Interfaces:**
+- Consumes: nothing from sibling tasks.
+- Produces: pages `docs/README.md`'s Reference section already links to.
+
+Covers the classification tiers and fallback chain, the two feedback signals, the follow-up ladder, and session hygiene.
+
+**Derive every inventory from the tree, never from a Claude page or from a number written into another page:**
+
+```bash
+ls dev-workflows/agents/*.md | wc -l
+ls dev-workflows/skills/_shared/*.md | wc -l
+for d in $(find dev-workflows/skills/_shared -mindepth 1 -maxdepth 1 -type d); do
+  printf "%s %s\n" "$(basename $d)" "$(find $d -name '*.md' | wc -l)"; done
+ls dev-workflows/hooks/*.sh | wc -l
+```
+
+**`session-cost.md` is NOT created** — this edition has no cost subsystem (spec §2).
+
+- [ ] **Step 1: Derive the inventories with the commands above, before writing prose**
+- [ ] **Step 2: Write the pages**
+- [ ] **Step 3: Verify both directions of check 4**
+
+```bash
+./scripts/check-docs.sh --root . 2>&1 | grep 'check 4' || echo "inventories agree both ways"
 ```
 
 - [ ] **Step 4: Commit**
