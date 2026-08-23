@@ -8,7 +8,7 @@ Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow, plus 
 |---|---|
 | install this and set it up | [Getting started](getting-started.md) |
 | understand the whole pipeline first | [Workflow overview](workflow.md) |
-| know what my role is responsible for | [Roles and phases](roles-and-phases.md) |
+| know what my role is responsible for | [Roles](roles.md) |
 | turn a raw idea into something actionable | [`idea:`](skills/idea.md) |
 | write or refresh a Value Increment | [`create-vi:`](skills/create-vi.md), [`update-vi:`](skills/update-vi.md) |
 | record an architecture decision | [`create-ard:`](skills/create-ard.md) |
@@ -22,7 +22,7 @@ Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow, plus 
 | tell the plugin it got something wrong | [`feedback:`](skills/feedback.md), [`prompt:`](skills/prompt.md), [`prompt-brainstorm:`](skills/prompt-brainstorm.md), [`prompt-grill-me:`](skills/prompt-grill-me.md) |
 | review an API spec or app UI against guidelines | [`api-guideline-reviewer:`](skills/api-guideline-reviewer.md), [`guideline-reviewer:`](skills/guideline-reviewer.md) |
 
-Three pages orient you before you touch a skill: [Getting started](getting-started.md) installs the plugin and sets your environment variables; [Workflow overview](workflow.md) shows the whole pipeline as one diagram; [Roles and phases](roles-and-phases.md) says what each role owns and hands off. Every skill below is invoked by a `name:` keyword at the start of your prompt, not a slash command — `/clear`, `/compact`, and `/rename` are the CLI's own host commands and keep their slashes. Every other page documents one skill, or — for [Agents](reference/agents.md) and [References](reference/references.md) — one whole inventory.
+Three pages orient you before you touch a skill: [Getting started](getting-started.md) installs the plugin and sets your environment variables; [Workflow overview](workflow.md) shows the whole pipeline as one diagram; [Roles](roles.md) says what each role owns and hands off. Every skill below is invoked by a `name:` keyword at the start of your prompt, not a slash command — `/clear`, `/compact`, and `/rename` are the CLI's own host commands and keep their slashes. Every other page documents one skill, or — for [Agents](reference/agents.md) and [References](reference/references.md) — one whole inventory.
 
 ## Skills
 
