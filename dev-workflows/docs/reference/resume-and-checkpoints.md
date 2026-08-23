@@ -26,10 +26,10 @@ Any secret, credential, token, or other sensitive value that might otherwise lan
 
 ## The suggestion: `/compact` or `/clear`
 
-Every next-step option a skill offers already carries a role label — see [Roles](../roles.md) for what PM, PA, PE, and Dev each own; the mechanism that reads those labels itself calls the fourth role **Team** rather than Dev (`skills/_shared/next-phase-offer.md` heads its own build section "Team/Dev — build"), so this page follows that spelling. The context-hygiene suggestion reads those same role labels rather than hardcoding a per-skill verdict:
+Every next-step option a skill offers already carries a role label — see [Roles](../roles.md) for what PM, PA, PE, and Dev each own. The context-hygiene suggestion reads those same role labels rather than hardcoding a per-skill verdict:
 
-- **Staying in the same role** for the next step (`design: E1` → `design: E2`, Team→Team) → **`/compact`** — the context is still relevant, so keep the thread going.
-- **Moving to a different role** (`epics:` PE → `design:` Team) → **`/clear`** is the better default when one person is wearing both hats, since the prior role's reasoning becomes noise for the next one; `/compact` still works fine if you're continuing right away yourself.
+- **Staying in the same role** for the next step (`design: E1` → `design: E2`, Dev→Dev) → **`/compact`** — the context is still relevant, so keep the thread going.
+- **Moving to a different role** (`epics:` PE → `design:` Dev) → **`/clear`** is the better default when one person is wearing both hats, since the prior role's reasoning becomes noise for the next one; `/compact` still works fine if you're continuing right away yourself.
 - **The next step could go either way** (`create-vi:` → PM `release-notes:`, or handing off to PA/PE) → both branches are named explicitly: continuing as the same role suggests `/compact`, handing off — even to yourself — suggests `/clear`.
 - **You're done, or ending the session** → no suggestion at all.
 
@@ -39,7 +39,7 @@ A run doesn't have to finish to earn a checkpoint. `implement:`'s own mid-phase 
 
 ## The `/rename` aid
 
-Within this rename-aid set, a VI key is first available at `release-notes:`, and every PA/PE/Team skill that takes a `<VI>` argument (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`, `document:`, `release-notes:`) prints a suggested `/rename <VI-ID>-<slug>-<role>` line, so you can find this session again later by name instead of by scrolling. `<role>` is the lane tag of the skill that just finished — pm, pa, pe, or team. `idea:` and `create-vi:` are excluded from this aid: idea refinement is short, it usually runs before the paste-into-Jira-and-reimport round trip that mints the VI key in the first place, so there is often no key yet to name the session after — and on the rarer runs that do carry one already, the phase is still short enough that naming the session isn't worth automatically suggesting.
+Within this rename-aid set, a VI key is first available at `release-notes:`, and every PA/PE/Dev skill that takes a `<VI>` argument (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`, `document:`, `release-notes:`) prints a suggested `/rename <VI-ID>-<slug>-<role>` line, so you can find this session again later by name instead of by scrolling. `<role>` is the lane tag of the skill that just finished — pm, pa, pe, or dev. `idea:` and `create-vi:` are excluded from this aid: idea refinement is short, it usually runs before the paste-into-Jira-and-reimport round trip that mints the VI key in the first place, so there is often no key yet to name the session after — and on the rarer runs that do carry one already, the phase is still short enough that naming the session isn't worth automatically suggesting.
 
 ## The contract
 

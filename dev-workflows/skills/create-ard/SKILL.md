@@ -152,16 +152,16 @@ Write the ARD file(s) into the feature folder. Then **offer** (commit-when-asked
 
 ## Phase 7 — Next-step offer (adaptive)
 - **VI-level ARD:** if the VI has 0 Epics → `choices: ["Hand to a Product Engineer — epics: <VI> (then create them in Jira + re-import) (PE) (Recommended)", "Author a VI-level spec — specify: <VI> (PE)", "Stop here", "Other… (describe)"]`; else offer `specify: <VI>` (PE). *(No `design:` — no Epics yet.)* Either way, `specify:` won't treat this ARD as available until the pull request above is merged — until then it architects without it, same as if none existed.
-- **Epic-level ARD:** `choices: ["Author the spec — specify: <VI> <Epic> (PE) (Recommended)", "Hand to the team — design: <VI> <Epic> (Team)", "Stop here", "Other… (describe)"]`. **Epic fan-out** — repeat this ARD for a sibling Epic: `create-ard: <VI> <another-Epic>`. Both `specify:` and `design:` wait the same way — this ARD is invisible to them until its pull request above is merged.
+- **Epic-level ARD:** `choices: ["Author the spec — specify: <VI> <Epic> (PE) (Recommended)", "Hand to Dev — design: <VI> <Epic> (Dev)", "Stop here", "Other… (describe)"]`. **Epic fan-out** — repeat this ARD for a sibling Epic: `create-ard: <VI> <another-Epic>`. Both `specify:` and `design:` wait the same way — this ARD is invisible to them until its pull request above is merged.
 
 Guidance only — never auto-invokes another command. Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`.
 
 ### Context hygiene
 
 The resume pointer is written in the terminal maintenance phase (Phase 8), per
-`session-hygiene.md` §1. The next step hands off from PA to PE/Team, so:
+`session-hygiene.md` §1. The next step hands off from PA to PE/Dev, so:
 
-- **Handing to PE (`epics: <VI>` / `specify: <VI> <Epic>`) or Team (`design: <VI> <Epic>`), even yourself?** → run **`/clear`** for a clean slate; the ARD is on disk.
+- **Handing to PE (`epics: <VI>` / `specify: <VI> <Epic>`) or Dev (`design: <VI> <Epic>`), even yourself?** → run **`/clear`** for a clean slate; the ARD is on disk.
 - Continuing to draft more ARD areas yourself right now? → **`/compact`** is fine.
 - Consider **`/rename <VI-ID>-<slug>-pa`** so you can find this session later.
 
@@ -179,7 +179,7 @@ Terminal phase — runs after Phase 7, NEVER interrupts an earlier phase.
 `resume.md` write runs later, as step 3 of this terminal phase, per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints
 the guidance only), then a
-PA→PE/Team handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-pa`. Guidance only, never auto-run.
+PA→PE/Dev handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-pa`. Guidance only, never auto-run.
 
 1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`) with a compact handoff: command `create-ard:`; what was authored (ARD scope + grounded repos); key events (grounding gaps/descopes, BLOCK reviews — or 'none'); workarounds; the `ard-reviewer` verdict; test result N/A; project root = the feature folder.
 2. **Persist plugin feedback (automatic).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6) with the report, `command: create-ard:`, the run's `jira_key`, `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). Surface the persisted path (or "no plugin-facing signal — nothing persisted").

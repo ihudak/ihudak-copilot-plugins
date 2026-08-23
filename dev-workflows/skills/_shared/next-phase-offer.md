@@ -9,7 +9,7 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
 
 1. **Guidance-only** — the offer NAMES the next command(s); it NEVER auto-invokes anything.
 2. **Role-labeled** — it names the concrete command(s) for the next step, tagged with the owning
-   role (PM / PA / PE / Team), even on a handoff — one person may wear several hats and just keep
+   role (PM / PA / PE / Dev), even on a handoff — one person may wear several hats and just keep
    going. Never a bare "hand off to PA".
 3. **Adaptive to outcome** — a clean run points forward; a BLOCK / incomplete / cancelled run
    recommends resolving THAT first, not advancing.
@@ -62,16 +62,16 @@ not required.
 
 - `create-ard: <VI>` (VI-level) → PE → `epics: <VI>` (recommended) or `specify: <VI>`.
   *(No `design:` — no Epics yet.)*
-- `create-ard: <VI> <Epic>` (Epic-level) → `specify: <VI> <Epic>` (recommended) or Team →
+- `create-ard: <VI> <Epic>` (Epic-level) → `specify: <VI> <Epic>` (recommended) or Dev →
   `design: <VI> <Epic>`.
 
 **PE — breakdown & specification**
 
 - `specify: <VI>` (VI-level spec) → `epics: <VI>`.
 - `epics: <VI>` → `specify: <VI> <Epic>` (per Epic); optional PA → `create-ard: <VI> <Epic>`.
-- `specify: <VI> <Epic>` (Epic-level spec) → Team → `design: <VI> <Epic>`.
+- `specify: <VI> <Epic>` (Epic-level spec) → Dev → `design: <VI> <Epic>`.
 
-**Team/Dev — build**
+**Dev — build, verify & deliver**
 
 - `design: <VI> <Epic>` → optionally `ready: <VI> <Epic>` (verify readiness) →
   `implement: <VI> <Epic>`.

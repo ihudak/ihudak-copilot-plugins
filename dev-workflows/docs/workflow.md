@@ -20,7 +20,7 @@ flowchart TD
         specify["specify:"]
     end
 
-    subgraph DEV["Team and Dev (build)"]
+    subgraph DEV["Dev (build, verify & deliver)"]
         design["design:"]
         ready["ready:"]
         implement["implement:"]
