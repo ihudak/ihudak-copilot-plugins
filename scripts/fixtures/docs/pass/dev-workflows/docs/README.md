@@ -6,5 +6,3 @@
 - [References](reference/references.md)
 - [Environment](reference/environment.md)
 - [Hooks](reference/hooks.md)
-
-The fixture documents 2 bundled skills.
