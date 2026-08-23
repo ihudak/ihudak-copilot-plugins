@@ -133,8 +133,9 @@ def main():
             else "skills/_shared/dynatrace-docs"
         )
         msg = (
-            "dynatrace-docs %s — %s. This edition has no dynatrace-docs-frontmatter "
-            "skill to run; see %s/changelog-guidelines.md and %s/managed-owners.txt."
+            "dynatrace-docs %s — %s. Run the dynatrace-docs-frontmatter skill "
+            "(dynatrace-docs-frontmatter:) to fix; see %s/changelog-guidelines.md "
+            "and %s/managed-owners.txt."
             % (os.path.basename(path), "; ".join(issues), guide_dir, guide_dir)
         )
         print(json.dumps({"systemMessage": msg}))

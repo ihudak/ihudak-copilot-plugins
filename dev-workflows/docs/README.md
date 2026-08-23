@@ -1,6 +1,6 @@
 # dev-workflows documentation
 
-Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow, plus 34 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
+Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev workflow, plus `dynatrace-docs-frontmatter:` for dynatrace-docs page conventions — plus 34 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
 
 ## I want to…
 
@@ -17,6 +17,7 @@ Twenty keyword-triggered skills for the PM → PA → PE → Dev workflow, plus 
 | build the thing | [`implement:`](skills/implement.md) |
 | document it, then announce it | [`document:`](skills/document.md), [`release-notes:`](skills/release-notes.md) |
 | bootstrap or refresh the docs profile `document:` reads | [`docs-profile:`](skills/docs-profile.md) |
+| apply dynatrace-docs changelog/owners frontmatter conventions | [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) |
 | check whether a ticket is really ready | [`ready:`](skills/ready.md) |
 | fix a CVE or upgrade a dependency | [`vuln:`](skills/vuln.md), [`upgrade:`](skills/upgrade.md) |
 | tell the plugin it got something wrong | [`feedback:`](skills/feedback.md), [`prompt:`](skills/prompt.md), [`prompt-brainstorm:`](skills/prompt-brainstorm.md), [`prompt-grill-me:`](skills/prompt-grill-me.md) |
@@ -26,7 +27,7 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 
 ## Skills
 
-`skills/` holds the twenty entries below, each a `<name>/SKILL.md`. `skills/_shared/` sits alongside them but is not itself a skill — it is the reference-doc directory the skills draw on; see [References](reference/references.md).
+`skills/` holds the twenty-one entries below, each a `<name>/SKILL.md`. `skills/_shared/` sits alongside them but is not itself a skill — it is the reference-doc directory the skills draw on; see [References](reference/references.md).
 
 - [`api-guideline-reviewer:`](skills/api-guideline-reviewer.md) — review an OpenAPI spec against the bundled REST API and IAM permission naming guidelines.
 - [`create-ard:`](skills/create-ard.md) — author an Architecture Requirements/Decision Document for a VI, or for one Epic inside it, grounded on the mounted implementation repos.
@@ -34,6 +35,7 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 - [`design:`](skills/design.md) — take over a merged `specification.md` and author a reviewed engineering `design.md`, grounded strictly in the mounted implementation code.
 - [`docs-profile:`](skills/docs-profile.md) — scan a documentation repository and write or refresh the machine-readable profile `document:` consumes.
 - [`document:`](skills/document.md) — read a Jira Value Increment hierarchy, resolve PR diffs, and synthesise product documentation, gated on style-check and Opus review.
+- [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) — apply dynatrace-docs changelog-entry, managed-owners, and metadata frontmatter conventions when creating or editing a `dynatrace/_content/**` or `managed/_content/**` page.
 - [`epics:`](skills/epics.md) — draft child Epic definitions from a Value Increment, optionally scanning code repos, gated on dt-style-checker and Opus review.
 - [`feedback:`](skills/feedback.md) — log a manual note about the plugin itself, for the maintainer to aggregate. Tied to no skill; run any time.
 - [`guideline-reviewer:`](skills/guideline-reviewer.md) — review Dynatrace app code and UI against the bundled Experience Standards (GUIDElines).
