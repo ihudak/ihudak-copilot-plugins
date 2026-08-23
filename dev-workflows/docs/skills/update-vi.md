@@ -66,7 +66,7 @@ The run resolves the feature folder, pulls the current Jira-imported VI plus its
 
 - [Roles](../roles.md) — what the PM role owns and hands off at the seam.
 - [`create-vi:`](create-vi.md) — the greenfield sibling that authors a VI from scratch; this skill's Phase 0 does not redirect to it — an unimported `<KEY>` stops and asks you to run the workitem importer first.
-- [`create-ard:`](create-ard.md), [`specify:`](specify.md), and [`release-notes:`](release-notes.md) — the role re-runs Phase 6 offers when an ARD, spec, or release note already exists.
+- [`create-ard:`](create-ard.md), [`specify:`](specify.md), [`epics:`](epics.md), and [`release-notes:`](release-notes.md) — the role re-runs Phase 6 offers when an ARD, spec, or release note already exists.
 - [`model-routing.md`](../../skills/_shared/model-routing.md) — the classification and model-fallback chain `vi-reviewer` runs under.
 - [`vi-format.md`](../../skills/_shared/vi-format.md) — the canonical structure the VI is updated and reviewed against.
 - [`vi-source-resolution.md`](../../skills/_shared/vi-source-resolution.md) — the Jira-import-first resolution ladder Phase 0 executes.

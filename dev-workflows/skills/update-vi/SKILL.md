@@ -137,7 +137,7 @@ Without these steps the update silently diverges from Jira again.
 Offer these — guidance only, never auto-invoke — per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`:
 
 ```
-choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists)", "Re-run the spec — specify: <KEY> (PE, if one exists)", "Stop here", "Other… (describe)"]
+choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists)", "Re-run epics — epics: <KEY> (PE)", "Re-run the spec — specify: <KEY> (PE, if one exists)", "Stop here", "Other… (describe)"]
 ```
 
 ### Context hygiene
