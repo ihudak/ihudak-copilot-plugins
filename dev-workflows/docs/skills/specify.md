@@ -1,6 +1,6 @@
 # specify:
 
-Reads a Jira Epic or VI from exported markdown, lightly grounds in code, and authors an org-standard `specification.md` through a relentless one-question-at-a-time grill.
+Reads a Jira Epic or VI from exported markdown, lightly grounds in code, and authors an org-standard `specification.md` through a relentless round-by-round grill.
 
 ## Who runs it
 

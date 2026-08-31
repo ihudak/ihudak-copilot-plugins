@@ -46,7 +46,7 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 - [`prompt-grill-me:`](skills/prompt-grill-me.md) — log a correction, then grill the fix inline with a bounded (≤5-question) interrogation.
 - [`ready:`](skills/ready.md) — read a Jira workflow status and verify the ARD/spec/design artifacts justify it, without ever setting it.
 - [`release-notes:`](skills/release-notes.md) — draft a release-notes Summary for a Jira ticket, shaped by the destination it resolves to.
-- [`specify:`](skills/specify.md) — author an org-standard `specification.md` for one Jira item through a relentless one-question-at-a-time grill.
+- [`specify:`](skills/specify.md) — author an org-standard `specification.md` for one Jira item through a relentless round-by-round grill.
 - [`update-vi:`](skills/update-vi.md) — refresh an existing Value Increment against its Jira source, behind a 3-day freshness gate.
 - [`upgrade:`](skills/upgrade.md) — plan and execute a library, framework, runtime, or build-tool upgrade to a specified or latest version.
 - [`vuln:`](skills/vuln.md) — research and fix a CVE via NVD, one dependency or code change at a time.

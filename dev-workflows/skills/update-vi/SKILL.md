@@ -75,7 +75,7 @@ Then run `resolve-docs-grounding update-vi` per `~/.copilot/installed-plugins/ih
 
 ## Phase 3 — Update via grill
 
-**Interview technique (grilling — embedded; no runtime dependency).** Conduct a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split, walk the design tree in dependency order.
+**Interview technique (grilling — embedded; no runtime dependency).** Conduct a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — **rounds** rhythm (per that file's `## Rhythm`): ask the whole settled frontier as one numbered round, recompute from the answers, repeat to an empty frontier. Recommend each answer, fact-vs-decision split, walk the design tree in dependency order, and clear the confirmation gate before writing.
 
 Update the VI live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`, **diffing against the base** rather than authoring from blank: surface what changed and why (drawing on comments / ARD / spec / transcript), resolve open questions, keep the VI product-level. Apply the **self-consistency check** — no `[AC#N]` delivering an Out-of-scope behaviour, no `## Goal` vs `## Scope` contradiction, no conflicting `[US#N]`; record a deliberately-kept tension under `## Assumptions & open questions`. Preserve the frontmatter provenance fields (`sources`, `derived_from`, `seeded_from_vi` if present).
 
