@@ -34,7 +34,7 @@ flowchart TD
 
 ## What it produces
 
-Dependency and code fixes applied one CVE at a time, each on its own dedicated fix branch created by `vuln-fixer` (never pushed directly to `main`/`master`), with a PR opened per CVE. A Step 4 results table (`CVE | Library | Change | Class | Result | PR`), a `### Model Routing` section, and a `### Review triage` section naming every finding reviewed and every dismissal's reason for CVEs that reached Opus/strong-reasoning review. This skill never commits into the code repo it just fixed beyond what `vuln-fixer` itself commits — the terminal `commit-artifacts` step commits only `$SPECS_PATH`'s bounded session-artifact paths, printed as a `Specs repo:` line.
+Dependency and code fixes applied one CVE at a time, each on its own dedicated fix branch created by `vuln-fixer` **before its first edit** — so a CVE stopped by its own review still has a branch to commit onto — and branched from the base rather than from the previous CVE's branch. The commit, the push, and the pull request are the orchestrator's, at Step 3.9, through [`code-repo-handoff.md`](../../skills/_shared/code-repo-handoff.md), which is also where the `gh` capability probe and the manual-open fallback live, so a host without `gh` reports instructions instead of a pull request that was never opened. The push-and-PR consent choice is asked on the first CVE and reused for the rest of the run. A Step 4 results table (`CVE | Library | Change | Class | Result | PR`), a `### Model Routing` section, and a `### Review triage` section naming every finding reviewed and every dismissal's reason for CVEs that reached Opus/strong-reasoning review. The terminal `commit-artifacts` step commits only `$SPECS_PATH`'s bounded session-artifact paths, printed as a `Specs repo:` line — the code repo's own commits, pushes, and pull requests were Step 3.9's, against a different remote, printed as a `Code repo:` line per CVE.
 
 ## Gates
 
@@ -44,7 +44,7 @@ Step 3's SIGNIFICANT/HIGH-RISK path dispatches `code-review` before any test run
 
     vuln: MGD-2423:CVE-2023-46604 CVE-2024-99999
 
-The run researches both CVEs in parallel, finds the first present in the repo and the second not (`NOT_IN_REPO`, skipped), classifies the first from its research report (say `MODERATE`), fixes it via `vuln-fixer` with a fresh test run, opens a PR, prints the results table with `MGD-2423:CVE-2023-46604` marked `OK` and `CVE-2024-99999` marked `SKIP`, runs `impl-maintenance`, and suggests `/compact` before the next task.
+The run researches both CVEs in parallel, finds the first present in the repo and the second not (`NOT_IN_REPO`, skipped), classifies the first from its research report (say `MODERATE`), fixes it via `vuln-fixer` with a fresh test run, then commits, pushes, and opens a PR for it at Step 3.9, prints the results table with `MGD-2423:CVE-2023-46604` marked `OK` and `CVE-2024-99999` marked `SKIP`, runs `impl-maintenance`, and suggests `/compact` before the next task.
 
 ## See also
 
@@ -52,4 +52,5 @@ The run researches both CVEs in parallel, finds the first present in the repo an
 - [`finding-triage.md`](../../skills/_shared/finding-triage.md) — how `code-review`'s findings are triaged before `review-fixer` sees them.
 - [`context-management.md`](../../skills/_shared/context-management.md) — the read-failure contract behind "never retry by re-deriving the artifact" on an unreadable `research_file`/`claims_file`.
 - [`branch-naming.md`](../../skills/_shared/branch-naming.md) — how `vuln-fixer`'s per-CVE fix branch name is resolved.
+- [`code-repo-handoff.md`](../../skills/_shared/code-repo-handoff.md) — the commit, push, and pull-request mechanics Step 3.9 runs per CVE.
 - [`model-routing.md`](../../skills/_shared/model-routing.md) — the per-CVE classification heuristics and the strong-reasoning fallback chain.

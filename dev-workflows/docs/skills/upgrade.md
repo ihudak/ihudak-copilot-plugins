@@ -10,7 +10,7 @@ Upgrades libraries, frameworks, runtimes, or build tools to a specified or lates
 
     upgrade: <component[:1.2.3|:minor|:latest|:lts]> [<component[...]> ...]
 
-Each token is one component and an optional target: `component:1.2.3` (exact), `component:minor` (latest patch on the current minor), `component:latest` (latest stable), `component:lts` (latest LTS), or a bare `component` (latest version compatible with everything else already in the repo). `component` can be a library, a framework, a language runtime, a build tool, or a path such as `.github/workflows`. All changes are left **uncommitted** on the feature branch Phase 2 prep creates (`git checkout -b`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md`) — this skill never commits the upgrade itself.
+Each token is one component and an optional target: `component:1.2.3` (exact), `component:minor` (latest patch on the current minor), `component:latest` (latest stable), `component:lts` (latest LTS), or a bare `component` (latest version compatible with everything else already in the repo). `component` can be a library, a framework, a language runtime, a build tool, or a path such as `.github/workflows`. Each component is committed on its own as its gates settle, on the feature branch Phase 2 prep creates (`git checkout -b`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md`); the branch is pushed once and a pull request opened where the host allows one, both behind a single consent choice that never covers the commits.
 
 ## How it runs
 
@@ -32,7 +32,7 @@ flowchart TD
 
 ## What it produces
 
-Version-bump changes applied one component at a time, left **uncommitted** on the current feature branch (`upgrade-executor`'s output, per component) — the user reviews and commits them. An `## Upgrade Summary` table (`Component | Before | After | Class | Review | Status | Notes`) with a test-count line against the captured baseline, a `### Review triage` section naming every finding reviewed and every dismissal's reason for components that reached review, and the `impl-maintenance` lessons-learned report. This skill never commits the upgrade itself — the terminal `commit-artifacts` step commits only `$SPECS_PATH`'s bounded session-artifact paths, printed as a `Specs repo:` line.
+Version-bump changes applied one component at a time and **committed one at a time** as each component's gates settle (step 6.5), then pushed once for the batch with a pull request opened where the host allows one (step 7.5). Committing per component is what makes a batch that dies on component three still leave one and two safely on a bisectable branch. An `## Upgrade Summary` table (`Component | Before | After | Class | Review | Status | Notes`) with a test-count line against the captured baseline, a `### Review triage` section naming every finding reviewed and every dismissal's reason for components that reached review, and the `impl-maintenance` lessons-learned report. The terminal `commit-artifacts` step commits only `$SPECS_PATH`'s bounded session-artifact paths, printed as a `Specs repo:` line — the code repo's own commits and push were steps 6.5 and 7.5, against a different remote, printed as a `Code repo:` line.
 
 ## Gates
 
@@ -42,7 +42,7 @@ Phase 2's SIGNIFICANT/HIGH-RISK components dispatch `code-review` before any tes
 
     upgrade: springboot:latest java:lts
 
-The run inventories both components, plans each in parallel (`upgrade-planner`), classifies Spring Boot as `HIGH-RISK` and Java as `SIGNIFICANT` given the related upgrade, runs `risk-planner` for both before execution, confirms the plan, captures a test baseline once, executes Spring Boot first with an Opus/strong-reasoning review gate before tests, then Java, prints the summary table, and leaves both upgrades uncommitted on the current branch for review.
+The run inventories both components, plans each in parallel (`upgrade-planner`), classifies Spring Boot as `HIGH-RISK` and Java as `SIGNIFICANT` given the related upgrade, runs `risk-planner` for both before execution, confirms the plan, captures a test baseline once, executes Spring Boot first with an Opus/strong-reasoning review gate before tests, then Java, commits each component as its gates settle, pushes the branch once, prints the summary table, and reports the outcome on a `Code repo:` line.
 
 ## See also
 

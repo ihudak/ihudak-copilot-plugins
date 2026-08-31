@@ -5,8 +5,9 @@ description: >
   component: apply the upgrade plan produced by upgrade-planner, run the build,
   verify tests via test-baseliner, and auto-fix any test code breakage caused by
   the new version's API changes. Invoked sequentially by the upgrade: command orchestrator.
-  NOT triggered by direct user prompts. Leaves all changes uncommitted on the
-  current branch.
+  NOT triggered by direct user prompts. Leaves all changes uncommitted for the
+  orchestrator, which commits each component in upgrade: step 6.5 and pushes the
+  branch once in step 7.5.
 tools: [view, grep, glob, bash, edit, create, task]
 ---
 
@@ -73,7 +74,7 @@ the user directly. The orchestrator owns that decision.
 
 ## Invariants
 
-- Leave all changes **uncommitted** — no git commits, no PRs. (still true — this binds the code repo this agent upgrades; the orchestrator's terminal `commit-artifacts` step touches only `$SPECS_PATH`'s bookkeeping paths and never this agent's changes.)
+- Leave all changes **uncommitted** — no git commits, no pushes, no PRs. This is a division of labour, not a policy that the work goes uncommitted: the orchestrator commits this component in `upgrade:` step 6.5 as soon as its gates settle, and pushes the branch once in step 7.5 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.11). Committing here would strand the commit message outside the run's own report and, on a `gate_tests_on_review: true` call, commit work the strong-tier review has not seen. (still true — this binds the code repo this agent upgrades; the orchestrator's terminal `commit-artifacts` step touches only `$SPECS_PATH`'s bookkeeping paths and never this agent's changes.)
 - Process one component per invocation.
 - The baseline provided by the orchestrator is authoritative; do not re-run it.
 - NEVER dispatch any subagent other than `test-baseliner`. That one dispatch is your entire `task` authority. **Never dispatch a reviewer of your own.** Review is the caller's to schedule, not yours. Your caller deliberately runs no reviewer on some paths — a SIMPLE / MODERATE run is classified out of the strong-tier `code-review` gate on purpose — so a reviewer you spawn silently overrides the caller's own gate policy. Its verdict has no standing either: the caller never sees it, and you cannot act on it without exceeding your brief.
