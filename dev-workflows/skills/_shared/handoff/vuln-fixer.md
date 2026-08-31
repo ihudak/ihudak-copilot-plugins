@@ -11,6 +11,10 @@ first and treat its content as that section.
 ```markdown
 ## Vuln Fix Request
 repo: /absolute/path/to/repo
+branch: fix/MGD-2423-CVE-2023-46604   # REQUIRED on phase: full. The orchestrator resolves it
+                                    # (vuln: Step 1 step 5, per its "Git Workflow -> Branch naming");
+                                    # vuln-fixer creates exactly this branch and never derives one,
+                                    # because vuln: Step 3.9 pushes the same value. Absent => BLOCKED.
 phase: full                        # full (default) | verify-resume | regression-resume — see "Phase" below
 regression_decision: keep-anyway   # keep-anyway | revert — REQUIRED on phase: regression-resume only;
                                    # omit otherwise. Maps the user's decision from "Handling Test Failures".
@@ -55,7 +59,8 @@ files:
   (baseline, branch, fix, build are already done); resume at step 5 (Verify).
 - `regression-resume` — second-call protocol after the orchestrator asked the
   user about a `TEST_REGRESSION` return. Skip straight to "Test regression"
-  step 4 and honor `regression_decision` (keep-anyway → commit & PR; revert → revert).
+  step 4 and honor `regression_decision` (keep-anyway -> step 6 Output, the orchestrator
+  commits in Step 3.9; revert -> revert the fix). Requires `regression_decision`.
 
 ## Output (vuln-fixer → orchestrator)
 

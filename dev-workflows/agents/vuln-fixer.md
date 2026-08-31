@@ -2,9 +2,10 @@
 name: vuln-fixer
 description: >
   Agent for the vuln workflow. Handles the fix phase of CVE
-  remediation: capture baseline via test-baseliner, apply the minimal version
-  change produced by vuln-research, rebuild, verify tests via test-baseliner,
-  and create the fix branch — leaving the change on it uncommitted for the
+  remediation: capture baseline via test-baseliner,
+  create the fix branch BEFORE the first edit, then apply the minimal version
+  change produced by vuln-research, rebuild, and verify tests via test-baseliner —
+  leaving the change on that branch uncommitted for the
   orchestrator, which commits, pushes, and opens the PR in vuln: Step 3.9.
   Invoked sequentially by the fix-vuln
   orchestrator with a research report from vuln-research. NOT triggered by direct
@@ -57,7 +58,17 @@ reconstruct it.
      and go straight to step 6, noting in the output that no test suite was found.
 
 2. **Create the fix branch — before any file is touched** — `git checkout -b <the branch name the
-   orchestrator supplied>`. This is deliberately ahead of the edit, not after it: it is the plugin's
+   orchestrator supplied>`. The name is **always** supplied in the input (`branch:`); never derive
+   one yourself, because `vuln:` Step 3.9 pushes the name *it* resolved and a name you invented
+   would fail that step's gate on the mismatch. A missing `branch:` is an orchestrator bug: return
+   `status: BLOCKED` naming it, and change nothing.
+
+   **On a collision, stop — do not improvise.** If `git checkout -b` fails because the branch
+   already exists (the ordinary case on a re-run after an earlier `BUILD_FAILED`, which leaves the
+   branch in place and empty), do **not** fall back to a suffixed name and do **not** proceed on the
+   current HEAD: return `status: BLOCKED` naming the collision. Proceeding would edit files while
+   HEAD is on the base branch, which this agent's invariants forbid and which `vuln:` Step 3.9 would
+   then refuse to commit. This is deliberately ahead of the edit, not after it: it is the plugin's
    standing invariant for every code-writing skill, and it is what makes the branch exist on the
    paths where this agent never reaches its own end — an `AWAITING_REVIEW` return, or an
    orchestrator-side stop at an unresolved `BLOCK`. `vuln:` Step 3.9 has a branch to commit onto in
