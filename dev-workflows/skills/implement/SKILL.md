@@ -343,8 +343,8 @@ Before writing any file:
      ```
      choices: ["Stash changes and continue (Recommended)", "Proceed anyway — pre-existing changes will appear in the diff and review outputs", "Cancel"]
      ```
-   - **Stash**: run `git stash push -m "pre-impl stash"`, then continue.
-   - **Proceed**: note in the Phase 5 report that the working tree was dirty at implementation start.
+   - **Stash**: run `git stash push -m "pre-impl stash"`, then continue. Record the resulting stash as `stash_ref` — Phase 4.6 names it in its outcome line, and never drops it (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 2).
+   - **Proceed**: note in the Phase 5 report that the working tree was dirty at implementation start, **and record the `git status --porcelain --untracked-files=all` paths as `pre_existing_dirty`**. Phase 4.6 needs them to avoid sweeping somebody else's uncommitted work into this run's commit (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 1); a run that does not record them here cannot honour that carve-out later.
    - **Cancel**: stop and summarize what was planned.
 
 2. **Resolve the branch name** per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` — **the repo's own documented convention wins**. Read the target repo's `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`, `DOCUMENTATION-GUIDELINES.md`, `.github/copilot-instructions.md` (+ `.github/`) for a branch-naming section (§1.1); if one is found, classify its segments (§1.2) and fill them: an **identity** placeholder (`<your-name-or-initials>`, `<user>`, …) from the §2 ladder (`$GIT_USER_INITIALS` → `git config user.initials` → inference from existing branches → the §2.5 prompt), an **issue-key** segment from the `jira_key` resolved in Phase 0 (or the pattern's documented no-issue literal in direct mode), and the **description** segment from step 3's slug. A pattern with no identity segment gets none — never inject initials into a convention that does not ask for one. Only when the repo documents no convention (§1.4) build `<prefix>/<slug>` with `<prefix>` from the §2 ladder, whose fallback here is `feat/`.
@@ -620,6 +620,27 @@ Placement is deliberate, not stylistic: step 7.5 sits inside Phase 3B, before th
 
 ---
 
+## Phase 4.6 — Code-repo handoff (commit, push, PR)
+
+Runs on **every** run that created a branch in Pre-Phase 3 — both classification branches, Jira mode and direct-prompt mode alike. Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` and execute its `finish-code-branch` entry point (§2) inline.
+
+Placement is load-bearing. Phase 4's Agents 1–3 edit files **inside the code repo** — `README.md`, `CHANGELOG.md`, `docs/`, `.github/copilot-instructions.md`, and any project-level memory file — so a call placed before Phase 4 would commit a partial run and leave the maintenance edits behind (`code-repo-handoff.md` §4 obligation 1). Phase 4.5 runs first because it commits a *different* repository (`$SPECS_PATH`), and interleaving the two would make the run's two outcome lines impossible to attribute.
+
+Pass the §2.10 inputs:
+
+- `repo` — the repo Pre-Phase 3 branched; `branch` — the name it created (or the `-<short-sha>` variant it fell back to).
+- `pre_existing_dirty` and `stash_ref` — as recorded in Pre-Phase 3 step 1; both `null` on the clean-tree path.
+- `title` — the commit subject and pull-request title. With a `jira_key`: `<KEY> <one-line summary of what was built>`; direct mode: the imperative summary alone.
+- `body_facts` — what was implemented; the files changed; the Opus review verdict and triage summary where Phase 3B produced one; the `test-baseliner` verify result against the Pre-Phase 3.5 baseline; and any deferred `MINOR`/`NIT` findings.
+- `clean_finish` — `false` when the Opus review is still `BLOCK` after its one fix cycle plus re-review, or when the Phase 3.5 fix loop ended with regressions the user chose to keep; `true` otherwise. Per §2.8 this changes only the pull request (draft, with a DO-NOT-MERGE banner) — never whether the commit and push happen.
+- `commit_template: null` — `implement:` documents no template of its own, so §2.3 derives the subject from the repo's own `git log`.
+
+Emit the §3.1 `Code repo:` outcome line in the Phase 5 report's `### Branch` section — once, and verbatim.
+
+**A run that wrote into a repo it never branched.** A multi-source run (Phase 1.7) may edit a repo other than the one Pre-Phase 3 branched. This step has no branch there to commit onto, so it does not invent one: list those repos and their dirty paths in the Phase 5 report under `### Branch`, explicitly flagged as uncommitted. Never leave them unmentioned — an unreported dirty repo is exactly the loss this phase exists to prevent.
+
+---
+
 ## Phase 5 — Final Report
 
 Output a structured report — do NOT ask any closing confirmation:
@@ -632,6 +653,8 @@ Output a structured report — do NOT ask any closing confirmation:
 
 ### Branch
 [branch name created in Pre-Phase 3, e.g. feat/add-user-authentication]
+[the Phase 4.6 `Code repo:` outcome line, verbatim (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §3.1)]
+[any repo this run wrote into but never branched — path + dirty paths, flagged uncommitted; omit the line when there is none]
 
 ### What was implemented
 [High-level summary]
@@ -726,8 +749,9 @@ Direct-prompt mode writes none (§1 skip list — no VI anchor).
 and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (implement:)`, and pushes
-per §4 step 5. It NEVER writes into the code repo this run just changed — the
-implementation changes and the branch created in Pre-Phase 3 are untouched —
+per §4 step 5. It NEVER writes into the code repo this run just changed — that
+repo's own commit, push, and pull request were Phase 4.6's, through a different
+reference and against a different remote —
 NEVER touches a docs repo, the vault, or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
@@ -735,7 +759,7 @@ report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the implementation remains uncommitted on the branch created in Pre-Phase 3; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`; the spec/design conformance notes from step 7.5 are handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2), and NEVER writes into the code repo or the current working directory; no user name is ever written.
+ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`; the implementation itself was committed and pushed in Phase 4.6, in the code repo, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2; the spec/design conformance notes from step 7.5 are handed off separately, also before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2), and NEVER writes into the code repo or the current working directory; no user name is ever written.
 
 ---
 
@@ -752,7 +776,9 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the 
 - NEVER skip Phase 4 — documentation, knowledge, instructions, and session-maintenance are mandatory after every successful impl; always collect all four agent summaries for Phase 5
 - ALWAYS capture a test baseline (Pre-Phase 3.5) before writing any file
 - ALWAYS create a feature branch (Pre-Phase 3) before writing any file — never implement directly on the default branch
-- ALWAYS check for a clean working tree before branching; stash or get explicit user consent if dirty
+- ALWAYS check for a clean working tree before branching; stash or get explicit user consent if dirty — and record `stash_ref` / `pre_existing_dirty` for Phase 4.6, which cannot honour `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2's carve-outs without them
+- ALWAYS run Phase 4.6 (`finish-code-branch`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md`) after Phase 4 and before the Phase 5 report — the commit is prompt-free (§1 rule 5) and the push + pull request sit behind §2.4's choice; a run that ends with the implementation uncommitted is a defect, not a style
+- NEVER commit the implementation before Phase 4 — Phase 4's Agents 1–3 write into the same repo, and a commit ahead of them ships a partial run
 - ALWAYS spawn Phase 4 agents in a single message — never sequentially
 - ALWAYS use `choices` arrays for decision points; last choice is always `"Other… (describe)"`
 - ALWAYS produce the Phase 5 report as the final output
