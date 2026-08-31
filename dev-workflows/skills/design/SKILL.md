@@ -3,7 +3,7 @@ name: design
 description: >
   Jira-driven engineering-design workflow (Dev phase). Takes over a merged specification.md from the
   specs repo's main branch, grounds strictly in the fully-mounted implementation code, and authors a
-  reviewed engineering design.md through a relentless one-question-at-a-time grill that challenges
+  reviewed engineering design.md through a relentless round-by-round grill that challenges
   the spec and designs the implementation; gates on the Opus design-reviewer and lands design.md +
   the spec's engineering-review edits on main via branch + PR for implement:. Optional --design-twice
   forces the Phase 5 interface fan-out even when no contested-interface signal fired.
@@ -16,7 +16,7 @@ Author an engineering design for the Jira item: the argument (text following the
 `design:` is the **Dev-phase engineering-design** workflow — the design step of the PM→PA→PE→Dev pipeline
 (`specify:` → `specification.md`; then `design:` → `design.md`). The developer *takes over* a merged
 `specification.md`, grounds in the **fully-mounted** implementation code, and authors a reviewed
-engineering `design.md` through a relentless one-question-at-a-time grill that **challenges** the spec
+engineering `design.md` through a relentless round-by-round grill that **challenges** the spec
 and **designs** the implementation. It gates on the Opus `design-reviewer` and offers to land
 `design.md` + the spec's engineering-review edits on the specs repo's main branch (via branch + PR) so
 `implement:` can plan and build from it.
@@ -227,7 +227,7 @@ Handle per-repo status after the batch returns:
 
 ## Phase 5 — Grill: challenge + design
 
-**Interview technique (grilling — embedded; no runtime dependency).** Conduct the design as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, explore the Phase 4 code scan / spec to self-answer (fact-vs-decision), walk the design tree in dependency order, continue to shared understanding then write the section.
+**Interview technique (grilling — embedded; no runtime dependency).** Conduct the design as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — **rounds** rhythm (per that file's `## Rhythm`): map the design tree, ask the whole settled frontier as one numbered round, recompute from the answers, repeat to an empty frontier. Recommend each answer, explore the Phase 4 code scan / spec to self-answer (fact-vs-decision), and clear the confirmation gate before writing the section.
 
 Run **two intertwined tracks**, authoring `design.md` live against
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/design-format.md`, applying the no-hard-wrap prose convention in

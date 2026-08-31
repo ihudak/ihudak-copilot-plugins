@@ -178,7 +178,7 @@ and **proceed without waiting** — an inline confirmation per `~/.copilot/insta
 
 ## Phase 3 — Refine via grill
 
-**Interview technique (grilling — embedded; no runtime dependency).** Follow the shared technique in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split (look up facts from the `idea-reader` digest / vault, put only decisions to the user), walk the design tree in dependency order. **Depth: bounded by default (below); `--deep` = relentless.**
+**Interview technique (grilling — embedded; no runtime dependency).** Follow the shared technique in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split (look up facts from the `idea-reader` digest / vault, put only decisions to the user), walk the design tree in dependency order, and clear the confirmation gate before writing. **Depth: bounded by default (below) — rhythm stays one-at-a-time, which is what makes the ≤10 bound enforceable; `--deep` = relentless, and switches the rhythm to rounds with it (`grilling-technique.md` `## Rhythm`).**
 
 Scan for gaps against an idea-stage **ambiguity taxonomy**: *problem clarity, target users, desired
 outcome/value, scope boundaries, evidence/demand sufficiency, success signal, terminology.* Rank gaps by **Impact × Uncertainty**, ranking every `docs_challenges` and `prior_art_challenges` entry from Phase 2.5 into that same list. Challenges **compete** for the slots below; they never add slots. **Code findings are facts, not questions.** A Phase 2.6 finding answers a gap rather than raising one — look it up, cite it, and do not spend a question on it. The one exception is the finding that **contradicts the idea's premise** (the capability already exists, or the gap is far smaller than the idea assumes): that becomes a challenge ranked into the same Impact × Uncertainty list, competing for a slot exactly like a `docs_challenges` or `prior_art_challenges` entry and never adding one. At most **2** such challenges.
@@ -186,7 +186,7 @@ outcome/value, scope boundaries, evidence/demand sufficiency, success signal, te
 - **Default (bounded):** ask **≤10** questions across the ranked gaps, then stop. Remaining high-impact
   gaps become `- [NEEDS CLARIFICATION: <question>]` in the `idea.md` **Open questions & assumptions**
   section, **capped at 3**; reasonable defaults are recorded as `- **Assumption:** <text>`.
-- **`--deep`:** relentless — keep walking the design tree one question at a time until you and the user
+- **`--deep`:** relentless — switches the rhythm to **rounds** too (`grilling-technique.md` `## Depth`) and keeps walking the design tree until you and the user
   reach shared understanding; the cap does not apply.
 
 ---

@@ -1,7 +1,7 @@
 ---
 name: specify
 description: >
-  Jira-driven specification-authoring workflow (PE phase). Reads a Jira Epic/VI from exported markdown, lightly grounds in code, and authors an org-standard specification.md through a relentless one-question-at-a-time grill; gates on the Opus spec-reviewer and lands the spec on the specs repo's main branch via branch + PR for the design: dev take-over.
+  Jira-driven specification-authoring workflow (PE phase). Reads a Jira Epic/VI from exported markdown, lightly grounds in code, and authors an org-standard specification.md through a relentless round-by-round grill; gates on the Opus spec-reviewer and lands the spec on the specs repo's main branch via branch + PR for the design: dev take-over.
   Activated when the user prompt starts with "specify:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -12,7 +12,7 @@ Author a product specification for the Jira item: the argument (text following t
 (`specify:` → `specification.md`; then `design:` → `design.md` + `plan.md`). Given a Jira Epic (or VI)
 key or an imported-Jira directory, it reads the item from pre-exported markdown, lightly scans code to
 ground feasibility, and authors an org-standard `specification.md` through a relentless
-one-question-at-a-time grill — resolving open questions live instead of stopping. It gates on the
+round-by-round grill — resolving open questions live instead of stopping. It gates on the
 Opus `spec-reviewer` and offers to land the spec on the specs repo's main branch (via branch + PR) as
 `Published: no`.
 
@@ -359,7 +359,7 @@ Handle per-repo status after the batch returns:
 
 ## Phase 5 — Author via grill
 
-**Interview technique (grilling — embedded; no runtime dependency).** Conduct each stage as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, explore the Phase 4 code scan / Jira content to self-answer (fact-vs-decision), walk the design tree in dependency order, continue to shared understanding then write that stage's section.
+**Interview technique (grilling — embedded; no runtime dependency).** Conduct each stage as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — **rounds** rhythm (per that file's `## Rhythm`): map the stage's design tree, ask the whole settled frontier as one numbered round, recompute from the answers, repeat until that stage's frontier is empty. Recommend each answer, explore the Phase 4 code scan / Jira content to self-answer (fact-vs-decision), and clear the confirmation gate before writing that stage's section.
 
 Walk the stages in order, authoring `specification.md` live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 

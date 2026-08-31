@@ -4,6 +4,19 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.29.0] — ported from `mgd-claude-plugins` 2.60.0 — 2026-08-31
+
+### Changed
+- **The grilling rhythm now follows the grill's depth: relentless skills work in rounds, bounded skills keep asking one question at a time.** Harvested from upstream `mattpocock-skills` 1.2.0 (PR #593), which replaced one-question-at-a-time with a round-by-round frontier — "same 13 questions land in ~3 rounds instead of 13." The upstream change was adopted only where it is safe. A **relentless** grill (`create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, and `idea: --deep`) now maps the design tree and asks the whole **settled frontier** as one numbered round, recomputing the frontier from the answers until it is empty; a question whose answer depends on another still open in the same round belongs to a later round, which is the rule that keeps a round from being a batch. A **bounded** grill (`idea:` at ≤10, `prompt-grill-me:` at ≤5) is unchanged, because a cap counted in questions is only enforceable one question at a time: a round can spend a ≤5 budget in its first breath, or be truncated mid-frontier and leave a settled parent with its children silently unasked — the exact failure the bound's `[NEEDS CLARIFICATION]` record exists to make visible. The rhythm is therefore **derived from the depth, not chosen per run**, and `--deep` moves both together.
+- **`skills/_shared/grilling-technique.md` gains a confirmation gate** (upstream 1.1.0, PR #464). Reaching a shared understanding is the user's call to declare, not the agent's to infer from a quiet turn: before writing a section, and before any caller takes an expensive or outward-facing next step (a reviewer dispatch, a handoff, a commit), the agent states what it believes is settled and gets confirmation via `ask_user`. Previously the file said only "continue until you and the user reach a shared understanding," which left the judgement with the agent. In autonomous / background invocation the gate cannot be self-satisfied — the understanding is reported as unconfirmed.
+- **The fact-vs-decision split gains a dispatch rule and a non-blocking rule** (upstream 1.2.0, PR #593). A fact is the agent's to find and never the user's to supply; where the skill has a sub-agent for the lookup (`code-scanner`, `docs-grounder`, `jira-reader`), it dispatches rather than asks. A running lookup is an unsettled prerequisite for the questions downstream of it **and for nothing else** — the rest of the frontier is asked meanwhile, so the interview never idles on a fact.
+
+### Notes
+- Four things this reference carries that upstream does not were deliberately preserved rather than overwritten by the harvest: the **bounded vs. relentless depth** axis, the **autonomous / background no-fabrication** rule, the **altitude-aware ambiguity taxonomy**, and **forced terminology precision**. A naive re-sync with upstream would have deleted all four.
+- Upstream's cosmetic changes (1.2.2/1.2.3: em-dash removal, `---` between questions) were not taken. The numbered `❓ Q1` / `➡️` round template **was** taken, since rounds need referenceable question numbers; a skill that puts a decision to the user through a `choices:` array keeps doing so.
+- `diagnosing-bugs` was checked at the same time (upstream 1.2.3, PR #779): `skills/_shared/bug-diagnosis.md` already carries its redaction section, so there was nothing to port.
+- This edition's `.github/copilot-instructions.md` carries no grilling depth/rhythm invariant to update — a pre-existing difference from the Claude edition's `CLAUDE.md`, left as-is rather than widened inside a port.
+
 ## [2.28.0] — ported from `mgd-claude-plugins` 2.59.0 — 2026-08-31
 
 ### Added

@@ -74,8 +74,10 @@ Interrogate the correction directly, following
 - **Stage:** the correction itself — why the original output was wrong, what the
   right shape is, and what should change so the mistake does not recur.
 
-Follow the technique's mechanics (one question at a time, a recommended answer
-each time, fact-vs-decision split, dependency order). This command NEVER
+Follow the technique's mechanics (one question at a time — the bounded rhythm,
+which is what makes the ≤5 bound enforceable; a recommended answer
+each time, fact-vs-decision split, dependency order, and the confirmation gate
+before you act on the result). This command NEVER
 commits into a docs/code repo, the vault, or the current working directory.
 The Phase 2 `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded
 artifact paths
