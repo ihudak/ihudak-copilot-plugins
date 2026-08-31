@@ -46,6 +46,7 @@ The run inventories both components, plans each in parallel (`upgrade-planner`),
 
 ## See also
 
+- [`code-repo-handoff.md`](../../skills/_shared/code-repo-handoff.md) — the per-component commit (step 6.5) and the single push + pull request (step 7.5) this skill runs in the code repo.
 - [`vuln:`](vuln.md) — the sibling non-pipeline workflow for CVE remediation rather than planned version bumps; shares the same per-component classification, strong-reasoning review gate, and `test-baseliner`/`code-review`/`review-fixer` dispatch shape.
 - [`finding-triage.md`](../../skills/_shared/finding-triage.md) — how `code-review`'s findings are triaged before `review-fixer` sees them.
 - [`context-management.md`](../../skills/_shared/context-management.md) — the read-failure contract behind "never retry by re-deriving the artifact" on an unreadable `plan_file`/`claims_file`.

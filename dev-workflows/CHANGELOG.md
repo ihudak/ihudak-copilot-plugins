@@ -38,6 +38,9 @@ Multi-agent Opus review of the 2.59.0 + 2.60.0 changes. Four reviewers, 40+ find
 
 **Port-specific fixes** (found by the cross-edition parity review): the port's `handoff/vuln-fixer.md` still told the sub-agent `keep-anyway -> commit & PR`, contradicting the same file's rewritten semantics and the agent's own "never commit" invariant — a consent bypass, since the sub-agent cannot ask §2.4's choice. The port's `implement:` docs diagram enumerates every `## Phase` heading and had no node for Phase 4.6; its Gates section had no failed-gate paragraph; its `design:` docs page described no rhythm at all while its skill description said "round-by-round"; and `.github/copilot-instructions.md` was missing the Phase 4.6 ordering invariant and the grilling rhythm-follows-depth invariant.
 
+### Fixed (second pass)
+A mechanical re-audit of all 48 findings against the tree — rather than against memory — caught six that the first fix pass had missed: the port's `agents.md` `vuln-fixer` row still listed branch creation last (the canonical row was fixed, the port's was not); `docs/workflow.md` in the port used a bare code span where a link was needed; `docs/skills/upgrade.md` still described the push and pull request as unconditional when §2.4 gates them on consent; §4 obligation 3 said "exactly once per call" while §3.1 says a split call emits none; there was no outcome row for `gh pr create` exiting 0 with no parseable number or URL (falling back would have told the user to open a second pull request for one that already exists); and the port's `docs/skills/design.md` still described no rhythm. Both editions' `upgrade` docs pages also gained the See-also link to the new reference that the other two code-command pages already carried.
+
 ## [2.29.0] — ported from `mgd-claude-plugins` 2.60.0 — 2026-08-31
 
 ### Changed

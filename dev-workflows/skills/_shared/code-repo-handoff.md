@@ -111,6 +111,8 @@ There is deliberately no `Cancel`: the commit has already happened, so there is 
 
 One already open ⇒ the push in §2.5 has already updated it. Report it as the run's pull request (§3.1 rows 1–2) and do **not** call `gh pr create`, which would fail on the duplicate and send the run down §3.2 telling the user to open a pull request that exists. This is `phase-handoff.md` §3.5's primitive, applied here.
 
+A `gh pr create` that exits 0 but prints nothing parseable as a number or URL is **not** treated as a failure — the pull request very likely exists, and falling back to §3.2 would tell the user to open a second one. Report it with the dedicated §3.1 row instead.
+
 Otherwise derive the repository and create it. Run the cheap `gh auth status` pre-check first, purely so a missing login reports as a login problem rather than a raw `gh` error, then supply every argument that would otherwise make `gh` prompt — the plugin must never block on an interactive editor:
 
     url=$(git -C "<repo>" remote get-url origin)
@@ -206,6 +208,7 @@ Exactly one per **full** call, prefixed `Code repo:`. A caller that finishes sev
 | Pushed, PR already existed | `Code repo: <what> — pushed to existing PR #<num> (<url>).` |
 | Pushed, no PR requested | `Code repo: <what> — pushed. No pull request opened (not requested).` |
 | Pushed, PR not opened | `Code repo: <what> — pushed, PR NOT opened (<reason>). Open it manually.` |
+| Pushed, PR opened but unparseable | `Code repo: <what> — pushed, pull request opened but `gh` returned no usable number or URL; check the branch on the host.` |
 | Pushed, PR not opened, run blocked | `Code repo: <what> — pushed, PR NOT opened (<reason>) — <blocking facts>. Open it manually as a DRAFT.` |
 | Push failed | `Code repo: <what> — push FAILED (<reason>). The work IS committed locally.` |
 | Push declined | `Code repo: <what> — not pushed at your request.` |
@@ -242,7 +245,7 @@ Four obligations. Omitting any one is a defect, not a style choice.
 
 1. **Call it after the last in-repo write, not before.** Post-implementation maintenance edits files inside the repo; a call placed ahead of them commits a partial run.
 2. **Record `pre_existing_dirty` and `stash_ref` at branch time.** A caller that does not cannot honour §2.2's first two carve-outs, and will either sweep up somebody else's work or forget a stash.
-3. **Emit §3.1's line exactly once per call**, in the run's own report.
+3. **Emit §3.1's line exactly once per *full* call**, in the run's own report. A §2.12 unit-level call emits none — it returns its outcome to the caller instead (§2.12), which records it in that command's own results table.
 4. **Never restate this reference's rules** — cite the section number. A rule copied into a command is a rule that goes stale.
 
 ## 5. What this entry point never does
