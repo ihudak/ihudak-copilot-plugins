@@ -63,7 +63,7 @@ Apply changes the caller has already decided on, rather than deciding anything t
 | `doc-fixer` | per routing | view, glob, grep, create, edit | Applies targeted fixes for surviving BLOCKER/MAJOR findings from `doc-reviewer` or `epic-reviewer`, or for violations from a style checker; mirrors `review-fixer` for the docs domain. | `document:`, `epics:` |
 | `review-fixer` | per routing | view, glob, grep, create, edit | Applies targeted code fixes for surviving BLOCKER/MAJOR findings from a `code-review` report; returns a structured fix report for the caller to re-review against. | `implement:`, `upgrade:`, `vuln:` |
 | `upgrade-executor` | per routing | view, grep, glob, bash, edit, create, task | Applies one component's approved upgrade plan, runs the build, verifies tests via `test-baseliner`, and auto-fixes test-code breakage caused by the new version's API changes. | `upgrade:` |
-| `vuln-fixer` | per routing | view, grep, glob, bash, edit, create, task | Captures a baseline, applies the minimal version change `vuln-research` produced, rebuilds, verifies tests, and creates the fix branch — leaving the change on it, uncommitted, for the orchestrator. | `vuln:` |
+| `vuln-fixer` | per routing | view, grep, glob, bash, edit, create, task | Captures a baseline, creates the fix branch before its first edit, applies the version change `vuln-research` produced, rebuilds, verifies tests — leaving the change on that branch, uncommitted. | `vuln:` |
 
 ## Maintenance
 

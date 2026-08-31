@@ -1,6 +1,6 @@
 # design:
 
-Takes over a merged `specification.md`, grounds strictly in the fully-mounted implementation code, and authors a reviewed engineering `design.md` through a relentless grill that challenges the spec and designs the implementation.
+Takes over a merged `specification.md`, grounds strictly in the fully-mounted implementation code, and authors a reviewed engineering `design.md` through a relentless round-by-round grill that challenges the spec and designs the implementation.
 
 ## Who runs it
 
@@ -57,7 +57,7 @@ Design a single, already-selected Epic:
 
     design: PRODUCT-1234 EPIC-98761
 
-The run resolves the VI and the named focus Epic (skipping the picker, since it was given explicitly), confirms `specification.md` is merged to the default branch, resolves any applicable ARD, derives and STRICT-gates the confirmed implementation repos (every one must be mounted), scans them in parallel, then grills you relentlessly — recording every substantive challenge into the spec's own `## Engineering review` section while authoring `design.md` section by section, offering the three-way interface fan-out on any contested interface. It runs the structural pre-lint, then `design-reviewer`. On a passing verdict with zero open questions it offers to branch, commit, push, and open a pull request; merged-to-main is what [`implement:`](implement.md) waits for.
+The run resolves the VI and the named focus Epic (skipping the picker, since it was given explicitly), confirms `specification.md` is merged to the default branch, resolves any applicable ARD, derives and STRICT-gates the confirmed implementation repos (every one must be mounted), scans them in parallel, then grills you relentlessly, a numbered round at a time ([`grilling-technique.md`](../../skills/_shared/grilling-technique.md) `## Rhythm` — it maps the design tree and asks the whole settled frontier as one numbered round, recomputing from your answers until it is empty) — recording every substantive challenge into the spec's own `## Engineering review` section while authoring `design.md` section by section, offering the three-way interface fan-out on any contested interface. It runs the structural pre-lint, then `design-reviewer`. On a passing verdict with zero open questions it offers to branch, commit, push, and open a pull request; merged-to-main is what [`implement:`](implement.md) waits for.
 
 ## See also
 
