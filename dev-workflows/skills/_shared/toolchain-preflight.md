@@ -16,7 +16,7 @@ commit, and a PR draft. No linter ran and no server booted, so the documentation
 exists and CI is green, and nothing signals that anything went wrong. The failure is silent, and it is
 the run's own environment that caused it.
 
-That is knowable at Phase 0 for the cost of one `command -v` per tool. Without a preflight the run
+That is knowable at Phase 0 for the cost of one check per tool (§3). Without a preflight the run
 discovers it one gate at a time, at Phase 6.4 and Phase 6.5, after the documentation is written.
 
 ## 2. Deriving the required set
@@ -24,24 +24,69 @@ discovers it one gate at a time, at Phase 6.4 and Phase 6.5, after the documenta
 Run this **after profile resolution** — the profile is what names the commands. Union three sources;
 de-duplicate by binary name.
 
-1. **The resolved profile.** Take the **first whitespace-separated token** of every `commands.*` value
-   (including every `commands.per_space.<space>.*` value) and every `dev_servers.servers[].command`.
-   `"pnpm dynatrace:lint"` ⇒ `pnpm`. Add every entry in `profile.prerequisites` as a named
+1. **The resolved profile.** Take the **tool** of every `commands.*` value (including every
+   `commands.per_space.<space>.*` value) and every `dev_servers.servers[].command`. **A command's
+   tool is its first whitespace-separated token that is neither part of a leading `cd <dir> &&` nor
+   a leading `VAR=value` assignment**, set aside in whatever order they lead: `"pnpm dynatrace:lint"`
+   ⇒ `pnpm`; `"cd website && pnpm docs:build"` ⇒ `pnpm`; `"NODE_ENV=production pnpm build"` ⇒ `pnpm`.
+   The first token alone will not do: `cd` is a shell builtin, so `command -v cd` exits 0 on every
+   host and every command it leads would read as runnable. This is the one definition of a
+   command's tool; §3 says how each is tested. Add every entry in `profile.prerequisites` as a named
    prerequisite (these are prose, not binaries — record them for reporting, and check them only when
    the prose names a checkable path or binary).
-2. **Repo config signals**, checked at `repo_root`:
+2. **Repo config signals**, checked at `repo_root`, and, where a lockfile is implied by a leading
+   `cd <dir> &&` in a profile command (source 1), also checked in that directory, taken relative to
+   `repo_root` — that is where the command runs its tool:
 
    | Signal file | Implies |
    |---|---|
-   | `.vale.ini` | `vale` |
+   | a Vale configuration file — any of the five names below | `vale` |
    | `pnpm-lock.yaml` | `pnpm` |
    | `package-lock.json` | `npm` |
    | `yarn.lock` | `yarn` |
    | `.markdownlint.json` / `.markdownlint.jsonc` | `markdownlint` |
    | `.remarkrc*` | `remark` |
 
-   Separately, when any lockfile is present, check `node_modules/` as an **installed-dependencies**
-   signal. A present `pnpm` with absent dependencies fails just as completely as a missing `pnpm`.
+   **Vale reads its configuration from five file names, not one** — `.vale.ini`, `_vale.ini`,
+   `vale.ini`, `.vale` and `_vale` — the first of them found, in that order, in the working directory
+   or any directory above it, then in the home directory (Vale's own CLI docs, *Configuration*;
+   `--config` and `VALE_CONFIG_PATH` each override this search outright). So the checks in this
+   plugin that decide whether and on what Vale runs — this source, `docs-style-checker`'s first rung
+   — look for all five: a site whose only one is `_vale.ini` is linted by Vale all the same, and a
+   test for `.vale.ini` alone records that no repository linter is configured.
+
+   **How this plugin runs Vale is defined here too, once: on the repository's configuration, with no
+   global configuration file and no `VALE_CONFIG_PATH`, as a clean CI runner has neither.** Vale
+   merges the user-level configuration file — found the same way, then in the OS's config directory
+   — underneath the repository's, so a rule enabled or disabled only on the machine running the check
+   changes what a lint reports, in either direction. `VALE_CONFIG_PATH`, where the environment sets
+   it, replaces the repository's configuration outright, read **instead of** searching. `--no-global`
+   omits the merged user-level file, but it also drops Vale's default `StylesPath` — Vale adds its
+   default path only when `--no-global` is absent, and `VALE_STYLES_PATH` does not bring it back
+   (measured against Vale 3.21.0's `internal/core/config.go` in ai-workflows `eb64c75b`) — so a repository
+   configuration that sets no `StylesPath` of its own, and instead keeps its synced packages and
+   custom styles in Vale's default location (a layout Vale documents as valid), fails with
+   `E100 … style '<name>' does not exist on StylesPath` under `--no-global` alone, where a clean
+   runner — which has no global file to begin with, and so loses nothing by lacking `--no-global` —
+   lints cleanly. So every Vale run, from the directory holding the configuration it is to read, in
+   one subshell in one Bash call, takes one of two forms, chosen by whether that file sets
+   `StylesPath` (a `StylesPath` key above its first `[section]` header, the one place Vale accepts
+   it):
+
+   - **It sets one:** `(cd "<that directory>" && unset VALE_CONFIG_PATH && vale --no-global <arguments>)`.
+   - **It sets none:** `(cd "<that directory>" && unset VALE_CONFIG_PATH && h=$(mktemp -d) && { XDG_CONFIG_HOME="$h" vale <arguments>; s=$?; rm -r "$h"; exit $s; })`,
+     which hides the user-level file alone — Vale finds it under `XDG_CONFIG_HOME` on Linux and
+     macOS — and leaves the default `StylesPath` (from `XDG_DATA_HOME`, or `VALE_STYLES_PATH` where
+     set) untouched, so a configuration with no `StylesPath` of its own still finds what `vale sync`
+     installed there.
+
+   The `cd` is there because Vale reads the first configuration it finds in the directory it runs in
+   or one above it, never beside the files, and a Bash call starts in the session's directory, which
+   need not be the repository's.
+
+   Separately, when any lockfile is present, check `node_modules/` beside it as an
+   **installed-dependencies** signal. A present `pnpm` with absent dependencies fails just as
+   completely as a missing `pnpm`.
 3. **The repo's documented prerequisites.** Grep `repo_root`'s `CONTRIBUTING.md`, `CONTRIBUTION.md`,
    and `README.md` for a heading matching `Prerequisites` (case-insensitive) and read that section.
    Best-effort: extract named tools and minimum versions where stated. Nothing found ⇒ contribute
@@ -52,7 +97,18 @@ sources **2 and 3 only**. Source 1 contributes nothing there. `document:` direct
 
 ## 3. Checking
 
-- Binaries: `command -v <binary>` — present when exit 0.
+- **Binaries: `command -v <binary>` — present when exit 0, run from the directory the tool's own
+  command runs from** (`repo_root`, or the directory a leading `cd <dir> &&` names under it — §2
+  source 1). **A bare `command -v <tool>` in the run's own shell is not proof the binary itself is
+  installed**: it also reports an alias or a shell function of that name, which exits 0 there and
+  can still exit 127 when the gate actually calls the tool as `command <name>` (as every Vale run in
+  this plugin does, §2 source 2) — so a shadowed `vale` reads present here and fails there. Where a
+  gate is known to call its tool that way, treat a `command -v` pass as provisional and let the gate
+  itself report the failure rather than predicting a pass the alias cannot back. A path-valued tool
+  (`node_modules/.bin/vitepress`) is tested with `test -x` on that path from the same directory,
+  never from the session's own directory, which need not be the repository's — `command -v`
+  resolves a name containing `/` against the directory it runs in, so asking from the wrong one
+  reports a present tool missing.
 - Directory signals (`node_modules/`): `test -d`.
 - Never install anything. Never modify the repo. This step is read-only.
 

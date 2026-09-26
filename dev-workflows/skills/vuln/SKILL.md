@@ -82,7 +82,7 @@ Finalize the per-CVE classification from the research output. If the finalized c
 
 Process `READY` CVEs one at a time to avoid conflicting edits to the same dependency files.
 
-**Record the tree state once, before anything is applied.** On the first CVE, run `git -C "<repo>" status --porcelain --untracked-files=all` and record the result as `pre_existing_dirty`; carry it unchanged through every CVE in the run. `vuln:` never stashes, so `stash_ref` is always `null`. This capture is what lets Step 3.9 keep a bystander's work out of the commit (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 1) — `vuln:` offers no dirty-tree prompt, so the capture is the whole safeguard and must happen before the first edit.
+**Record the tree state once, before anything is applied.** On the first CVE, run `git -C "<repo>" status --porcelain -z --untracked-files=all` and record the result as `pre_existing_dirty`; carry it unchanged through every CVE in the run. `-z` is required: without it, a path carrying a space, a `"`, a `\`, or a non-ASCII byte is quoted and octal-escaped, breaking the set comparison Step 3.9 and `code-repo-handoff.md` §2.2 carve-out 1 rely on. `vuln:` never stashes, so `stash_ref` is always `null`. This capture is what lets Step 3.9 keep a bystander's work out of the commit (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 1) — `vuln:` offers no dirty-tree prompt, so the capture is the whole safeguard and must happen before the first edit.
 
 **Start each CVE from the base branch, not from the previous CVE's.** After the capture, resolve the base per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.8 and run `git -C "<repo>" switch <base>` when HEAD is not already there. Every CVE gets its own branch and its own pull request, so a CVE that branches off its predecessor ships that predecessor's fix inside its own diff, its own review, and its own PR.
 
@@ -92,7 +92,7 @@ Three rules make that switch safe:
 - **A failed switch stops the run, it does not proceed.** `git switch` aborts when a tracked file differs between the two branches. Report the abort and the paths git named, and stop — continuing would branch this CVE off whatever HEAD happens to be, which is the contamination this rule exists to prevent.
 - **Verify the tree before the next CVE, rather than trusting the previous CVE's status.** Re-run the porcelain command; anything present that is not in `pre_existing_dirty` is residue the previous CVE left behind (a partial revert — `BUILD_FAILED` reverts the files the research report named, which for a lockfile ecosystem is not all of them). Surface it and stop rather than carrying it onto the next CVE's branch.
 
-For each `READY` CVE, before invoking the fixer, write its research report to a temp file (`mktemp -t dw-vuln-research-XXXX.md`, never inside a repo tree) and record its absolute path as `research_file`; the fixer, code-review, and resume steps below receive this path instead of the pasted report.
+For each `READY` CVE, before invoking the fixer, write its research report to a temp file (`command mktemp -t dw-vuln-research-XXXXXX`, never inside a repo tree) and record its absolute path as `research_file`; the fixer, code-review, and resume steps below receive this path instead of the pasted report. Remove it with `command rm -f -- "<research_file>"` once the CVE's commit (or its BLOCKED/skip disposition) is recorded and no later step reads it.
 
 ### SIMPLE / MODERATE path
 
@@ -176,8 +176,8 @@ task(
 ```
 
 3. **Handle a `vuln-fixer` stop.** If the fixer returns `status: BLOCKED`, the research report at `research_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE (do not retry with a fresh research pass, and do not proceed to Opus review). Otherwise, if the fixer returns `AWAITING_REVIEW`, run Opus code review before tests:
-   - Capture the diff to a temp file: write `git add -N . && git diff` to `mktemp -t dw-vuln-diff-XXXX.patch` (never inside a repo tree) and record its path as `review_diff_file`
-   - Write the fixer output to a temp file (`mktemp -t dw-vuln-claims-XXXX.md`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
+   - Capture the diff to a temp file: write `git add -N . && git diff` to `command mktemp -t dw-vuln-diff-XXXXXX` (never inside a repo tree) and record its path as `review_diff_file`
+   - Write the fixer output to a temp file (`command mktemp -t dw-vuln-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this CVE, marking it `BLOCKED` in the Step 4 summary table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
    - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
@@ -206,7 +206,7 @@ Runs after the fixer's last return for this CVE — after the `verify-resume` ca
 
 §2.4's choice is asked on the **first** CVE and reused for every later one (`code_handoff_choice`) — a ten-CVE run asks once, not ten times. Emit the §3.1 `Code repo:` line per CVE and carry its pull-request number into the Step 4 table's `PR` column.
 
-**What to hand off is decided by the tree, never by the status label.** Before skipping any CVE, run `git -C "<repo>" status --porcelain --untracked-files=all` and compare it against `pre_existing_dirty`:
+**What to hand off is decided by the tree, never by the status label.** Before skipping any CVE, run `git -C "<repo>" status --porcelain -z --untracked-files=all` and compare it against `pre_existing_dirty` (captured the same way, so the comparison is between two raw, NUL-terminated path sets rather than a raw set against a quoted one):
 
 - **Anything of this run's is present** ⇒ run Step 3.9. It does not matter which status the CVE carries.
 - **Nothing of this run's is present** ⇒ skip, and say why in the Step 4 table.
@@ -221,7 +221,7 @@ For orientation, the states that normally reach each outcome: `BASELINE_FAILED` 
 
 ## Step 4 — Summarise
 
-After all CVEs are processed, print a result table:
+After all CVEs are processed, remove each CVE's now-unread temp files — `command rm -f -- "<research_file>" "<review_diff_file>" "<claims_file>"` per CVE, skipping any path a `BLOCKED` disposition above still cites in its own report. Then print a result table:
 
 ```
 | CVE            | Library         | Change         | Class        | Result  | PR  |

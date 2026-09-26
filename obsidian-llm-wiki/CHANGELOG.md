@@ -4,6 +4,13 @@ All notable changes to the **obsidian-llm-wiki** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [0.3.5] — 2026-09-26
+
+### Fixed
+
+- **Every copy of "`wiki-task` and `wiki-tasks-extract` are the only wiki commands allowed outside `wiki/` and `.raw/`" undercounted the exceptions at two of four.** `README.md` and `wiki-schema/SKILL.md` now also name `wiki-init`'s own writes (`.obsidian/copilot/` and its vault-doc blocks) and `wiki-tags-refresh`'s update of `.obsidian/copilot/tag-index.md`. `wiki-init/SKILL.md`'s "Write only to `wiki/`" line now also names `.raw/`'s own two writes and `wiki-init`'s creation of `.raw/` itself. Mirrors the `mgd-claude-plugins` 0.4.1 fix, ported from ai-workflows `obsidian-llm-wiki` 0.4.1 ("exclusivity probe, wider vocabulary, round 1").
+- **`skills/_shared/task-rules.md`'s header named only 2 of its consumers**, omitting `wiki-init`, which also copies the file into a vault as `.obsidian/copilot/task-creation-rules.md`. Header corrected.
+
 ## [0.3.4] — 2026-08-04
 
 ### Fixed

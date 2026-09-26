@@ -10,7 +10,7 @@ Invoked from `document:` (Jira mode, Phase 6.4) and `document:` (direct mode, Ph
 
 ## Rationale
 
-Corporate style guides (Microsoft, Google, and various organisation-specific variants) are encoded as Vale style packages maintained by each organisation's docs team, not by this plugin. The docs repo references them via `.vale.ini` (`BasedOnStyles = …`). Re-encoding or crawling the corporate style-guide site would duplicate the canonical source and drift. Wrapping the repo's existing tooling guarantees the local check matches what CI will run on the PR.
+Corporate style guides (Microsoft, Google, and various organisation-specific variants) are encoded as Vale style packages maintained by each organisation's docs team, not by this plugin. The docs repo references them via a Vale configuration file (`BasedOnStyles = …`). Re-encoding or crawling the corporate style-guide site would duplicate the canonical source and drift. Wrapping the repo's existing tooling means the local check applies the repository's own rules — for Vale, its own configuration and none of the machine's (step 1 says how) — so a finding here is one those rules raise. It is not a guarantee that CI reports the same: CI may pin another Vale release or sync other package versions, lint other files, pass flags of its own, or run no linter at all.
 
 **Why ALSO run `dt-style-checker` when a primary linter is available** (since v1.7.1): empirical verification showed the two are **complementary, not overlapping**:
 
@@ -54,7 +54,24 @@ or empty, run the whole-repo detection ladder below unchanged.
 > actually run, and abandoning it because step 1 was *detected* leaves the run with no repo linter at
 > all.
 
-1. **Vale via `.vale.ini`** — if `<repo_root>/.vale.ini` exists, run `vale --output=JSON <files>` from the repo root. Parse the JSON into finding records. Set `primary_linter: vale`. **On non-zero exit / missing binary → record the attempt in `primary_attempts` and continue to step 2.**
+1. **Vale via its configuration file** — if a file of one of the five names Vale reads its
+   configuration from (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §2, source 2)
+   exists at `repo_root`, run Vale from `repo_root`, on the repository's configuration alone and in
+   the form that section defines once for every Vale run in this plugin — chosen by whether the
+   configuration sets `StylesPath`:
+   - sets one: `(cd "<repo_root>" && unset VALE_CONFIG_PATH && vale --no-global --output=JSON <files>)`
+   - sets none: `(cd "<repo_root>" && unset VALE_CONFIG_PATH && h=$(mktemp -d) && { XDG_CONFIG_HOME="$h" vale --output=JSON <files>; s=$?; rm -r "$h"; exit $s; })`
+
+   `.vale.ini` is only the commonest of the five names; a test for it alone misses a repo whose
+   configuration is `_vale.ini` and records that no linter is configured. **Either form reads the
+   repository's own configuration and none of the machine's** — no merged global Vale
+   configuration, no `VALE_CONFIG_PATH` — while keeping the styles that configuration's own
+   `StylesPath` setting (or its absence) implies: `--no-global` alone would drop Vale's default
+   `StylesPath` along with the global file, failing this rung with
+   `E100 … style '<name>' does not exist on StylesPath` on a configuration that sets no `StylesPath`
+   of its own and instead keeps its synced packages there. Parse the JSON into finding records. Set
+   `primary_linter: vale`. **On non-zero exit / missing binary → record the attempt in
+   `primary_attempts` and continue to step 2.**
 
 2. **Project-specific lint script** — when the caller supplied `spaces`, determine which spaces own the input `files` by matching each file's path against each space's `content_root` prefix, and run **that space's `lint` command** for every space owning at least one file (a Managed-only file set runs `pnpm managed:lint`, not the SaaS linter). Record one `primary_attempts` entry per space-scoped command. The rung succeeds only if EVERY owning space's command produced parseable output; if any one of them fails, record each attempt separately and continue the ladder to step 3 for the whole file set (never re-lint a partial subset — a mixed pass is not a primary pass). On success set `primary_linter` to `per-space:` followed by every owning space id in `spaces` order joined by `+` — one owning space gives `per-space:managed`, two give `per-space:saas+managed` — and set `primary_command` to every command that ran, joined by `; ` **in that same `spaces` order**, so the pair always describes exactly what executed and two runs over the same outcome produce identical strings. When `spaces` is absent or no space matches, fall back to the whole-repo behaviour: if `<repo_root>/package.json` has a script matching `*:lint` or `lint:*` that covers markdown (e.g. `docs:lint`, `site:lint`, `lint:md`), run it. Parse stderr/stdout for line-level violations. If the script lints the whole tree, filter violations to the target files only. Set `primary_linter: yarn:<script>` or `npm:<script>`. **On failure → record the attempt in `primary_attempts` and continue to step 3.** When `spaces` is supplied and SOME input files match no space's `content_root`, run each owning space's command as above **and additionally run the whole-repo fallback command below over the unmatched files**, recording it as its own `primary_attempts` entry with the linter value that fallback produces (`yarn:<script>` / `npm:<script>` / `pnpm:<script>`). Every input file must be covered by exactly one executed command. If no whole-repo fallback exists, this rung has not covered its inputs: record the space-scoped attempts, treat the rung as failed, and continue the ladder to step 3 — never report a pass over files nothing linted.
 
@@ -153,7 +170,7 @@ complementary_error:   <only when the complementary pass failed independently; d
 - NEVER run the whole-repo lint if a files-scoped invocation is available (performance + noise reduction). If Vale and markdownlint both accept per-file paths, pass only the input `files`.
 - NEVER fabricate a `primary_command` or `complementary_command` value — if a pass didn't run, the field is `null`.
 - NEVER return a `primary_attempts` list that omits a rung the ladder tried. It is the caller's only evidence for what CI will check that this run did not, and it fills the gate ledger's `not_run` and `ci_still_checks` fields.
-- A rung whose configuration is absent is still a rung the ladder passed: record it with `outcome: not_detected` and a one-line `reason` (e.g. "no .vale.ini at repo root"). `primary_attempts` describes the whole climb, not only the failures.
+- A rung whose configuration is absent is still a rung the ladder passed: record it with `outcome: not_detected` and a one-line `reason` (e.g. "no Vale configuration file at repo root"). `primary_attempts` describes the whole climb, not only the failures.
 - NEVER stop the ladder at a *detected but failing* rung. Detection is not execution — only a rung that produced parseable output counts as the primary pass.
 - NEVER output a partially filled violation record (missing `file` or `line`). Drop such records and note the count in `error` if suspicious.
 - Cap each pass at 2 minutes (4 minutes total wall clock). On timeout, kill the pass and record it (`error` if primary, `complementary_error` if complementary).

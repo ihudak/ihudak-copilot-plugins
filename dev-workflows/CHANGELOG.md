@@ -4,6 +4,70 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.30.0] — ported from `mgd-claude-plugins` 2.62.0 — 2026-09-26
+
+Bug fixes harvested from `ai-workflows` through `workflows-core` 1.7.7 / `product-workflows` 3.8.4 / `dev-workflows` 4.2.5 / `docs-workflows` 1.3.5, ported here identically to the `mgd-claude-plugins` 2.62.0 edition — same defects, same fixes, applied to this edition's skill/reference layout. Every bullet is verified against this run's working-tree diff.
+
+### Fixed — git and code-repo handoff
+
+- **`handoff-to-main`'s branch-reuse test misread a deleted-on-merge remote ref as "not yet merged," reusing an already-merged branch.** Now resolves `refs/remotes/origin/<name>` when present, else `refs/heads/<name>`, reading a missing ref as merged. Ports ai-workflows 3.21.0.
+- **Staging enumeration silently mis-subtracted paths with spaces, quotes, or non-ASCII bytes** — porcelain output lacked `-z`. Added to `code-repo-handoff.md`'s enumeration and every caller's `pre_existing_dirty` capture/comparison. Ports ai-workflows 4.0.4.
+- **The base-branch ladder trusted a dangling `origin/HEAD`.** Rung 1 now also requires `rev-parse --verify --quiet origin/<name>`. Ports ai-workflows 4.0.4.
+- **`upgrade/SKILL.md`'s "non-default branch" check had no defined base resolution.** Now resolves `<base>` via the same ladder. Ports ai-workflows 4.0.4.
+
+### Fixed — implement, vuln, upgrade
+
+- **BLOCKER: `implement/SKILL.md`'s `code-scanner` dispatch carried no `refresh:` block**, so a scan could move the user's own checkout before the run's branch existed, with no consent. Both dispatches now pin `refresh: {switch_to_default_branch: false, pull: false}`. Ports ai-workflows 3.22.0.
+- **`mktemp` templates used four `X`s (BusyBox rejects it) and bare `mktemp`.** All affected SKILLs and `context-management.md`'s shared rule now use `-XXXXXX` and `command mktemp`, removing temp files once unread. Ports ai-workflows dev-workflows 4.0.4 / product-workflows 3.6.0.
+
+### Fixed — PM and PE authoring skills
+
+- **Every `create-vi:` Overwrite lost the prior VI.** Phase 5 now archives to `revisions/<KEY>_<slug>_<YYYYMMDD>.md` first. Ports ai-workflows product-workflows 3.8.3.
+- **`create-ard/SKILL.md`'s tiered HARD gate tested `opus_available` instead of the session's own tier.** Now tests `current_model is not Opus-tier`, matching `design:`. Ports ai-workflows product-workflows 3.6.0.
+- **`design/SKILL.md`'s and `create-ard/SKILL.md`'s HARD gate always offered a relaunch-on-Opus option, even when none was reachable.** Both drop that choice when `opus_available: false`. Ports ai-workflows dev-workflows 4.0.4.
+- **`create-ard/SKILL.md` and `specify/SKILL.md` resolved docs grounding mid-run, after already printing a "resolved" status line.** Both now call `resolve-docs-grounding` in Phase 1. Ports ai-workflows product-workflows 3.7.0.
+- **`--docs <path>` was documented as universal but only `idea:` parsed it.** `create-vi`, `update-vi`, `create-ard`, `specify`, `epics` SKILLs now parse and strip it, with Usage lines added. Ports ai-workflows product-workflows 1.1.0.
+- **`release-notes/SKILL.md` parsed neither `--no-docs` nor `--docs <path>`** though it consumes `docs-grounding.md`. Both are now stripped first (found during this harvest).
+- **`doc_type: vi` sent to `dt-style-checker` was not in its enum.** Now `doc_type: prd`.
+- **`idea-format.md` allowed `provenance: doc-grounding`, absent from `vi-format.md`'s enum.** Removed; `pre-lint.md` gained a MAJOR check.
+- **`create-vi/SKILL.md` Phase 4 didn't say whether MAJOR findings under a passing verdict must be fixed.** Matches `specify:`: no mandatory fix cycle under `PASS WITH RECOMMENDATIONS`.
+- **`epics/SKILL.md` Phase 8 dispatched four maintenance agents with no model tier.** All four now pin `model: <detection_model>`. Ports ai-workflows product-workflows 3.6.0.
+
+### Fixed — idea
+
+- **A boundary the source states explicitly could be lost or silently argued around.** `idea-reader` now returns `stated_scope` (`in[]`/`out[]`, verbatim quote + ref + `firmness: firm|tentative`). Phase 3 seeds `firm` entries as already-settled, confirms `tentative` ones, and checks every recommendation **and its rationale** against `stated_scope` first. Phase 4 writes every entry into `## Rough scope` unless reversed. Ported identically to the mgd fix; also shipped in `ai-workflows` `product-workflows` 3.8.5 / `workflows-core` 1.7.8.
+
+### Fixed — model routing
+
+- **Opus 5.5 was missing from the strong tier's peer list.** `model-routing.md` §2 now lists `claude-opus-5.5` first of what is now **seven** co-equal peers (was six); `docs/reference/model-routing.md` and `document:`/`docs-profile:` examples updated, and the peer label every reviewer agent, skill page, `plugin.json`, `marketplace.json` and the skill-map instructions file carries now reads `Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5` (32 sites in 23 files). No cost subsystem exists here, so there is no price-table analogue of the mgd fix. **Caveat:** the id `claude-opus-5.5` follows Copilot's dotted convention (`claude-opus-4.8`) but was not confirmed against an actual Copilot model list.
+
+### Fixed — agents
+
+- **`interface-designer` ran `git grep`/`git log` unqualified, against the session's cwd.** Now scopes to `code_context.repo_path` via `git -C`.
+- **`docs-grounder`, `counterpart-finder` (backstop + Layer 2), and `diff-summarizer` matched a Jira key as an unanchored substring.** All now use the whole-key ERE form.
+- **`vuln-research.md` cited the wrong step (`vuln:` Step 0) for the Opus re-invocation rule**, actually in Step 2. Corrected.
+- **`skills/_shared/handoff/test-baseliner.md` documented an unused input field, `model_routing:`.** Removed.
+
+### Fixed — hooks
+
+- **`test-notify.sh` never actually read a test's output** — same stdin/here-document collision as mgd. Parser now captured to a variable, invoked via `python3 -c`. Ports ai-workflows workflows-core `45f3ffc3`.
+- **Maven counts were double-counted, and a flaky run silently dropped its failing module.** Anchored per-module line, optional `, Flakes: N`, unanchored fallback. Ports ai-workflows workflows-core `45f3ffc3`/`a5b9223f`.
+- **`./mvnw test` never notified.** Added its own gate entry. Ports ai-workflows workflows-core `67cc6b4c`.
+- **An unmeasured test count was reported as a measured zero.** Helpers return `None` on no match; an all-`None` family reports `"tests completed"`. Ports ai-workflows workflows-core `a5b9223f`.
+
+### Fixed — document, docs-profile, release-notes and Vale
+
+- **Vale configuration was detected by one file name only, and every run merged in the machine's global configuration.** `docs-style-checker`, `toolchain-preflight.md`, and dt-style-guide's `dt-review-pr`/`dt-review-docs` tested `.vale.ini` alone. Both now find all five names Vale reads and isolate the global config.
+- **`dt-review-pr` hardcoded `origin/main` as the base branch.** Now resolves the actual default branch.
+- **`toolchain-preflight.md`'s tool detection didn't handle real shell shapes** — leading `cd`/`VAR=` prefixes, alias/function shadowing of `command -v`. Condensed to the load-bearing core rather than the full apparatus `docs-workflows` ported, since this plugin has no subshell-boot consumer to warrant it.
+- **`document/SKILL.md`'s two handoff temp files used a 4-`X` template and bare `mktemp`, never removed.** Now `-XXXXXX` + `command mktemp`; Phase 8 removes both once unread.
+
+### Repository
+
+- **`scripts/check-docs.sh`'s body had drifted between the two editions it is shared with.** 2.61.0 (Claude edition) added a sixth cost-only selftest case and check 8's `cost_role_marker`, kept the comment and the `skip` line at five, and never reached the Copilot copy. Both now say six, and the body below the edition-config block is byte-identical again, so the Copilot edition runs 33 of 39 cases and skips 6.
+- **`scripts/check-docs.sh` check 6 counted bytes, not characters, under `mawk`.** Fixed with `LC_ALL=C` plus UTF-8 continuation-byte subtraction; mutation-verified.
+- **`.github/copilot-instructions.md` had grown past its size budget.** Split into a trimmed always-loaded file plus two path-scoped `.github/instructions/*.instructions.md` files and a never-auto-loaded `docs/maintainers/rationale.md`. `validate-catalog.py` gained a size gate and an `applyTo`-glob liveness check with `--selftest`, wired into CI.
+
 ## [2.29.1] — ported from `mgd-claude-plugins` 2.60.1 — 2026-08-31
 
 ### Fixed

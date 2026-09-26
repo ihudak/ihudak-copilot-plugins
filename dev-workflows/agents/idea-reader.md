@@ -42,6 +42,8 @@ Then split by provenance:
 
 Note unresolved wikilinks/images in `wikilinks_broken` and continue — a broken link is never fatal.
 
+**Stated scope (every provenance).** Extract every explicit scope statement the source makes into `stated_scope` — what it says is **in** and what it says is **out** — each with a **verbatim** quote and the ref it came from. Look everywhere, not just a "scope" heading: exclusions are often stated in passing, in parentheses, or near the end (*"Revision is not available for ActiveGates — only for OneAgent"*). Mark a hedged statement (*"maybe except AGs"*) `firmness: tentative`; everything else is `firm`. Record only what the source states. Never infer a boundary it does not draw. The same statement also stays in `raw_context`. `stated_scope` exists so the caller cannot lose a boundary by synthesising over prose.
+
 ## Output
 
 Return this exact YAML shape (no preamble, no chatter):
@@ -59,6 +61,17 @@ source_refs:
     salient_summary: <≤150 words: what this source says that matters to the idea — omit for an inline prompt>
 raw_context: |
   <distilled problem / users / value / scope hints from the source(s)>
+stated_scope:            # explicit boundaries the source draws; empty lists when it draws none
+  in:
+    - statement: <the boundary, in one line>
+      quote:     <verbatim source text>
+      ref:       <path | JIRA-KEY | "prompt">
+      firmness:  firm | tentative
+  out:
+    - statement: <…>
+      quote:     <…>
+      ref:       <…>
+      firmness:  firm | tentative
 signals:
   - <demand-evidence bullet: requester, upvotes, recurring ask, linked case>
 images:
@@ -84,3 +97,4 @@ candidate_slug:  <kebab-case slug inferred from the source>
 - NEVER mine a `vi` source for requesters, upvotes, or demand signals — a Value Increment is prior art, not a demand ticket. Fabricating them is a correctness failure, not a stylistic one.
 - NEVER assume `jira-products/<KEY>/` is a top-level directory; always resolve through `resolve-export-for-key`.
 - A `salient_summary` summarises **only** what was actually read; never infer content for a broken wikilink.
+- NEVER omit an explicit scope statement from `stated_scope` because it is brief, parenthetical, or hedged, and NEVER add one the source does not make. Every entry carries a verbatim `quote`.

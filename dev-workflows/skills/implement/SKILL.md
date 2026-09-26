@@ -221,13 +221,16 @@ Runs after Phase 1.6 and replaces the single Phase 2B exploration subagent for m
      > "repo_path: <absolute repo path>
      >  capability_themes: <themes from steps 1–2 + the implementation spec>
      >  context: <3–5 sentences: the implementation goal and what the change must accomplish>
-     >  search_hints: <symbols/paths/keywords derived from the spec, if any>"
+     >  search_hints: <symbols/paths/keywords derived from the spec, if any>
+     >  refresh: {switch_to_default_branch: false, pull: false}"
+
+   **`refresh` is pinned false/false, never left to the agent's default.** `code-scanner`'s own declared default is `{switch_to_default_branch: true, pull: true}`, and Phase 0 can classify the current working directory itself as a scan target — an unpinned dispatch would run `git switch <default>` and `git pull --ff-only` in the user's own working repository, mid-run and with no consent step, moving HEAD out from under any committed work in progress before Pre-Phase 3 ever creates this run's branch. Pinning it false also keeps Pre-Phase 3's HEAD-guard branch offer reachable: that guard only fires when HEAD is not already on the default branch, and a scan that moved it there first would make the offer unreachable on the ordinary path.
 
    Wait for all scanners in the batch to return. A scanner returning `REPO_MISSING` — the path is not a directory — escalates per the `Repo missing (after resolution)` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`; `DIRTY_TREE` escalates per the `Dirty working tree` rule and `REFRESH_BLOCKED` per the `Refresh blocked` rule in the same file. None is ever hidden, and none is merely announced — each offers the user a way forward (§8.4). A scanner returning `prep.read_only: true` is not a failure — it scanned at `prep.scanned_ref`; escalate per the `Read-only mount — ref stale or diverged` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` only when `prep.ref_committed_at` is more than 14 days old or `prep.head_divergence.ahead > 0`, and cite evidence at `prep.scanned_ref`.
 
-   **Round 2 — narrow and seeded (§8.5).** Apply `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §8.5. A theme is **inconclusive** when its round-1 `classification` is `partial`, `absent`, or `error`, or when **two or more** scanners' per-theme `capability_map[].gap_summary` texts point at each other's repo in a cycle, or at a component/subsystem that no scanned repo covers — the shape that yields confident answers which together say nothing. For every inconclusive theme that round 1 left at least one evidence anchor for, dispatch `code-scanner` again on `<detection_model — §2.1 detection chain>` with `capability_themes` holding exactly **one** question — the single thing round 1 failed to settle, not the broad theme — and `search_hints.paths`/`.symbols`/`.keywords` seeded from that round's verified `evidence[].path` and `.symbols`; where an evidence entry carries `lines`, name the anchor as `<path>:<line>` in the `context` prose. Cap **4 dispatches, one round only** — there is no round 3. This matters more here than where §8.5 was first adopted: `idea:`'s summary feeds a grill with a human in it, while this one feeds a planner whose output becomes code. **A theme round 1 left with no evidence anchor never enters round 2** — it stays inconclusive with no round-2 attempt possible, and that absence of an attempt is not itself a resolution.
+   **Round 2 — narrow and seeded (§8.5).** Apply `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §8.5. A theme is **inconclusive** when its round-1 `classification` is `partial`, `absent`, or `error`, or when **two or more** scanners' per-theme `capability_map[].gap_summary` texts point at each other's repo in a cycle, or at a component/subsystem that no scanned repo covers — the shape that yields confident answers which together say nothing. For every inconclusive theme that round 1 left at least one evidence anchor for, dispatch `code-scanner` again on `<detection_model — §2.1 detection chain>` — same `refresh: {switch_to_default_branch: false, pull: false}` as round 1 — with `capability_themes` holding exactly **one** question — the single thing round 1 failed to settle, not the broad theme — and `search_hints.paths`/`.symbols`/`.keywords` seeded from that round's verified `evidence[].path` and `.symbols`; where an evidence entry carries `lines`, name the anchor as `<path>:<line>` in the `context` prose. Cap **4 dispatches, one round only** — there is no round 3. This matters more here than where §8.5 was first adopted: `idea:`'s summary feeds a grill with a human in it, while this one feeds a planner whose output becomes code. **A theme round 1 left with no evidence anchor never enters round 2** — it stays inconclusive with no round-2 attempt possible, and that absence of an attempt is not itself a resolution.
 
-4. **Synthesize.** Combine the `jira-reader` output, all `code-scanner` reports, and the spec into a single **multi-source codebase summary** (per-repo: relevant files, existing capabilities, gaps; plus the cross-repo picture and the Jira themes/PR references). This summary is the codebase context for Phase 2B — do **not** also run the single Explore subagent. Write this summary to a temp file (`mktemp -t dw-impl-summary-XXXX.md` — **never inside a repo working tree**, so a captured `git diff` never picks it up) and record its absolute path as `summary_file`; Phase 2B receives this path, not the pasted summary.
+4. **Synthesize.** Combine the `jira-reader` output, all `code-scanner` reports, and the spec into a single **multi-source codebase summary** (per-repo: relevant files, existing capabilities, gaps; plus the cross-repo picture and the Jira themes/PR references). This summary is the codebase context for Phase 2B — do **not** also run the single Explore subagent. Write this summary to a temp file (`command mktemp -t dw-impl-summary-XXXXXX` — **never inside a repo working tree**, so a captured `git diff` never picks it up) and record its absolute path as `summary_file`; Phase 2B receives this path, not the pasted summary. Remove it with `command rm -f -- "<summary_file>"` once Phase 2B has read it and no later phase cites it.
 
    **Name what the scan did not settle.** The summary carries a `## Unresolved` section listing **every theme still inconclusive at the end of Phase 1.7** — this explicitly includes a theme that never entered round 2 because round 1 left no anchor to seed from, a theme classified `error`, and a mutual-deferral theme, whether or not either scanner logged an anchor. None of these becomes resolved merely by having had no round-2 attempt. Per `model-routing.md` §8.5 Bounds, name **why** each theme is unresolved — mutual deferral / scan error / partial-or-absent with no anchor — and give the repos-and-conclusions detail only where scanners actually disagreed. An inconclusive theme is **never** folded in as an ordinary gap: a gap asserts the capability is absent with no deferral outside the scanned set, an unresolved theme asserts only that the scan could not tell, and once flattened the two are indistinguishable to the planner. Omit the section entirely when nothing is unresolved.
 
@@ -272,7 +275,7 @@ Then ask:
 choices: ["Approve & implement now (Recommended)", "Revise plan", "Cancel"]
 ```
 
-- **Approve** → write the approved plan to a temp file (`mktemp -t dw-impl-plan-XXXX.md`, never inside a repo tree) and record its absolute path as `plan_file`; proceed to Phase 3A
+- **Approve** → write the approved plan to a temp file (`command mktemp -t dw-impl-plan-XXXXXX`, never inside a repo tree) and record its absolute path as `plan_file`; proceed to Phase 3A
 - **Revise** → ask what to change, update, re-show, re-ask
 - **Cancel** → stop and summarize what was planned
 
@@ -280,7 +283,7 @@ choices: ["Approve & implement now (Recommended)", "Revise plan", "Cancel"]
 
 ## Phase 2B — Opus-planned (SIGNIFICANT / HIGH-RISK)
 
-**Codebase exploration** — If Phase 1.7 ran (`fan_out = true`), use its **multi-source codebase summary** (already written to `summary_file` in Phase 1.7 step 4) as the codebase context and skip the single Explore subagent. Otherwise, run the same exploration subagent call as Phase 2A (same prompt, same fallback rule), then write the Explore agent's returned output to a temp file (`mktemp -t dw-impl-summary-XXXX.md`, never inside a repo tree) recorded as `summary_file`. Either way, `summary_file` holds an absolute path before the planner is dispatched.
+**Codebase exploration** — If Phase 1.7 ran (`fan_out = true`), use its **multi-source codebase summary** (already written to `summary_file` in Phase 1.7 step 4) as the codebase context and skip the single Explore subagent. Otherwise, run the same exploration subagent call as Phase 2A (same prompt, same fallback rule), then write the Explore agent's returned output to a temp file (`command mktemp -t dw-impl-summary-XXXXXX`, never inside a repo tree) recorded as `summary_file`. Either way, `summary_file` holds an absolute path before the planner is dispatched.
 
 Once the file map is returned, delegate planning to Opus.
 
@@ -327,7 +330,7 @@ choices: ["Help construct a repro (you'll be prompted for what to try)", "Procee
 choices: ["Approve & implement now (Recommended)", "Revise plan", "Cancel"]
 ```
 
-- **Approve** → write the approved plan to a temp file (`mktemp -t dw-impl-plan-XXXX.md`, never inside a repo tree) and record its absolute path as `plan_file`; proceed to Phase 3B
+- **Approve** → write the approved plan to a temp file (`command mktemp -t dw-impl-plan-XXXXXX`, never inside a repo tree) and record its absolute path as `plan_file`; proceed to Phase 3B
 - **Revise** → ask what to change, then re-invoke risk-planner with the **complete** brief plus the additional constraint merged in (never send just a delta — the planner refuses to plan without a full brief). Re-show, re-ask.
 - **Cancel** → stop and summarize
 
@@ -344,7 +347,7 @@ Before writing any file:
      choices: ["Stash changes and continue (Recommended)", "Proceed anyway — pre-existing changes will appear in the diff and review outputs", "Cancel"]
      ```
    - **Stash**: run `git stash push -m "pre-impl stash"`, then continue. Record the resulting stash as `stash_ref` — Phase 4.6 names it in its outcome line, and never drops it (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 2).
-   - **Proceed**: note in the Phase 5 report that the working tree was dirty at implementation start, **and record the `git status --porcelain --untracked-files=all` paths as `pre_existing_dirty`**.
+   - **Proceed**: note in the Phase 5 report that the working tree was dirty at implementation start, **and record the `git status --porcelain -z --untracked-files=all` paths as `pre_existing_dirty`**. `-z` is required, not optional: without it, git quotes and octal-escapes a path carrying a space, a `"`, a `\`, or a non-ASCII byte, and the resulting mismatch against the raw current porcelain set breaks the subtraction `code-repo-handoff.md` §2.2 carve-out 1 relies on.
 
    A clean tree records `pre_existing_dirty: null` and `stash_ref: null` — the state Phase 4.6's precondition assumes. Phase 4.6 needs them to avoid sweeping somebody else's uncommitted work into this run's commit (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-out 1); a run that does not record them here cannot honour that carve-out later.
    - **Cancel**: stop and summarize what was planned.
@@ -397,7 +400,7 @@ Store the returned `## Test Baseline` block verbatim — it will be passed to `t
 
 Runs after Phase 3A step 5 completes (all code changes written), before the outcome-verification step.
 
-1. **Invoke `test-writer` agent.** First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
+1. **Invoke `test-writer` agent.** First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`command mktemp -t dw-impl-diff-XXXXXX`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
 
    → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain>`):
      > "Write tests for this brief:
@@ -643,7 +646,7 @@ Pass the §2.11 inputs:
 - `clean_finish` — `false` when the Opus review is still `BLOCK` after its one fix cycle plus re-review, or when the Phase 3.5 fix loop ended with regressions the user chose to keep; `true` otherwise. Per §2.9 this changes only the pull request (draft, with a DO-NOT-MERGE banner) — never whether the commit and push happen.
 - `commit_template: null` — `implement:` documents no template of its own, so §2.3 derives the subject from the repo's own `git log`.
 
-Emit the §3.1 `Code repo:` outcome line in the Phase 5 report's `### Branch` section — once, and verbatim.
+Emit the §3.1 `Code repo:` outcome line in the Phase 5 report's `### Branch` section — once, and verbatim. Once it is emitted, remove this run's now-unread temp files — `command rm -f -- "<summary_file>" "<plan_file>" "<test_diff_file>" "<review_diff_file>"` — for whichever of those the run actually created and no stop message above still cites.
 
 **A run that wrote into a repo it never branched.** A multi-source run (Phase 1.7) may edit a repo other than the one Pre-Phase 3 branched. This step has no branch there to commit onto, so it does not invent one: list those repos and their dirty paths in the Phase 5 report under `### Branch`, explicitly flagged as uncommitted. Never leave them unmentioned — an unreported dirty repo is exactly the loss this phase exists to prevent.
 

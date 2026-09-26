@@ -87,17 +87,42 @@ Collect the violation report.
 
 ### 5. Run Vale (optional)
 
-Check if `.vale.ini` exists at or above the file paths. If it does and `vale` is
-installed:
+Check whether a Vale configuration file exists at or above the file paths — in the nearest
+directory holding one. Vale reads its configuration from five file names, not only `.vale.ini`:
+`.vale.ini`, `_vale.ini`, `vale.ini`, `.vale` and `_vale`, taking the first of them found, in that
+order, in the nearest directory (Vale's CLI docs, *Configuration*), so a repo whose only one is
+`_vale.ini` is linted all the same. If one exists and `vale` is installed, run Vale **from the
+directory holding it**, on the repository's configuration alone — no merged global Vale
+configuration, no `VALE_CONFIG_PATH` — in one Bash call per such directory where the files sit
+under different ones, each over its own files, in the form chosen by whether that file sets
+`StylesPath` (a `StylesPath` key above its first `[section]` header):
 
 ```bash
-vale --output=line <file1> <file2> ... 2>&1
+# it sets one:
+(cd "<the directory holding the configuration>" && unset VALE_CONFIG_PATH && vale --no-global --output=line <file1> <file2> ... 2>&1)
+
+# it sets none:
+(cd "<the directory holding the configuration>" && unset VALE_CONFIG_PATH && h=$(mktemp -d) && { XDG_CONFIG_HOME="$h" vale --output=line <file1> <file2> ... 2>&1; s=$?; rm -r "$h"; exit $s; })
 ```
+
+`--no-global` alone is not enough: it drops Vale's default `StylesPath` along with the global
+configuration file, so a configuration that sets no `StylesPath` of its own — and instead keeps its
+synced packages and custom styles in Vale's default location, a layout Vale documents as valid —
+fails with `E100 … style '<name>' does not exist on StylesPath` under `--no-global` alone. The
+second form hides only the global file (via `XDG_CONFIG_HOME`) and leaves the default `StylesPath`
+untouched. Vale reads the first configuration it finds in the directory it runs in and then in each
+directory above it, uses the first it finds, and never looks beside the files; this command's shell
+stands wherever the session does. Run from the directory holding that configuration, Vale reads it.
+Run from a directory outside that one's tree — the session's, say — it reads the first
+configuration at or above that directory instead, which may be another repository's; where there is
+none, it uses the user-level configuration alone, or, without one, stops with
+`E100 [.vale.ini not found]`. The file paths are step 2's absolute ones, so they resolve from that
+directory too.
 
 Collect Vale findings. Merge with dt-style-checker results, deduplicating where
 both flag the same line for the same issue.
 
-If Vale is not installed or no `.vale.ini` exists, note it and move on.
+If Vale is not installed or no Vale configuration file exists, note it and move on.
 
 ### 6. Filter by severity
 

@@ -57,9 +57,15 @@ Use when `qmd` is absent, off, or Path A failed:
    - Score only that shortlist: frontmatter (`title`/`description`/`tags`) + first ~50 body lines, overlap against `feature_summary` + `themes`; keep matches above threshold.
    - An empty shortlist ⇒ `status: EMPTY` with a `notes` line.
 2. **git-grep backstop** (only when `jira_key` is present):
-   `git -C "<docs_path>" log --all -E --grep="<jira_key>" -n 20 --name-only` and
-   union any pages it touched. This is a pure read and works on a read-only
-   `.git` (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/read-only-repos.md`);
+   `git -C "<docs_path>" log --all -E --grep='(^|[^A-Za-z0-9_-])<jira_key>([^A-Za-z0-9_-]|$)' -n 20 --name-only`
+   — the whole-key ERE form: the key's ERE metacharacters escaped, both edges anchored to a
+   non-identifier boundary (or start/end of string), so a key `ACME-7` finds `[ACME-7]` and never
+   `[ACME-77]` or `[ACME-70-01]` — and union any pages it touched. **Trade-off:** this also stops
+   matching a merge-commit title like `Merge branch feat/ACME-7-x`, where the key appears as a
+   branch-name substring rather than delimited on both sides; the backstop is best-effort by design,
+   and a feature-branch merge that never states the key as a delimited token is one the keyword-overlap
+   pass (step 1) or the page's own content must still surface. This is a pure read and works on a
+   read-only `.git` (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/read-only-repos.md`);
    **best-effort** — on any failure, degrade to keyword-overlap only,
    never an error. Skip entirely when `jira_key` is absent (e.g. `idea:`).
 3. Record `retrieval: fallback`.
