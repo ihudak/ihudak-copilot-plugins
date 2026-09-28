@@ -11,7 +11,10 @@ name: Validate plugin catalog
 # at port time.
 #
 # Runs on push and pull request so a bad catalog is caught before anyone's
-# `plugin update` fetches it.
+# `plugin update` fetches it. scripts/validate-catalog.py also gates the size of
+# .github/copilot-instructions.md and every .github/instructions/*.instructions.md file,
+# and that every such file's applyTo glob(s) match a real file; its own --selftest runs
+# immediately before its normal check, same as the two gates below.
 #
 # The same job also runs scripts/check-id-grammar.sh, the requirement-ID grammar
 # gate: every ID a plugin doc teaches must be the Jira-safe bracketed [PREFIX#N]
@@ -41,6 +44,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Self-test the catalog and instruction-file gate
+        run: python3 scripts/validate-catalog.py --selftest
 
       - name: Validate manifests and catalog
         run: python3 scripts/validate-catalog.py

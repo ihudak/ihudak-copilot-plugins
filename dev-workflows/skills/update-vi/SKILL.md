@@ -13,13 +13,13 @@ information, scope tweaks, wording) and the rare obstacle-driven re-do (a human 
 discussed it in Jira, and decided the VI must change). The VI is **product-level** — what / why /
 for-whom, not how. Zero code scan; no repos.
 
-Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs]` (`--no-docs` turns off documentation grounding for the run — see Phase 1).
+Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 1).
 
 ---
 
 ## Phase 0 — Resolve inputs
 
-1. **`KEY` (mandatory).** Parse the first non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, stop: `UPDATE_VI_NEEDS_KEY: update-vi: needs the VI's Jira key — 'update-vi: <KEY>'.`
+1. **`KEY` (mandatory).** Strip every recognised flag first — `--no-docs` and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never mistaken for the key or a transcript path. Parse the first remaining non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, stop: `UPDATE_VI_NEEDS_KEY: update-vi: needs the VI's Jira key — 'update-vi: <KEY>'.`
 2. **`$SPECS_PATH` (required).** If unset, stop naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
 3. **Feature folder.** `<SPECS_PATH>/specifications/<KEY>-<slug>/` — honor an existing dir matched by key-number (tolerate a stray `-`/`_` and a human-adjusted slug).
 4. **Resolve the base VI — Jira-import-first.** Execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi <KEY>`): the re-imported `$VAULT_PATH/jira-products/<KEY>` VI (body + `-comments.md`) is the **authoritative base**; not imported → stop and ask to import; stale (>3 days) → offer re-import.
@@ -89,7 +89,7 @@ Run the corporate style check on the updated VI **before** the review gate — a
   > "Run the style check for this brief:
   >
   > files:    [absolute path to the updated <KEY>_<slug>.md]
-  > doc_type: vi
+  > doc_type: prd
   > emphasis: terminology and customer-facing captions, labels, messages, and text"
 
 Act on the return: `OK` → proceed; `VIOLATIONS_FOUND` → apply the MAJOR fixes inline and re-run `dt-style-checker` once (record remaining MINOR/NIT); `ERROR` → surface and proceed (non-gating). If `dt-style-checker` is unavailable (the `dt-style-guide` plugin is not installed), **skip gracefully** and note `SKIPPED (dt-style-checker unavailable)`.

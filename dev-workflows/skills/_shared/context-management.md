@@ -13,8 +13,15 @@ without degrading. Apply when the plan/step list is large or the run is nearing 
 - **Hand off by file, not paste** — when dispatching a subagent, write the context it needs (task brief,
   diff, review package, prior-phase summary) to a file and hand the subagent the *path*, not the pasted
   content. Pasted dispatch content stays resident in the orchestrator's context and is re-read on every
-  later turn; a file path costs one line. Always `mktemp` the handoff file — **never inside a repo working
-  tree** (and never in the vault) — so a later `git add -N . && git diff` never picks it up.
+  later turn; a file path costs one line. Always `command mktemp -t <prefix>-XXXXXX` the handoff file —
+  `command` because the shell carries the user's aliases and an aliased `mktemp` could resolve
+  somewhere unexpected; the template's trailing run of `X`s must be six or more, since BusyBox's
+  `mktemp` (the one Alpine ships) rejects a template of fewer than six with `mktemp: Invalid argument`
+  while GNU's and BSD's both accept six. Write it **never inside a repo working
+  tree** (and never in the vault) — so a later `git add -N . && git diff` never picks it up. Remove the
+  file once no later step of the run reads it — `command rm -f -- <path>` — including on a stop path
+  where the run ends early, whenever removing it does not cost a report that would otherwise cite the
+  path; a temp file nothing will read again is disk the run should not leave behind.
 
 Prefer the cheapest strategy that fits: checkpoint first; offload parallel steps only when they are
 genuinely independent; decompose only when a single unit still overflows. "Hand off by file" is

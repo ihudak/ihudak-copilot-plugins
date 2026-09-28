@@ -19,12 +19,16 @@ Opus `spec-reviewer` and offers to land the spec on the specs repo's main branch
 Key distinction from `epics:`: `epics:` *splits* a VI into Epic drafts; `specify:` *authors one
 specification* for a single item (typically an Epic). Run `epics:` first, then `specify:` per Epic.
 
+Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 1).
+
 ---
 
 ## Phase 0 — Resolve input
 
-1. **Resolve the Jira input via the shared front-end.** Execute
-   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `specify:` trigger). `specify:` is
+1. **Resolve the Jira input via the shared front-end.** Strip every recognised flag first — `--no-docs`
+   and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never
+   mistaken for part of the Jira grammar. Execute
+   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument (text following the `specify:` trigger). `specify:` is
    **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
    `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward:
@@ -100,7 +104,7 @@ run — the terminal `commit-artifacts` step skips on it.
 
 Use `choices` arrays; the last choice in every array MUST be `"Other… (describe)"`.
 
-At plan/approval, show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+At plan/approval, run `resolve-docs-grounding specify` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` **now** (step 3.5's one-time index-build prompt included, before any `code-scanner` dispatch), and show the resulting `docs grounding:` line in the form that reference resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). Phase 4 later dispatches `docs-grounder` on this cached result — it never re-resolves.
 
 1. **Feature folder.** Confirm the path resolved in Phase 0:
    ```
@@ -353,7 +357,7 @@ Handle per-repo status after the batch returns:
 
 ---
 
-**Documentation grounding (optional).** Run `resolve-docs-grounding specify` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the scoped Epic/VI goal, `jira_key` = the focus key, `themes` = the Phase 2 capability themes. Carry the digest into the Phase 5 grill with **grill-rank** consumption. When OFF, skip silently.
+**Documentation grounding (optional).** Consume the `resolve-docs-grounding specify` result already resolved in Phase 1 — never re-resolve. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the scoped Epic/VI goal, `jira_key` = the focus key, `themes` = the Phase 2 capability themes. Carry the digest into the Phase 5 grill with **grill-rank** consumption. When OFF, skip silently.
 
 ---
 

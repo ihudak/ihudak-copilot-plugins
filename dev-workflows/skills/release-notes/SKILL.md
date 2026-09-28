@@ -26,9 +26,13 @@ This command makes **zero external API calls** and **never writes into the docs 
 
 ## Phase 0 — Load
 
-1. **Resolve the Jira input via the shared front-end.** Execute
+1. **Resolve the Jira input via the shared front-end.** Strip every recognised
+   flag first — `--no-docs` and `--docs <path>` (consumes the token after it) —
+   and hand them to Phase 2's `resolve-docs-grounding`. Unstripped, `--docs
+   <dir>`'s value is an existing directory, which the front-end content-classifies
+   as a jira-export or spec-folder input. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against
-   the argument (text following the `release-notes:` trigger). `release-notes:` is **jira-driven only**: expect
+   the stripped argument (text following the `release-notes:` trigger). `release-notes:` is **jira-driven only**: expect
    `mode: jira-driven` with `jira_key`, `jira_export_root` (the ticket export
    dir — `$VAULT_PATH/jira-products/<KEY>` for a JiraID, or the passed
    directory), and `source`. The front-end owns the `$VAULT_PATH` /

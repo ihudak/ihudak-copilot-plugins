@@ -51,6 +51,13 @@ drafts, which are. Catching it at the source is cheaper than catching it downstr
 - ID series: `[US#N]` (in `### [US#N]:` headings), `[AC#N]`, `[SM#N]` — each contiguous from 1.
   Plus `[SMC#N]` (counter-metrics), `[UC#N]`, `[FR#N]` when those adapt-in clusters are present.
 - Report the count of `[NEEDS CLARIFICATION]` (a relentless-grilled VI should converge to 0; >0 → MINOR).
+- **Provenance-enum check.** Every frontmatter `sources[].provenance` value is a member of
+  `vi-format.md`'s closed enum (`rfe | vi | community-post | prompt | markdown`) —
+  `grep -nE '^\s*-?\s*provenance:\s*(rfe|vi|community-post|prompt|markdown)\s*$' <file>` against the
+  frontmatter block's `sources:` list; any `provenance:` line that does not match (e.g. a propagated
+  `doc-grounding`, which `idea-format.md` no longer emits but an older `idea.md` may still carry) →
+  **MAJOR** — grounding is not an origin; it belongs in the VI's `## References / linked issues`,
+  never in `sources[]`.
 
 ## ARD — `*_ARD.md` (`create-ard:`; format `ard-format.md`)
 

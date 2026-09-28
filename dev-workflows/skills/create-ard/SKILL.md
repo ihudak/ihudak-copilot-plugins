@@ -16,13 +16,15 @@ invariants the downstream (`specify:`, `design:`, `implement:`) will later inher
 - `create-ard: <VI-KEY>` → a **VI-level** ARD.
 - `create-ard: <VI-KEY> <Epic-KEY>` → an **Epic-level** ARD (inherits the VI-level ARD read-only).
 
+Usage: `create-ard: <VI-KEY> [<Epic-KEY>] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 1).
+
 It authors architecture only — no code writing; grounding is **architect-driven** (there are no PRs at
 this stage). Zero Jira API.
 
 ---
 
 ## Phase 0 — Resolve input
-1. **Resolve the Jira input** via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `create-ard:` trigger) → `jira_key` (the VI), `focus_key` (the Epic, or `null`), `jira_export_root`, `source`. Define `<VI>` = `jira_key`, `<EPIC>` = `focus_key`.
+1. **Resolve the Jira input** via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `create-ard:` trigger), after stripping every recognised flag first — `--no-docs` and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never mistaken for `<VI-KEY>`/`<Epic-KEY>` → `jira_key` (the VI), `focus_key` (the Epic, or `null`), `jira_export_root`, `source`. Define `<VI>` = `jira_key`, `<EPIC>` = `focus_key`.
 2. **`$SPECS_PATH` (required).** If unset, stop naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
 3. **Feature folder.** VI-level → `specifications/<VI>-<vslug>/`; Epic-level → `specifications/<VI>-<vslug>/<EPIC>-<eslug>/`. Honor an existing dir matched by key-number (tolerate `-`/`_` drift). Auto-created on first write.
 4. **Prior ARD.** If the target `*_ARD.md` exists → Phase 1 offers refine-vs-fresh.
@@ -39,7 +41,7 @@ this stage). Zero Jira API.
 ## Phase 1 — Configure
 Use `choices` arrays; the last choice is always `"Other… (describe)"`.
 1. **Confirm** the scope (VI-level vs Epic-level) and the feature folder.
-   - Show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+   - Run `resolve-docs-grounding create-ard` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` **now** (step 3.5's one-time index-build prompt included, before any agent is dispatched), and show the resulting `docs grounding:` line in the form that reference resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). Phase 3 step 5 later dispatches `docs-grounder` on this cached result — it never re-resolves.
 2. **Refine vs fresh** (only if a prior `*_ARD.md` exists): `choices: ["Refine the existing ARD (Recommended)", "Start fresh — overwrite", "Cancel", "Other… (describe)"]`.
 3. **Repos search base (`$REPOS_PATH`).** Read `${REPOS_PATH:-/workspace}` (may be colon-separated): `choices: ["Use $REPOS_PATH (default /workspace) (Recommended)", "Use a different path (you'll be prompted)", "Cancel", "Other… (describe)"]`.
 4. **Repo refresh policy** (governs Phase 3's `code-scanner`): `choices: ["fetch + pull default branch (Recommended)", "fetch only", "no refresh", "Other… (describe)"]`.
@@ -62,7 +64,7 @@ model_routing:
   notes: <any §2/§2.1 fallback or degradation>
 ```
 
-**Tiered HARD model gate (like `design:`):** for `SIGNIFICANT` / `HIGH-RISK`, require an Opus session — if `opus_available` is false, stop: `choices: ["I'll relaunch create-ard: on Opus (Recommended)", "Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]`. For `SIMPLE`/`MODERATE`, degradation is advisory (record in `notes`).
+**Tiered HARD model gate (like `design:`):** for `SIGNIFICANT` / `HIGH-RISK`, require an Opus session — the grill and the ARD authoring both run inline on `current_model`, so the gate tests `current_model is not an Opus-tier model` (the session's own tier), never `opus_available` (environment reachability) — if it fires and `opus_available` is also true, stop: `choices: ["I'll relaunch create-ard: on Opus (Recommended)", "Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]`; if `opus_available` is also false, there is nothing to relaunch onto — drop the first option and stop with only: `choices: ["Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]`. For `SIMPLE`/`MODERATE`, degradation is advisory (record in `notes`).
 
 ---
 
@@ -109,7 +111,7 @@ There are no PRs at ARD time, so repos are **architect-driven**, not PR-derived:
    - `prep.read_only: true` — not a failure. The scan ran at `prep.scanned_ref`. Escalate per the `Read-only mount — ref stale or diverged` rule **only** when `prep.ref_committed_at` is more than 14 days old or `prep.head_divergence.ahead > 0`; otherwise proceed silently and cite evidence at `prep.scanned_ref`.
 
    A repo the user skips is dropped from the confirmed set and named in the Phase 6 handoff; it never silently disappears.
-5. **Documentation grounding (optional).** Run `resolve-docs-grounding create-ard` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the VI/Epic goal + capability themes, `jira_key` = `<VI>` (VI-level) or `<EPIC>` (Epic-level), `themes` = the confirmed themes. Carry the digest into the Phase 4 grill with **grill-rank** consumption (documented analogs and building-block altitude/permissions are strong ARD grounding). When OFF, skip silently.
+5. **Documentation grounding (optional).** Consume the `resolve-docs-grounding create-ard` result already resolved in Phase 1 — never re-resolve. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the VI/Epic goal + capability themes, `jira_key` = `<VI>` (VI-level) or `<EPIC>` (Epic-level), `themes` = the confirmed themes. Carry the digest into the Phase 4 grill with **grill-rank** consumption (documented analogs and building-block altitude/permissions are strong ARD grounding). When OFF, skip silently.
 
 ---
 

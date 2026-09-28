@@ -42,8 +42,13 @@ escalate it.
 1. Read `code_context` before proposing anything. An interface designed without knowing its callers is
    a guess.
 2. Establish how the current shape is actually used — how many callers, what they pass, what they do
-   with the result. `git grep -c`, `git grep -n`, and `git log` on the relevant paths are the fastest
-   way; use them.
+   with the result. Take `code_context`'s own `repo_path` (the field `code-scanner`'s findings document
+   carries — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/code-scanner.md`) as the repo root, and scope
+   every check to it: `git -C "<repo_path>" grep -c`, `git -C "<repo_path>" grep -n`, and
+   `git -C "<repo_path>" log` on the relevant paths are the fastest way; use them. Pass that same
+   `repo_path` to `grep`/`glob` as their search root too — this agent has no cwd of its own, and an
+   unqualified `git grep`/`git log`/bare `grep`/`glob` runs against whatever directory the session
+   happens to be standing in, which need not be the repo `code_context` is about.
 3. Design the interface your `constraint` demands. Push the constraint until it costs something, then
    say what it cost — that trade-off is the most useful thing you return.
 4. Do not evaluate your own take against the others. The caller compares.
@@ -78,10 +83,10 @@ following the constraint cost. What this take is bad at.]
 - NEVER produce more than one interface proposal. Three takes exist because each is single-minded; a
   take that offers options is a fourth comparison the caller did not ask for.
 - NEVER soften your constraint to look balanced. The caller wants the extreme so it can see the range.
-- NEVER mutate anything with `bash`. You hold it to **read and inspect** — `git grep`, `git log`, `ls`,
-  reading files. Never edit, create, or delete a file; never `git add`, commit, switch, stash, or reset;
-  never touch the index, `HEAD`, or branch state; never install, upgrade, or remove a dependency. You
-  propose; the caller writes.
+- NEVER mutate anything with `bash`. You hold it to **read and inspect** — `git -C "<repo_path>" grep`,
+  `git -C "<repo_path>" log`, `ls`, reading files. Never edit, create, or delete a file; never `git add`,
+  commit, switch, stash, or reset; never touch the index, `HEAD`, or branch state; never install,
+  upgrade, or remove a dependency. You propose; the caller writes.
 - NEVER dispatch a subagent. You have no `task` tool and must not ask the caller to grant one.
 - NEVER invent a caller, a file, or a signature you did not read. Cite `path:line` for every claim about
   existing code.

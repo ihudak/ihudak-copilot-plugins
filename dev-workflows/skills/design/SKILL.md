@@ -138,8 +138,11 @@ The grill + authoring run inline on `current_model` (interactive judgment — no
 **Tiered model gate (stricter than `implement:` — `design:`'s critical synthesis is inline, not an Opus
 subagent):**
 - **SIGNIFICANT / HIGH-RISK + `current_model` is not an Opus-tier model → HARD gate.** Stop and require
-  relaunching `design:` on Opus (the run is resumable from `_design-session.md`):
-  `choices: ["I'll relaunch design: on Opus (Recommended)", "Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]`
+  relaunching `design:` on Opus (the run is resumable from `_design-session.md`) — but only when
+  `opus_available` is true; when it is also false there is nothing to relaunch onto, so drop that
+  option:
+  `choices: ["I'll relaunch design: on Opus (Recommended)", "Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]` (`opus_available: true`)
+  `choices: ["Override — proceed on the current model (logged in the final report)", "Cancel", "Other… (describe)"]` (`opus_available: false`)
   Design authoring for risky work must be Opus — the Opus `design-reviewer` reviews, it cannot originate
   good architecture.
 - **SIMPLE / MODERATE + not Opus → soft advisory.** Recommend Opus but proceed; record the choice in

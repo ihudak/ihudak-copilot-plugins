@@ -8,7 +8,7 @@ Reads a Jira Value Increment (or any ticket) from exported markdown, optionally 
 
 ## Synopsis
 
-    release-notes: <JIRA-KEY | @jira-export-dir> [<focus-Epic-KEY>]
+    release-notes: <JIRA-KEY | @jira-export-dir> [<focus-Epic-KEY>] [--no-docs | --docs <path>]
 
 The argument is resolved by the shared Jira-input front-end ([`skills/_shared/jira-input-resolution.md`](../../skills/_shared/jira-input-resolution.md)), executed inline at Phase 0. `release-notes:` is **jira-driven only** — it has no direct-prompt behaviour, so a `mode: direct` result (no Jira input at all) stops the run with `RELEASE_NOTES_NEEDS_JIRA`. A resolved VI selector plus an optional focus-Epic key scopes Phase 6's rendered input to that Epic's subtree, without mutating the stored `jira-reader` handoff other phases read.
 

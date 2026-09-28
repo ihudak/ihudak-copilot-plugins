@@ -10,7 +10,7 @@ from, NOT a mini-VI.
 title: <candidate human-readable title>
 slug: <candidate-kebab-slug>
 sources:
-  - provenance: rfe | vi | markdown | community-post | prompt | doc-grounding
+  - provenance: rfe | vi | markdown | community-post | prompt
     ref: <path | JIRA-KEY | url>
 created: <YYYY-MM-DD>
 status: draft | refined        # refined IFF zero open [NEEDS CLARIFICATION] remain
@@ -20,6 +20,9 @@ status: draft | refined        # refined IFF zero open [NEEDS CLARIFICATION] rem
 Rules: `status` is `refined` only when the **Open questions & assumptions** section carries zero
 `[NEEDS CLARIFICATION]` markers; otherwise `draft`. `sources` lists every ingested source with its
 provenance (re-running `idea:` for the same `slug` refines the existing file and appends a source).
+**Grounding is not an origin** — a `docs_grounding` digest (Section 7, `## Feasibility grounding`) is
+consulted, not ingested as a source, so it never appears in `sources[]`; `vi-format.md`'s propagated
+`sources` enum carries the same five values with no `doc-grounding` member for the same reason.
 
 ## Section 1 — Problem
 
@@ -37,6 +40,9 @@ insufficient. No proposed solution, no technology detail.
 ## Section 4 — Rough scope
 
 `## Rough scope` — **In:** initial in-scope bullets; **Out:** initial guardrails. *What*, not *how*.
+Every boundary the source states explicitly (the `idea-reader` digest's `stated_scope`) appears here
+as the source put it, unless the user reversed it during the grill. A stated exclusion is never dropped
+because nothing contradicted it.
 
 ## Section 5 — Signals & evidence
 

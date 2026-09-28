@@ -27,12 +27,19 @@ Refuse to run without `repo_root`, `target_space`, `counterpart_space`, and a no
 
 1. **Scope to the counterpart content root.** From `profile.spaces[]`, take the `content_root` (and `snippet_root`) whose space is `counterpart_space` (dynatrace-docs: `dynatrace/_content` for `saas`, `managed/_content` for `managed`). Search only under those roots.
 2. **Keyword-overlap search.** Apply the `doc-location-finder` scoring technique: index each page's frontmatter (`title`/`description`/`tags`) + first 50 body lines, score keyword overlap against `feature_summary` (minus stopwords) plus `diff_highlights`. Keep matches above the overlap threshold.
-3. **Merge-commit backstop.** Run `git -C <repo_root> log --all -E --grep="<jira_key>" -n 20 --name-only` and union any counterpart-root pages it touched (catches a page named unlike the feature).
+3. **Merge-commit backstop.** Run `git -C <repo_root> log --all -E --grep='(^|[^A-Za-z0-9_-])<jira_key>([^A-Za-z0-9_-]|$)' -n 20 --name-only`
+   — the whole-key ERE form: the key's ERE metacharacters escaped, both edges anchored to a
+   non-identifier boundary (or start/end of string), so a key `ACME-7` finds `[ACME-7]` and never
+   `[ACME-77]` or `[ACME-70-01]` — and union any counterpart-root pages it touched (catches a page
+   named unlike the feature). **Trade-off:** this also stops matching a merge-commit title like
+   `Merge branch feat/ACME-7-x`, where the key appears as a branch-name substring rather than
+   delimited on both sides; that gap is left to the keyword-overlap pass (step 2) and Layer 2's
+   explicit ref.
 4. Read each match and extract the grounding digest (see Output).
 
 ### Layer 2 — explicit ref (only when `counterpart_ref` is non-null)
 
-1. Classify `counterpart_ref`: a Jira key (`^[A-Z][A-Z0-9]+-[0-9]+`) → resolve to its merge/PR via `git -C <repo_root> log --all -E --grep`; a PR URL → resolve via `diff-summarizer`'s host-aware strategies (gh for github.com when installed, else local-git PR-ref / merge-commit grep; local-git-only for Bitbucket — NEVER Bitbucket REST). Mechanics: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/agents/diff-summarizer.md` "Local-git strategies".
+1. Classify `counterpart_ref`: a Jira key (`^[A-Z][A-Z0-9]+-[0-9]+`) → resolve to its merge/PR via `git -C <repo_root> log --all -E --grep='(^|[^A-Za-z0-9_-])<counterpart_ref>([^A-Za-z0-9_-]|$)'` (the same whole-key form as the Layer 1 backstop); a PR URL → resolve via `diff-summarizer`'s host-aware strategies (gh for github.com when installed, else local-git PR-ref / merge-commit grep; local-git-only for Bitbucket — NEVER Bitbucket REST). Mechanics: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/agents/diff-summarizer.md` "Local-git strategies".
 2. Take the ADDED/MODIFIED files under the counterpart `content_root`/`snippet_root` and read them. For an unmerged PR head not present locally, `git fetch` the ref exactly as `diff-summarizer` does; on failure record it in `notes` as unresolved.
 3. Extract the grounding digest; mark these `source_kind: pr_ref`.
 

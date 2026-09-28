@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4
+
+### Fixed
+
+- **`dt-review-pr` hardcoded `origin/main` as the base branch.** Now resolves the repository's actual default branch via `git symbolic-ref --quiet --short refs/remotes/origin/HEAD`, falling back to `master` only when that ref is unset and `origin/master` resolves while `origin/main` does not. Matches the ai-workflows `prose-style` 0.4.0 fix for the same defect.
+- **`dt-review-pr` and `dt-review-docs` ran Vale bare and recognized only `.vale.ini`.** Both now detect all five file names Vale reads (`.vale.ini`, `_vale.ini`, `vale.ini`, `.vale`, `_vale`) and run Vale from the directory holding whichever is found, isolating the machine's global Vale configuration so local results match what a clean CI runner would report. `README.md`'s summary and both skills' frontmatter descriptions no longer say `.vale.ini` exclusively.
+
 ## 0.3.3
 
 ### Fixed

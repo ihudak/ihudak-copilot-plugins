@@ -32,14 +32,14 @@ For one-off doc edits use direct mode; for Jira-driven feature documentation use
 3. **Detect docs-repo signals** under the git root:
    - `package.json` with any doc script (matching `*:start`, `*:build`, `*:lint`, `docs:*`, `prettier`),
    - a `.docstack/` directory,
-   - a `.vale.ini` file,
+   - a Vale configuration file (any of the five names Vale reads — `.vale.ini`, `_vale.ini`, `vale.ini`, `.vale`, `_vale`),
    - any `*/_content/` directory (e.g. `dynatrace/_content`, `managed/_content`),
    - any `_snippets/` directory.
 
    If **≥ 1** signal is present → proceed silently to Phase 1.
    If **0** signals are present → ask before continuing:
    ```
-   "No documentation-repo signals detected under <repo> (checked: package.json doc scripts, .docstack/, .vale.ini, */_content/, _snippets/). Profile it anyway?"
+   "No documentation-repo signals detected under <repo> (checked: package.json doc scripts, .docstack/, a Vale configuration file, */_content/, _snippets/). Profile it anyway?"
    choices: ["Proceed — I confirm this is a docs repo (Recommended)", "Cancel — point me at a docs repo first", "Other… (describe)"]
    ```
    Default = Proceed. On Cancel, stop and report.
@@ -61,7 +61,7 @@ model_routing:
   reason: "cross-cutting synthesis of the whole docs repo; output steers all later document: runs"
   current_model: <the model this orchestrator is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>
-  planning_model: <§2 powerful chain: claude-opus-5 … fallback Sonnet 5/4.6/4.5/GPT-5.4>
+  planning_model: <§2 powerful chain: claude-opus-5.5 … fallback Sonnet 5/4.6/4.5/GPT-5.4>
   review_model: <same as planning_model — conceptually the synthesis_model; the synthesis step runs on the §2 Opus chain>
   opus_available: true | false
   notes: <any §2.1/§2 degradation, e.g. "Opus unavailable; synthesis fell back to claude-sonnet-4.6">
@@ -102,7 +102,7 @@ Dispatch a **read-only** detection subagent **pinned to the §2.1 mid-tier chain
 
 On the §2 powerful chain (`planning_model`), turn the detection report into a draft `docs-profile.yml`. This synthesis is the SIGNIFICANT reasoning step, so it runs on the strongest available reasoning model (Opus), pinned via the `task` tool's `model:` override — not the §2.1 detection chain.
 
-→ task(agent_type: "general-purpose", model: `<planning_model — §2 chain: claude-opus-5, fallback per §2>`):
+→ task(agent_type: "general-purpose", model: `<planning_model — §2 chain: claude-opus-5.5, fallback per §2>`):
   > "Synthesise a docs-profile from a detection report. This is a planning/synthesis task, not a code change — return the drafted YAML + drafted copilot-instructions.md additions, nothing else; do not write files.
   >
   > Schema (the draft MUST conform exactly): `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/docs-profile-schema.md`

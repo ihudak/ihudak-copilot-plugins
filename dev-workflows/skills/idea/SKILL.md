@@ -118,9 +118,9 @@ Wait for the digest. If `status: NOT_FOUND` (invalid key / missing file), surfac
 choices: ["Re-enter the source", "Cancel", "Other… (describe)"]
 ```
 This is an environment/user halt — do NOT `emit-block`. On `OK`, carry forward `raw_context`,
-`signals`, `images`, `candidate_title`, `candidate_slug`, `source_refs`, `provenance`, `tracked` (a
+`stated_scope`, `signals`, `images`, `candidate_title`, `candidate_slug`, `source_refs`, `provenance`, `tracked` (a
 `vi` source only), and the followed/broken wikilinks — `source_refs`/`provenance` feed the `sources:`
-frontmatter entry in Phase 4, and `tracked` seeds `## Prior art`.
+frontmatter entry in Phase 4, `tracked` seeds `## Prior art`, and `stated_scope` is the settled scope Phase 3 grills against.
 
 ---
 
@@ -182,6 +182,8 @@ and **proceed without waiting** — an inline confirmation per `~/.copilot/insta
 
 Scan for gaps against an idea-stage **ambiguity taxonomy**: *problem clarity, target users, desired
 outcome/value, scope boundaries, evidence/demand sufficiency, success signal, terminology.* Rank gaps by **Impact × Uncertainty**, ranking every `docs_challenges` and `prior_art_challenges` entry from Phase 2.5 into that same list. Challenges **compete** for the slots below; they never add slots. **Code findings are facts, not questions.** A Phase 2.6 finding answers a gap rather than raising one — look it up, cite it, and do not spend a question on it. The one exception is the finding that **contradicts the idea's premise** (the capability already exists, or the gap is far smaller than the idea assumes): that becomes a challenge ranked into the same Impact × Uncertainty list, competing for a slot exactly like a `docs_challenges` or `prior_art_challenges` entry and never adding one. At most **2** such challenges.
+
+**Source-stated scope is settled before the first question.** Seed the design tree with every `firm` entry of the Phase 2 `stated_scope` as an already-made decision (`grilling-technique.md`, "A decision the source already states is settled"). Those boundaries are not gaps and take no slot. A `tentative` entry is a gap: confirm it with its quote, recommending the source's position. Before putting any question, check its recommended answer **and its rationale** against `stated_scope`. A recommendation that argues from breadth, effort, or overlap the source has excluded (*"this spans cluster + ActiveGate + OneAgent"* when the source excludes ActiveGates) must be rewritten before it is shown. To argue that a stated boundary is wrong, raise that as an explicit challenge quoting it; it competes for a slot like any other challenge. Where a grounding digest (docs, prior art, code) describes a wider surface than the source scopes, that is context for the boundary, not a reason to widen it.
 
 - **Default (bounded):** ask **≤10** questions across the ranked gaps, then stop. Remaining high-impact
   gaps become `- [NEEDS CLARIFICATION: <question>]` in the `idea.md` **Open questions & assumptions**
@@ -255,6 +257,7 @@ Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plu
   ```
   On *refine*, re-open it, resolve its open `[NEEDS CLARIFICATION]` items, and append the new source to
   `sources`.
+- **`## Rough scope` carries the source's boundaries.** Every `stated_scope` entry is written into **In** or **Out** as the source put it, unless the user reversed it during the grill, in which case write what they decided. The confirmation gate before this section names each source-stated boundary so a lost one is caught before it is written. A boundary is never dropped silently because the grill did not touch it.
 - **`status`:** set frontmatter `status: refined` IFF zero `[NEEDS CLARIFICATION]` markers remain;
   otherwise `status: draft`.
 
@@ -342,7 +345,7 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea
 ## Final report
 
 Report: the `idea.md` path + `status` (refined / draft with N open clarifications); the source type and
-`sources`; the count of `[NEEDS CLARIFICATION]` items and Assumptions; any source-detection correction
+`sources`; the count of `[NEEDS CLARIFICATION]` items and Assumptions; the source-stated scope boundaries (`stated_scope`) and any the grill reversed, with the user's reason; any source-detection correction
 or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; the
 `Specs repo:` outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),

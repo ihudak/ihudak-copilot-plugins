@@ -14,13 +14,13 @@ authors a high-quality **Value Increment** that feeds the downstream pipeline. T
 (a PRD): what / why / for-whom, not how. Zero Jira API — the VI is authored as markdown in the specs
 repo and published to Jira by paste + re-import.
 
-Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hybrid|--full] [--no-docs] [--no-prior-art]` (default `--hybrid`; the two `--no-*` switches each turn off one grounding source — see Phase 1).
+Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hybrid|--full] [--no-docs | --docs <path>] [--no-prior-art]` (default `--hybrid`; `--no-docs` turns off documentation grounding, `--docs <path>` overrides `$DOCS_PATH` for this run, and `--no-prior-art` turns off vault prior-art grounding — see Phase 1).
 
 ---
 
 ## Phase 0 — Resolve inputs
 
-1. **`JIRA-KEY` (mandatory).** Parse the first non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, **stop gracefully**: `CREATE_VI_NEEDS_KEY: create-vi: needs a Jira key — create an empty Jira workitem first to get the ID, then re-run 'create-vi: <KEY> @<idea.md>'.` (Format only — zero Jira API, so existence is not verified.)
+1. **`JIRA-KEY` (mandatory).** Strip every recognised flag first — `--from-vi <value>`, `--lean`/`--hybrid`/`--full`, `--no-docs`, `--docs <path>` (consumes the token after it), and `--no-prior-art` — so an unstripped flag or its value is never mistaken for the key or the `@idea.md` token. Parse the first remaining non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, **stop gracefully**: `CREATE_VI_NEEDS_KEY: create-vi: needs a Jira key — create an empty Jira workitem first to get the ID, then re-run 'create-vi: <KEY> @<idea.md>'.` (Format only — zero Jira API, so existence is not verified.)
 2. **Profile.** `--lean | --hybrid | --full`; default `--hybrid`.
 2a. **`--from-vi <VI-KEY|path>` (optional seed).** When present, this run authors a **new** VI (the positional `<JIRA-KEY>`) seeded read-only by another VI. Resolve the seed via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi` — Jira-import-first, 3-day freshness) for a key, or read the given path directly. The seed is **grounding, not content** (Phase 3 adapts it; it is never copied wholesale).
 
@@ -149,7 +149,7 @@ is a **quality enhancement, not a gate** — it never blocks the handoff.
   > "Run the style check for this brief:
   >
   > files:    [absolute path to <KEY>_<slug>.md]
-  > doc_type: vi
+  > doc_type: prd
   > emphasis: terminology and customer-facing captions, labels, messages, and text"
 
 Act on the return:
@@ -188,11 +188,18 @@ Dispatch `vi-reviewer` (Opus, caller-pinned via `task(model:)`; recorded as `rev
 
 Act on the verdict (mirrors `specify:`):
 - **`BLOCK`** — fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER (`choices: ["Provide manual fix notes", "Defer to a follow-up issue", "Override and accept", "Cancel", "Other… (describe)"]`).
+- **`MAJOR` / `MINOR` / `NIT`** (surfaced under `PASS WITH RECOMMENDATIONS`) — defer to the final report; no mandatory fix cycle.
 - **`PASS` / `PASS WITH RECOMMENDATIONS`** — proceed. Cap: one fix cycle + one re-review.
 
 ---
 
 ## Phase 5 — Handoff
+
+**Archive before overwrite (only when Phase 0 step 6 found an existing VI and Phase 1 step 2's
+"Overwrite" choice was taken).** Before writing `<KEY>_<slug>.md`, archive the current canonical VI to
+`<feature-folder>/revisions/<KEY>_<slug>_<YYYYMMDD>.md` — same naming and same-day suffixing as
+`update-vi:` Phase 5 step 1 (`-2`, `-3`, … on a same-day second archive). A greenfield run (no prior VI
+found in Phase 0) skips this step — there is nothing to archive.
 
 Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is already there, committed by `idea:`; an out-of-contract idea stays where it is. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim:
 

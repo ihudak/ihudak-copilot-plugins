@@ -323,7 +323,11 @@ check_table_cells() {
   [ -n "$files" ] || return 0
   hits=$(while IFS= read -r f; do
            [ -n "$f" ] || continue
-           awk -v FILE="${f#$root/}" '
+           # LC_ALL=C + subtracting UTF-8 continuation bytes counts CHARACTERS the same way under
+           # gawk and mawk. A bare length() counts bytes under mawk (Debian/Ubuntu's default awk),
+           # so a 199-character cell carrying a few arrows or em dashes read as over 200.
+           # Assumes well-formed UTF-8: a stray continuation byte with no lead byte is subtracted too.
+           LC_ALL=C awk -v FILE="${f#$root/}" '
              /^[ \t]*(```|~~~)/ { infence = !infence; next }
              infence   { next }
              /^[[:space:]]*\|/ {
@@ -331,8 +335,9 @@ check_table_cells() {
                last = ($0 ~ /\|[[:space:]]*$/) ? n - 1 : n   # no trailing pipe => the final field IS a cell
                for (i = 2; i <= last; i++) {
                  c = cells[i]; gsub(/^ +| +$/, "", c)
-                 if (length(c) > 200)
-                   printf "%s:%d cell is %d chars (max 200)\n", FILE, NR, length(c)
+                 t = c; len = length(c) - gsub(/[\200-\277]/, "", t)
+                 if (len > 200)
+                   printf "%s:%d cell is %d chars (max 200)\n", FILE, NR, len
                }
              }' "$f"
          done <<<"$files")
@@ -393,12 +398,29 @@ check_install_block() {
 # survived since the command shipped. `/document` is the shape that defeats a naive
 # grep: it calls emit-cost twice, as `/document (Jira mode)` and `/document (direct
 # mode)`, against a single `/document` row.
+# A command earns a section-7 row two ways: it calls emit-cost itself, or it CEDES
+# the session and records a section-13 intent that a later run replays on its
+# behalf. Both declare the same triple. A file doing NEITHER must not match --
+# otherwise ordinary prose that happens to have the call site's shape satisfies
+# the check, which is exactly how the two deferring commands first passed it: they
+# contain no `emit-cost` at all, and their intent-record bullet matched the regex
+# by coincidence. Rewording that bullet then turned the build red with a message
+# blaming the section-7 table.
+# Whitespace is normalised before matching: these files are hard-wrapped prose, so
+# the phrase routinely straddles a newline and a line-oriented grep misses it.
+cost_role_marker() { # <file> -> emit | defer | (empty)
+  local flat; flat=$(tr '\n' ' ' < "$1" | tr -s ' ')
+  if grep -q 'emit-cost' "$1"; then printf 'emit\n'
+  elif printf '%s' "$flat" | grep -q '13.1 intent record'; then printf 'defer\n'
+  fi
+}
 emit_cost_calls() { # <plugin-dir>  ->  lines of  <command>|<phase>|<role>
   local p="$1" f n
   while IFS= read -r n; do
     [ -n "$n" ] || continue
     f=$(cmd_file "$p" "$n")
     [ -f "$f" ] || continue
+    [ -n "$(cost_role_marker "$f")" ] || continue
     tr '\n' ' ' < "$f" | tr -s ' ' \
       | grep -oE '`command: /[a-z-]+( \([A-Za-z]+ mode\))?`, `phase: [a-z-]+`, `role: [a-z]+`' \
       | sed -E 's/`command: //; s/ \([A-Za-z]+ mode\)//; s/`, `phase: /|/; s/`, `role: /|/; s/`$//'
@@ -428,22 +450,23 @@ check_cost_attribution() {
   while IFS='|' read -r cmd phase role; do
     [ -n "$cmd" ] || continue
     grep -qF "$cmd|" <<<"$calls" \
-      || fail 8 "cost-emission.md section 7 attributes $cmd, which passes emit-cost no fixed phase/role"
+      || fail 8 "cost-emission.md section 7 attributes $cmd, which neither passes emit-cost a phase/role pair nor records a section-13 intent"
   done <<<"$table"
 
-  # Extractor-coverage assertion. Every command file that mentions emit-cost must yield a
-  # triple; otherwise a reworded call site makes this check go QUIET, and the message above
-  # would blame the table for what is really an extractor miss. `/document` is the live
-  # example -- it calls emit-cost twice under parenthesised names.
+  # Extractor-coverage assertion. Every command file that calls emit-cost OR records a
+  # section-13 intent must yield a triple; otherwise a reworded call site makes this check
+  # go QUIET, and the message above would blame the table for what is really an extractor
+  # miss. `/document` is the live example -- it calls emit-cost twice under parenthesised
+  # names.
   local f n cn
   while IFS= read -r cn; do
     [ -n "$cn" ] || continue
     f=$(cmd_file "$p" "$cn")
     [ -f "$f" ] || continue
-    grep -q 'emit-cost' "$f" || continue
+    [ -n "$(cost_role_marker "$f")" ] || continue
     n="/$cn"
     grep -qF "$n|" <<<"$calls" \
-      || fail 8 "$CMD_DIR/$cn$CMD_SUFFIX calls emit-cost but no phase/role triple matched -- the EXTRACTOR has drifted, not the table; fix the regex, never the row"
+      || fail 8 "$CMD_DIR/$cn$CMD_SUFFIX calls emit-cost (or records a section-13 intent) but no phase/role triple matched -- the EXTRACTOR has drifted, not the table; fix the regex, never the row"
   done < <(cmd_names "$p")
 }
 
@@ -458,6 +481,7 @@ _word2num() {
     one) echo 1 ;; two) echo 2 ;; three) echo 3 ;; four) echo 4 ;; five) echo 5 ;;
     six) echo 6 ;; seven) echo 7 ;; eight) echo 8 ;; nine) echo 9 ;; ten) echo 10 ;;
     eleven) echo 11 ;; twelve) echo 12 ;; thirteen) echo 13 ;; fourteen) echo 14 ;;
+    fifteen) echo 15 ;; sixteen) echo 16 ;;
     twenty-one) echo 21 ;; thirty-four) echo 34 ;; ninety-eight) echo 98 ;;
     *) echo "$1" ;;
   esac
@@ -514,7 +538,7 @@ check_prose_counts() {
     local n_emit
     n_emit=$(emit_cost_calls "$p" | cut -d'|' -f1 | sort -u | grep -c . || true)
     _one "cost-emitting commands" "$d/reference/session-cost.md" \
-         '(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|twenty-one|thirty-four|ninety-eight|[0-9]+) commands emit a cost entry' "$n_emit"
+         '(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty-one|thirty-four|ninety-eight|[0-9]+) commands emit a cost entry' "$n_emit"
   else
     note "check 9 cost-emitting-commands assertion not applicable: this edition has no cost subsystem"
   fi
@@ -532,6 +556,13 @@ selftest() {
 
   expect_pass() {
     tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
+    if "$0" --root "$tmp" >/dev/null 2>&1; then printf 'ok    %s\n' "$1"
+    else printf 'FAIL  %s: expected exit 0\n' "$1"; rc=1; fi
+    rm -rf "$tmp"
+  }
+  expect_pass_after() { # <description> <mutation-shell> -- the mutation must leave every check passing
+    tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
+    ( cd "$tmp" && eval "$2" )
     if "$0" --root "$tmp" >/dev/null 2>&1; then printf 'ok    %s\n' "$1"
     else printf 'FAIL  %s: expected exit 0\n' "$1"; rc=1; fi
     rm -rf "$tmp"
@@ -557,6 +588,8 @@ selftest() {
   expect_fail "a drifted subtree count is rejected" 4 "sed -i.bak 's|\`handoff/\` (2)|\`handoff/\` (3)|' $PLUGIN_REL/docs/reference/references.md"
   expect_fail "an undocumented skill is rejected"    4 "mkdir -p $PLUGIN_REL/skills/epsilon && printf -- '---\nname: epsilon\n---\n' > $PLUGIN_REL/skills/epsilon/SKILL.md"
   expect_fail "an undocumented env var is rejected" 5 "printf 'Reads \$NEW_SETTABLE_VAR here.\n' >> $(cmd_file $PLUGIN_REL alpha)"
+  expect_pass_after "a 190-character cell of multibyte characters is accepted (check 6 counts characters, not bytes)" \
+    "printf '\\n| a | %s |\\n|---|---|\\n| b | c |\\n' \"\$(printf '\\342\\206\\222%.0s' \$(seq 190))\" >> $PLUGIN_REL/docs/reference/hooks.md"
   expect_fail "an over-long table cell is rejected" 6 "awk 'BEGIN{s=\"\"; while(length(s)<260) s=s \"x\"; printf \"\\n| a | %s |\\n|---|---|\\n| b | c |\\n\", s}' >> $PLUGIN_REL/docs/reference/hooks.md"
   expect_fail "a drifted install block is rejected" 7 "sed -i.bak 's|$CLI plugin install ${PLUGIN_REL##*/}@fixture-plugins|$CLI plugin install ${PLUGIN_REL##*/}@drifted|' $PLUGIN_REL/docs/getting-started.md"
   expect_fail "a documented nonexistent skill is rejected" 4 "printf '\n| \`ghost-skill\` | Yes | fixture mutation |\n' >> $PLUGIN_REL/docs/reference/references.md"
@@ -588,17 +621,19 @@ selftest() {
   # exist in every edition -- check_cost_attribution and that half of check_prose_counts
   # both return immediately when HAS_COST=0, so a mutation that only a cost check can see
   # would never trip a failure there and would falsely report this selftest case itself as
-  # broken. Skip the five cases that depend on the cost subsystem being active -- ALL FOUR
+  # broken. Skip the six cases that depend on the cost subsystem being active -- ALL FIVE
   # check-8 cases (including the emit-cost-call-site field-reorder, which check 8's
   # extractor-coverage assertion alone can see) plus the one check-9 cost-emitting-count case.
   if [ "$HAS_COST" = 1 ]; then
     expect_fail "a drifted emit-cost call site is rejected" 8 "sed -i.bak 's|\`command: /alpha\`, \`phase: fixture-phase\`, \`role: pm\`|\`command: /alpha\`, \`role: pm\`, \`phase: fixture-phase\`|' $(cmd_file $PLUGIN_REL alpha)"
     expect_fail "an unattributed emit-cost call is rejected" 8 "mkdir -p $(dirname $(cmd_file $PLUGIN_REL zeta)) 2>/dev/null; printf -- '---\nname: zeta\n---\n\nCall \`emit-cost\` with \`command: /zeta\`, \`phase: fixture-phase\`, \`role: pm\`, done.\n' > $(cmd_file $PLUGIN_REL zeta) && printf -- '# /zeta\n\nFixture page.\n' > $PLUGIN_REL/docs/$DOC_CMD_DIR/zeta.md && sed -i.bak 's|($DOC_CMD_DIR/alpha.md)|($DOC_CMD_DIR/alpha.md), [\`/zeta\`]($DOC_CMD_DIR/zeta.md)|' $PLUGIN_REL/docs/README.md"
+    expect_fail "a section-7 row backed only by look-alike prose is rejected" 8 \
+      "sed -i.bak 's|Call \`emit-cost\` with |Recorded as |' $(cmd_file $PLUGIN_REL alpha)"
     expect_fail "a drifted attributed role is rejected"      8 "sed -i.bak 's;| \`/alpha\` | fixture-phase | pm |;| \`/alpha\` | fixture-phase | pe |;' $PLUGIN_REL/$REF_DIR/cost-emission.md"
     expect_fail "a section-7 row for a non-emitting command is rejected" 8 "sed -i.bak 's;| \`/alpha\` | fixture-phase | pm |;| \`/alpha\` | fixture-phase | pm |\n| \`/omega\` | fixture-phase | pm |;' $PLUGIN_REL/$REF_DIR/cost-emission.md"
     expect_fail "a drifted cost-emitting count is rejected"  9 "sed -i.bak 's|One commands emit a cost entry|Five commands emit a cost entry|' $PLUGIN_REL/docs/reference/session-cost.md"
   else
-    printf 'skip  5 cost cases (this edition has no cost subsystem)\n'
+    printf 'skip  6 cost cases (this edition has no cost subsystem)\n'
   fi
 
   if [ "$rc" -eq 0 ]; then echo "SELFTEST PASS"; else echo "SELFTEST FAIL"; fi

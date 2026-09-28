@@ -1,7 +1,7 @@
 # Task Rules — Shared Reference
 
 Single source of truth for Obsidian Tasks format, placement, and tag rules.
-Referenced by `/wiki-task` and `/wiki-tasks-extract` skills.
+Referenced by the `/wiki-task` and `/wiki-tasks-extract` skills, and by `/wiki-init`, which copies it into the vault as `.obsidian/copilot/task-creation-rules.md`.
 
 For vault directory layout, project file structure, and section conventions,
 see `vault-conventions.md` (also in `_shared/`).
