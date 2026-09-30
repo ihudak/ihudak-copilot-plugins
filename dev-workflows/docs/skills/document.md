@@ -8,8 +8,10 @@ Reads a Jira Value Increment hierarchy, resolves PR diffs in parallel, and synth
 
 ## Synopsis
 
-    document: <JIRA_KEY> [saas|managed] [--counterpart <JiraID|PR-url>]     # Mode A — Jira-driven
+    document: <JIRA_KEY> [saas|managed] [--counterpart <JiraID|PR-url>]     # Mode A — Jira-driven [--skip-feedback] [--enforce-model=<model>]
     document: <@file | free text>                                          # Mode B — direct edit
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The first argument token decides the mode via the shared front-end: a JiraID (`^[A-Z][A-Z0-9]+-[0-9]+`), optionally followed by `saas`/`managed`, or a directory that inspects as a Jira export, resolves `jira-driven` → **Mode A**; a leading `@file`, free-text prose, or any other directory resolves `direct` → **Mode B**. The optional second token in Mode A is a **space constraint**, not a target list: passing `saas` or `managed` documents only that space and leaves the other space's render unchanged; omitting it lets Phase 4.5 determine and confirm the applicable space(s) from Jira text, resolved-repo leanings, and any specs hint. `both` is not itself a valid value — omit the argument to cover both spaces. `--counterpart <JiraID | PR-url>` is valid only on a space-constrained run: it points Phase 5.6.5 at the *other* space's existing documentation as read-only grounding (never an image source, never copied into the target doc).
 

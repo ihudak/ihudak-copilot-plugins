@@ -8,7 +8,9 @@ Researches CVEs via the NVD API, then applies dependency and code fixes one CVE 
 
 ## Synopsis
 
-    vuln: <JIRA-ID:CVE-ID | CVE-ID> [<JIRA-ID:CVE-ID | CVE-ID> ...]
+    vuln: <JIRA-ID:CVE-ID | CVE-ID> [<JIRA-ID:CVE-ID | CVE-ID> ...] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 Each argument token is either `JIRA-ID:CVE-ID` (e.g. `MGD-2423:CVE-2023-46604`) or a bare `CVE-ID` (e.g. `CVE-2023-46604`) — a Jira ID is optional per token, never required for the run as a whole. Step 1 parses each token, filters out anything that isn't a CVE pattern (`CWE-*`, OWASP patterns) with a warning, and determines the project's `NOJIRA`/`NO-JIRA` placeholder convention from recent branch names and commit history for any token missing a Jira ID. All CVEs are researched together before any fix is applied, then fixed one at a time to avoid conflicting edits to the same dependency files.
 

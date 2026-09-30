@@ -8,7 +8,9 @@ Reads the declared Jira workflow status for a VI or Epic and checks whether the 
 
 ## Synopsis
 
-    ready: <VI-Key | dir> [<Epic-Key>]
+    ready: <VI-Key | dir> [<Epic-Key>] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `ready:` is jira-driven only — a `mode: direct` prompt stops with `READY_NEEDS_JIRA`. `<VI>` alone checks **VI-level** readiness against [`workflow-states.md`](../../skills/_shared/workflow-states.md)'s VI ladder: a `null` focus Epic is a first-class check here, not something that must be resolved down to a single Epic the way [`design:`](design.md)'s picker requires. An explicit `<VI> <Epic>` scopes the check to that Epic's ladder instead.
 

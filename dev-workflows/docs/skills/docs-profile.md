@@ -8,7 +8,9 @@ Scans a documentation repository and writes or refreshes the machine-readable `.
 
 ## Synopsis
 
-    docs-profile: [<repo-path>] [--inline]
+    docs-profile: [<repo-path>] [--inline] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): only `--enforce-model` applies — this skill dispatches no `impl-maintenance`, so `--skip-feedback` is reported ignored. It has an environment default (`$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The argument's first token is the target repo path; empty defaults to the current working directory. A `--inline` token, in any position, switches the run to **inline mode** — this is how `document:` (Jira mode) invokes this skill from its own Phase 0 case (c), skipping the standalone branch-name prompt, PR draft, and final report so control returns cleanly to the caller. Phase 0 then validates the resolved path is a writeable git work tree (`NOT_A_GIT_WORKTREE` / `REPO_NOT_WRITEABLE` stop otherwise) and checks for at least one docs-repo signal (`package.json` doc scripts, `.docstack/`, `.vale.ini`, a `*/_content/` directory, or a `_snippets/` directory) — zero signals asks before continuing rather than refusing outright.
 

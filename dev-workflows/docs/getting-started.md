@@ -46,6 +46,14 @@ export GIT_USER_INITIALS="iv-gu"          # optional: identity segment for branc
 - **`DOCS_PATH`** *(optional)* — a read-only clone of the product documentation (default `/workspace/docs`). When it is an existing directory containing markdown, `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, and `release-notes:` automatically ground on the existing shipped docs, and `document:` prefers it as a docs-repo discovery hint. Never written to; every miss is a silent, non-blocking skip.
 - **`GIT_USER_INITIALS`** *(optional)* — the identity placeholder every branch-creating skill (`implement:`, `document:`, `docs-profile:`, `upgrade:`, and `vuln:` via `vuln-fixer`) fills into a target repo's own documented branch-naming pattern. Falls back to `git config user.initials`, then inference from existing branches, then a prompt.
 
+### `WORKFLOWS_SKIP_FEEDBACK`, `WORKFLOWS_ENFORCE_MODEL`
+
+Persistent defaults for this edition's two **run flags** — `--skip-feedback` and `--enforce-model=<model>`. Set one and you get that flag's behaviour on every run without typing it; pass the flag itself and it wins over the variable.
+
+`WORKFLOWS_SKIP_FEEDBACK` is a boolean (`1`, `true`, or `yes` turns it on) and narrows the end-of-run maintenance pass to bugs only: you lose the in-session Lessons Learned report and keep the defect capture. `WORKFLOWS_ENFORCE_MODEL` takes a model instead — a family (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full id including a non-Claude peer like `gpt-5.6` — and pins every subagent a run dispatches to it. It never moves the orchestrator off your session model; when the two differ the run says so once. A value it cannot resolve or reach stops the run before anything is written.
+
+**There is no `WORKFLOWS_SKIP_COSTS` in this edition**, because there is no cost subsystem to skip. For the full grammar and per-skill applicability, see [Environment](reference/environment.md).
+
 ## Your first run
 
 Start with `idea:` — it writes only to your vault, touches no Jira, no code, and no specs repo, so there is nothing to undo:

@@ -26,6 +26,8 @@ This command makes **zero external API calls** and **never writes into the docs 
 
 ## Phase 0 — Load
 
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+
 1. **Resolve the Jira input via the shared front-end.** Strip every recognised
    flag first — `--no-docs` and `--docs <path>` (consumes the token after it) —
    and hand them to Phase 2's `resolve-docs-grounding`. Unstripped, `--docs
@@ -320,6 +322,8 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 Terminal phase — runs AFTER the Phase 8 report is composed; NEVER interrupts
 an earlier phase. `release-notes:` has no built-in maintenance agent, so this
 phase invokes `impl-maintenance` on the Sonnet detection chain and then
+
+**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 persists the plugin-facing slice of its report as session feedback.
 
 1. **Invoke `impl-maintenance`** (task(agent_type: "dev-workflows:impl-maintenance", model: `<detection chain — claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>`)):

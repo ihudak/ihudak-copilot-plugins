@@ -1,6 +1,6 @@
 # Environment reference
 
-[Getting started](../getting-started.md) says what each variable is *for* and what to export before your first run. This page says what each variable **is** — its default, where that default comes from, what happens when it is unset, what happens when it points somewhere the plugin cannot read or write, and the directory layout it expects underneath it. The plugin reads 5 user-settable variables. The rest of the names the plugin's own inventory check encounters while scanning for `$VAR` reads are never user-settable and stay out of scope here — and, unlike the Claude edition, neither of the two that might look like configuration is: `MODEL_ROUTING` is a **hook-local shell variable** assigned inside `hooks/preload-context.sh:52` (it just points at the bundled `model-routing.md` path for that hook invocation, and nothing outside the hook script ever reads it), and `PLUGIN_ROOT` is **host-injected** — the Copilot CLI equivalent of Claude Code's `CLAUDE_PLUGIN_ROOT`, set by the host for every plugin invocation, never by you. `OSTYPE`, `BASH_SOURCE`, `BASH_REMATCH`, `ROOT`, and `OWNER_REPO` are shell built-ins or internal template/hook-local names for the same reason. This edition reads no `$ARGUMENTS` variable at all.
+[Getting started](../getting-started.md) says what each variable is *for* and what to export before your first run. This page says what each variable **is** — its default, where that default comes from, what happens when it is unset, what happens when it points somewhere the plugin cannot read or write, and the directory layout it expects underneath it. The plugin reads 7 user-settable variables — the five that name a path or an identity, plus the two run-flag defaults `skills/_shared/run-flags.md` owns. (The Claude edition reads nine; the difference is `--skip-costs`, which is not a flag of this edition at all, and its `$DEV_WORKFLOWS_COST_PRICES`, since there is no cost subsystem here.) The rest of the names the plugin's own inventory check encounters while scanning for `$VAR` reads are never user-settable and stay out of scope here — and, unlike the Claude edition, neither of the two that might look like configuration is: `MODEL_ROUTING` is a **hook-local shell variable** assigned inside `hooks/preload-context.sh:52` (it just points at the bundled `model-routing.md` path for that hook invocation, and nothing outside the hook script ever reads it), and `PLUGIN_ROOT` is **host-injected** — the Copilot CLI equivalent of Claude Code's `CLAUDE_PLUGIN_ROOT`, set by the host for every plugin invocation, never by you. `OSTYPE`, `BASH_SOURCE`, `BASH_REMATCH`, `ROOT`, and `OWNER_REPO` are shell built-ins or internal template/hook-local names for the same reason. This edition reads no `$ARGUMENTS` variable at all.
 
 ## `$SPECS_PATH`
 
@@ -61,6 +61,32 @@
 **When it points somewhere unreadable.** Not applicable — this variable holds a literal string, not a path.
 
 **Directory layout.** Not applicable — this variable configures a branch-name segment, not a filesystem location.
+
+## `$WORKFLOWS_SKIP_FEEDBACK`
+
+- **`$WORKFLOWS_SKIP_FEEDBACK`** — the persistent default for the `--skip-feedback` run flag; narrows a skill's maintenance phase to bug capture only, dispatching `defect-reporter` in place of `impl-maintenance`.
+
+**Resolution.** Read as a boolean: `1`, `true`, or `yes`, matched case-insensitively, is on; any other value, and an unset variable, is off. A `--skip-feedback` flag always overrides it. [`skills/_shared/run-flags.md`](references.md) §1 is the single source of truth for the precedence and boolean grammar.
+
+**When unset.** Off — the maintenance phase dispatches `impl-maintenance` exactly as if the variable did not exist.
+
+**When it points somewhere unreadable.** Not applicable — this variable holds a literal value, not a path.
+
+**Directory layout.** Not applicable.
+
+## `$WORKFLOWS_ENFORCE_MODEL`
+
+- **`$WORKFLOWS_ENFORCE_MODEL`** — the persistent default for the `--enforce-model` run flag; pins every subagent a skill dispatches to one model, bypassing model routing's own per-step selection.
+
+**Resolution.** A family alias (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full model id — including a non-Claude peer such as `gpt-5.6`, which belongs to no family and is reachable only as a full id. Note this edition's id form uses **dots**, not dashes (`claude-opus-5.5`). `routing`, unset, or set-but-empty all mean no enforcement. An `--enforce-model=<value>` flag always overrides it.
+
+**When the value is bad.** On a run whose command line gives no `--enforce-model` of its own, a value matching none of `run-flags.md` §2's forms stops every skill the flag applies to with `RUN_FLAGS_BAD_MODEL`, and one resolving to an unreachable model stops it with `RUN_FLAGS_MODEL_UNAVAILABLE` — both in Phase 0, before any write, each message tagged `(from WORKFLOWS_ENFORCE_MODEL)`. A skill the flag does not apply to ignores it silently, bad value or not.
+
+**When unset.** No enforcement — model routing selects each step's model exactly as if the variable did not exist.
+
+**When it points somewhere unreadable.** Not applicable — this variable holds a literal value, not a path.
+
+**Directory layout.** Not applicable.
 
 ## Directory layout
 

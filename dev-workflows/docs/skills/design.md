@@ -8,7 +8,9 @@ Takes over a merged `specification.md`, grounds strictly in the fully-mounted im
 
 ## Synopsis
 
-    design: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--design-twice]
+    design: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--design-twice] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `design:` is jira-driven only — a `mode: direct` prompt stops with `DESIGN_NEEDS_JIRA`, since it uses the shared front-end only to parse the grammar and classify the key, never to read Jira content: the requirements source of truth is the merged `specification.md` in the specs repo, not a fresh Jira read. Given `<VI>` alone, Phase 0 step 4 (Granularity) resolves what to design from what already exists in the specs repo: a flat `specification.md` at the VI dir (a stand-alone Epic, or a broad VI-level spec) needs no picker; Epic subfolders render a **progress-aware picker** — one row per **spec'd** Epic (○ not started / ◐ in progress, resuming from `_design-session.md` / ● done, offering *revise*), plus an excluded-count note for any Epic whose `specification.md` doesn't exist yet or isn't merged to the default branch. An explicit `<VI> <Epic>` (or `<dir> <Epic>`) skips the picker entirely. `--design-twice` forces Phase 5's three-way interface fan-out on the run's load-bearing interface even when no contested-interface signal fired.
 

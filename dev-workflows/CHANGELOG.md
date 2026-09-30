@@ -4,6 +4,31 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.31.0] — 2026-09-30
+
+Ports the run-flags and model-dispatch work from `mgd-claude-plugins` 2.63.0 (itself a harvest of `ai-workflows` `workflows-core` 1.8.0 / 1.8.1), adapted to this edition: two flags, not three, and a multi-vendor strong tier.
+
+### Added — run flags
+
+- **Two run flags, each applicable skill's own body deciding which apply to it: `--skip-feedback` and `--enforce-model=<model>`**, with `$WORKFLOWS_SKIP_FEEDBACK` / `$WORKFLOWS_ENFORCE_MODEL` environment defaults (flag beats env beats off), documented end to end in the new `skills/_shared/run-flags.md` and resolved by its `strip-run-flags` entry point. A flag may sit anywhere in the argument list except inside the prose span of a free-text skill (`feedback:`, `prompt:`, `prompt-brainstorm:`, `prompt-grill-me:`, `implement:`, `idea:`, and `document:` in direct mode), where only the leading and trailing runs of flag tokens are stripped — prose ending in a flag name loses it, documented as a stated cost.
+- **`--skip-costs` is deliberately NOT a flag of this edition.** The Claude edition's third flag suppresses its per-run cost entry; this edition has no cost subsystem at all (`specs-repo-git.md:54`), so there is nothing to turn off. It is not parsed and not reported ignored. `check-docs.sh` confirms the asymmetry from the other side — its cost check (8) is skipped in this edition and stayed skipped through this change.
+- **The two applicability sets differ, and each skill states its own.** `--skip-feedback`: the 13 skills with an `impl-maintenance` phase. `--enforce-model`: those 13 plus `docs-profile:` and `feedback:`. `docs-profile:` dispatches no maintenance agent; `feedback:` *is* the feedback surface. An inapplicable flag is reported ignored and **never validated**, so a bad `$WORKFLOWS_ENFORCE_MODEL` cannot break a skill the flag has nothing to do with.
+- **`--skip-feedback` swaps the maintenance dispatch for a bugs-only agent, `defect-reporter`** (view/glob/grep, tier assigned at the call site — the new §2.2 cheap Haiku-first chain, or the run's enforced model). It returns only real defects, each with location, session evidence and a minimal repro, persisted through `feedback-emission.md`'s new `emit-bugs` entry point; a run with no defects persists nothing and never reads `feedback-emission.md`. The in-session Lessons Learned report is the one thing the flag costs.
+- **A container-environment defect is now a feedback category, `environment-defect`, on every run.** `feedback-emission.md`'s plugin-facing predicate widened to include it, a new §4.1 states the defect predicate `defect-reporter` applies, and `emit-block` now also fires on a halt over a tool the container image is meant to provide and lacks — never for a tool missing on the user's own machine or from any other container.
+- **`--enforce-model` pins every subagent dispatch of a run to one model** (new `model-routing.md` §10), overriding a caller's strong-tier pin, with nested dispatches propagating it. The orchestrator stays on its session model and prints one relaunch advisory when the two differ. Every `current_model` strong-tier-session gate is suppressed rather than re-pointed at the enforced value — the inline grill and authoring those gates protect still run on the session model, so testing the enforced value there would let a weak session pass a strong gate.
+- New agent `defect-reporter`, new reference `skills/_shared/run-flags.md`.
+
+### Fixed — model dispatch
+
+- **`model-routing.md` §5 now states the dispatch rule, and states it conditionally.** The `model_routing` record keeps the resolved id; `task`'s `model:` argument passes the full dotted id where the tool accepts ids — **which is what this CLI does today, so behaviour here is unchanged** — and otherwise the id's family name, on a family-only harness such as Claude Code's Agent tool. **A non-Claude peer (`gpt-*`, `gemini-*`) belongs to no family**, so it is reachable only as a full id and would be undispatchable on such a harness; that is why the rule is conditional rather than a wholesale conversion to families, which is how it landed in the Claude edition. Ports `ai-workflows` `workflows-core` 1.8.1, adapted.
+- **`claude-sonnet-5.5` was absent from the detection chain.** §2.1 still headed with `claude-sonnet-5`, so no routing path could select the current Sonnet. Added at the head, ahead of Sonnet 5. Not present in `ai-workflows` either — logged there as AW-2.
+- `model_routing` block gains `defect_model`, `enforced_model` and `routing: bypassed`.
+
+### Repository
+
+- Docs: new `docs/reference/run-flags.md`, linked from the index and cross-referenced from the session-feedback and model-routing pages; all 15 affected skill pages carry their own applicability line and say plainly that `--skip-costs` is a Claude-edition flag only. Inventories moved with the tree — agents 34 → 35, reference files 97 → 98, environment variables 5 → 7 (two, not three: there is no `WORKFLOWS_SKIP_COSTS` here) — with `references.md`'s arithmetic re-derived against disk rather than incremented.
+- `.github/instructions/dev-workflows-shared.instructions.md`: the `run-flags.md` authority, the §5 dispatch rule, §2.2 and §10.
+
 ## [2.30.0] — ported from `mgd-claude-plugins` 2.62.0 — 2026-09-26
 
 Bug fixes harvested from `ai-workflows` through `workflows-core` 1.7.7 / `product-workflows` 3.8.4 / `dev-workflows` 4.2.5 / `docs-workflows` 1.3.5, ported here identically to the `mgd-claude-plugins` 2.62.0 edition — same defects, same fixes, applied to this edition's skill/reference layout. Every bullet is verified against this run's working-tree diff.

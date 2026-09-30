@@ -8,7 +8,9 @@ Reads a Jira Value Increment (or any ticket) from exported markdown, optionally 
 
 ## Synopsis
 
-    release-notes: <JIRA-KEY | @jira-export-dir> [<focus-Epic-KEY>] [--no-docs | --docs <path>]
+    release-notes: <JIRA-KEY | @jira-export-dir> [<focus-Epic-KEY>] [--no-docs | --docs <path>] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The argument is resolved by the shared Jira-input front-end ([`skills/_shared/jira-input-resolution.md`](../../skills/_shared/jira-input-resolution.md)), executed inline at Phase 0. `release-notes:` is **jira-driven only** — it has no direct-prompt behaviour, so a `mode: direct` result (no Jira input at all) stops the run with `RELEASE_NOTES_NEEDS_JIRA`. A resolved VI selector plus an optional focus-Epic key scopes Phase 6's rendered input to that Epic's subtree, without mutating the stored `jira-reader` handoff other phases read.
 

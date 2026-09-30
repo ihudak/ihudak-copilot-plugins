@@ -8,7 +8,9 @@ Refines one raw source — a prompt, a file, a community post, or an exported Ji
 
 ## Synopsis
 
-    idea: <prompt | @file | JIRA-KEY> [--deep] [--ground-code [<repo>,…]] [--no-docs] [--no-prior-art]
+    idea: <prompt | @file | JIRA-KEY> [--deep] [--ground-code [<repo>,…]] [--no-docs] [--no-prior-art] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The argument — everything typed after the `idea:` trigger, minus every recognised flag — is classified into one of three source forms (Phase 1), by precedence:
 

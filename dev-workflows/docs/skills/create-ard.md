@@ -8,7 +8,9 @@ Grounds on the mounted implementation repos — architect-driven discovery, no P
 
 ## Synopsis
 
-    create-ard: <VI-KEY> [<Epic-KEY>] [--no-docs]
+    create-ard: <VI-KEY> [<Epic-KEY>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `create-ard: <VI-KEY>` authors a **VI-level** ARD. `create-ard: <VI-KEY> <Epic-KEY>` authors an **Epic-level** ARD, which inherits the VI-level ARD read-only (Phase 2) and layers its own `[AD#N]` decisions on top — an Epic/area decision wins on conflict, and a real contradiction is caught by `ard-reviewer` at authoring time rather than left for a downstream consumer to resolve. A bare `<Epic-Key>` also resolves — the shared Jira-input front-end auto-resolves its parent VI. `--no-docs` turns off the optional Phase 3 documentation-grounding pass (on by default when `$DOCS_PATH` resolves).
 

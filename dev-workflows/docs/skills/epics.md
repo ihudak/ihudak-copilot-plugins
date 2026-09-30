@@ -8,7 +8,9 @@ Reads a Value Increment and its existing Epics from exported markdown, optionall
 
 ## Synopsis
 
-    epics: <VI-KEY | dir> [<Epic-KEY>] [--no-docs]
+    epics: <VI-KEY | dir> [<Epic-KEY>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The positional input resolves through the shared Jira-input front-end: a **VI JiraID** (requires `$VAULT_PATH`), or a **jira-export directory** (works without it). `epics:` is **jira-driven only** — a plain prompt with no Jira input stops with `EPICS_NEEDS_JIRA`. An optional trailing **Epic key** narrows the run to refining that one Epic (`focus_key`): Phase 3.5's refinement-mode gate then treats it, and any detected empty "team-Epic shell" linked to the VI, as a fill-in target rather than a non-duplication constraint. `--no-docs` turns off the optional Phase 3.6 documentation-grounding dispatch.
 

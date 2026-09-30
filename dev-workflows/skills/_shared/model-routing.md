@@ -139,13 +139,26 @@ expensive model, defeating the point).
 
 Use the first available:
 
-1. `claude-sonnet-5`
-2. `claude-sonnet-4.6`
-3. `claude-sonnet-4.5`
-4. `gpt-5.4` (further fallback — note the degradation in the report)
+1. `claude-sonnet-5.5`
+2. `claude-sonnet-5`
+3. `claude-sonnet-4.6`
+4. `claude-sonnet-4.5`
+5. `gpt-5.4` (further fallback — note the degradation in the report)
 
 If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
+
+---
+
+## 2.2 Cheap ("bugs-only") fallback chain
+
+Dispatched only for `defect-reporter` under `--skip-feedback` (`run-flags.md` §4); also
+resolves `run-flags.md` §2's `haiku` value. Use the first available:
+
+1. `claude-haiku-4.5`
+2. the §2.1 chain
+
+Record it as `defect_model:` in the `model_routing` block when used.
 
 ---
 
@@ -202,9 +215,12 @@ model_routing:
   planning_model: <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
   review_model:   <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
   implementation_model: <e.g. claude-sonnet-5 or current_model>
-  detection_model: <e.g. claude-sonnet-5>    # mid-tier steps (§2.1); never the session model
+  detection_model: <e.g. claude-sonnet-5.5>  # mid-tier steps (§2.1); never the session model
+  defect_model:   <e.g. claude-haiku-4.5>    # §2.2 cheap chain; set only under --skip-feedback
   fixes_model:    <same as implementation_model>
   opus_available: true | false             # true if any §2 peer (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) is available
+  enforced_model: <e.g. claude-opus-5.5>   # §10: set only when run_flags.enforced_model is set
+  routing: bypassed                        # §10: present only alongside enforced_model
   gate_tests_on_review: true | false   # optional; default false. Only meaningful for SIGNIFICANT/HIGH-RISK.
                                        # When true, the executor/fixer sub-agent stops after the build,
                                        # returns status: AWAITING_REVIEW, and waits for a follow-up call
@@ -251,12 +267,15 @@ The CLI's `task` tool accepts an explicit `model:` override. Use it like this:
 ```
 task(
   agent_type: "dev-workflows:risk-planner" | "dev-workflows:code-review" | "general-purpose",
-  model:      "claude-opus-5.5", # or the highest available strong-tier peer per §2
+  model:      "claude-opus-5.5", # or the highest available strong-tier peer per §2;
+                                 # under §10, the enforced model. Pass the DISPATCH FORM (below)
   prompt:     "<full self-contained context — sub-agent has no memory>",
   description:"Strong-tier planning critique" | "Strong-tier code review",
   mode:       "sync"               # always sync for plan/review gates
 )
 ```
+
+**The dispatch rule — the record keeps the id, the argument passes what the tool accepts.** The `model_routing` record (§4) keeps the resolved id; it is the record of intent. The `task` tool's `model:` argument passes the **dispatch form** of that id: the id itself where the tool's `model` parameter accepts ids — **which is what this CLI does today**, so every dispatch here passes a full dotted id — and otherwise, on a **family-only harness** whose parameter enumerates only `opus | sonnet | haiku | fable`, that id's family name (`claude-opus-*` → `opus`, and so on). This one rule covers every dispatch in every skill and agent. **A non-Claude peer (`gpt-*`, `gemini-*`) has no family**, so on such a harness it could not be dispatched at all — which is why the rule is stated conditionally rather than converted to families outright.
 
 - For **planning** on SIGNIFICANT/HIGH-RISK tasks, prefer `agent_type: "dev-workflows:risk-planner"`
   with the strong tier, asking it to critique the proposed plan.
@@ -506,3 +525,17 @@ scan that feeds a strong-tier synthesis (e.g. `implement:`'s `risk-planner`) sti
 runs on the detection chain — the reasoning power is applied in the synthesis
 step, not the scan. The only carve-out is size-driven, not session-driven:
 escalate a single oversized repo slice's `code-scanner` to the strong tier (§8.3).
+
+---
+
+## 10. Enforced model
+
+`run_flags.enforced_model` (`run-flags.md`) lets a run pin every subagent dispatch to one model, bypassing this policy's own per-step selection. Classification and the routing rules above are unchanged in what they select — this section changes only which model each selection resolves to.
+
+- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1 and §2.2 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
+- **Every dispatch.** Every `task` dispatch passes `model: <enforced>` explicitly, in §5's dispatch form, including agents whose frontmatter pins a tier: the dispatch's `model:` argument overrides the frontmatter pin. Every "frontmatter-pinned … no override" statement at a dispatch site reads "no override unless §10 enforces a model".
+- **Nested dispatch.** An agent that itself dispatches another (`docs-style-checker` → `dt-style-checker`; `upgrade-executor` / `vuln-fixer` → `test-baseliner`) receives `enforced_model` in its prompt and passes it on its own dispatch, so enforcement reaches every model a run touches.
+- **Steps unchanged.** Classification still runs and still selects the §3 sequence for the task's class. Enforcement changes which model each selected step runs on, never whether the step runs.
+- **The orchestrator.** The orchestrator stays on the session model; it cannot be switched from inside a running skill. `run-flags.md` §3 step 7 prints the one relaunch advisory when the two differ.
+- **Strong-tier-session gates do not fire.** Every gate or degrade path that tests `current_model` for a strong-tier session does not fire under enforcement — the whole class of them, since each exists to require or prefer a strong-tier session and the user has already chosen the model. Testing the enforced value in a gate's place would let a weak session pass a strong gate, since the inline grill or authoring these gates protect still runs on the session model.
+- **Degradation notices are suppressed.** §2's and §9's degradation notices are not emitted under enforcement — there is no fallback to announce. The report carries `Model routing: bypassed — enforced <id> (flag|env)` in place of what that field would otherwise record.

@@ -22,6 +22,8 @@ For one-off doc edits use direct mode; for Jira-driven feature documentation use
 
 ## Phase 0 — Resolve and validate the target repo
 
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill **only `--enforce-model` applies** — this skill dispatches no `impl-maintenance`, so an explicit `--skip-feedback` is reported ignored rather than acted on. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+
 1. **Resolve the repo path.** Take the first token of the argument (text following the `docs-profile:` trigger) as the target path; if the argument (text following the `docs-profile:` trigger) is empty, default to the current working directory. Resolve it to an absolute path and record it as `<repo>`. Treat a `--inline` token (in any position) as the inline-mode flag, not a path; record `inline = true` when present.
 
 2. **Validate it is a writeable git work tree:**

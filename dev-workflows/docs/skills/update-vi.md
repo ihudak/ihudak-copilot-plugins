@@ -8,7 +8,9 @@ Refreshes an existing Value Increment against its Jira source — routine update
 
 ## Synopsis
 
-    update-vi: <KEY> [@transcript-or-notes ...] [--no-docs]
+    update-vi: <KEY> [@transcript-or-notes ...] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 - **`<KEY>`** (mandatory) — the existing VI's Jira key. Format-validated only (`^[A-Z][A-Z0-9_]*-\d+$`).
 - **`[@transcript-or-notes ...]`** (optional) — one or more paths to a transcript or notes file, read as secondary, read-only grounding for the grill.

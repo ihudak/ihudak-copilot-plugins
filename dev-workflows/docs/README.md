@@ -57,6 +57,7 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 - [References](reference/references.md) — the reference-doc inventory under `skills/_shared/`, grouped by subtree.
 - [Environment](reference/environment.md) — every environment variable the plugin reads, and what it configures.
 - [Hooks](reference/hooks.md) — the bundled hooks and what each one does.
+- [Run flags](reference/run-flags.md) — the two flags that change how a run behaves rather than what it produces: `--skip-feedback`, `--enforce-model`, and their environment defaults. (`--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem.)
 - [Model routing](reference/model-routing.md) — the task-complexity classification and model fallback chain skills apply before acting.
 - [Session feedback](reference/session-feedback.md) — two different signals about the plugin itself: `feedback:` logs what you tell it, while `prompt:` / `prompt-brainstorm:` / `prompt-grill-me:` capture a bad result, your correction, and the good result that came out of it.
 - [Follow-ups](reference/follow-ups.md) — how a skill emits follow-up tasks into your vault.

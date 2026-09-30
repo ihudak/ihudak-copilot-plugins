@@ -8,7 +8,9 @@ Reads a Jira Epic or VI from exported markdown, lightly grounds in code, and aut
 
 ## Synopsis
 
-    specify: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--no-docs]
+    specify: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 Key distinction from [`epics:`](epics.md): `epics:` *splits* a VI into Epic drafts; `specify:` *authors one specification* for a single item. The VI-level path is genuinely valid, not a fallback of last resort: `specify: <VI>` with no focus Epic stays in the PE lane and produces one broad `specification.md` at the VI dir. What Phase 2 Step A does with a bare VI key depends on how many child Epics it has:
 

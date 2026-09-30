@@ -56,3 +56,5 @@ Selection prefers whichever of these the orchestrator is **already running under
 ---
 
 The full policy — the classification triggers in detail, the `model_routing` handoff block, the detection chain's role map, the mandatory strong-tier code-review checklist, and the large-input scan fan-out — is authoritative in [`../../skills/_shared/model-routing.md`](../../skills/_shared/model-routing.md). This page is a summary of it, not a substitute for it.
+
+To bypass this policy for one run and pin every dispatched subagent to a model you choose, see [`--enforce-model`](run-flags.md). It changes which model each selected step runs on, never which steps run — and never the model the orchestrator itself is on. Because the strong tier here spans vendors, a non-Claude peer (`gpt-*`, `gemini-*`) has no family alias and is named by its full id.
