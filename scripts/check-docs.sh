@@ -28,8 +28,8 @@ REF_FLAT_EXTRA=""                    # claude: model-routing -- there, reference
                                      # not a subtree
 DOC_CMD_DIR="skills"                 # claude: commands
 CLI="copilot"                        # claude: claude
-CLI_VERBS="marketplace add|install|update"   # claude: marketplace add|marketplace update|install|reinstall
-CLI_REQUIRED="marketplace add|update"   # claude: marketplace add|marketplace update -- the verb
+CLI_VERBS="marketplace add|install|update"   # claude: marketplace add|marketplace update|install|update
+CLI_REQUIRED="marketplace add|update"   # claude: marketplace add|marketplace update|update -- the verb
                                      # phrases getting-started.md must carry inline. A subset
                                      # of CLI_VERBS; differs per edition because Copilot
                                      # updates with `plugin update --all`, not a marketplace verb.
