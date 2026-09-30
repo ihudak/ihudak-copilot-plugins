@@ -69,7 +69,7 @@ related:
 ## Upgrade Result: spring-boot
 status: OK              # OK | BUILD_FAILED | SKIPPED | TEST_REGRESSION | TEST_REGRESSION_KEPT | TEST_REGRESSION_REVERTED | AWAITING_REVIEW | TESTS_NOT_RUN | BLOCKED
                         # TESTS_NOT_RUN: the component is upgraded and kept; the post-upgrade
-                        # verify could not run or ran only in part. NOT a verdict, NOT a revert.
+                        # verify could not run. NOT a verdict, NOT a revert.
                         # OK means the comparison happened and found no regression -- nothing else earns it.
 component: spring-boot
 from: "3.1.4"

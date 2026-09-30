@@ -57,14 +57,13 @@ reconstruct it.
 3. **Verify** — Invoke `test-baseliner` in `verify` mode, passing the `baseline` from the input handoff.
    - `status: OK` → all green, proceed to step 4.
    - `status: REGRESSIONS` → follow "Test regression" below.
-   - `status: RUN_FAILED`, `COMMAND_NOT_FOUND`, or `PARTIAL` → **keep the component.** Set
-     `status: TESTS_NOT_RUN` and return, naming in `notes` which of the three it was and the
+   - `status: RUN_FAILED` or `COMMAND_NOT_FOUND` → **keep the component.** Set
+     `status: TESTS_NOT_RUN` and return, naming in `notes` which of the two it was and the
      command that failed. **Do NOT revert, and do NOT report `BUILD_FAILED`.** Nothing was
-     compared in any of these states — an unrunnable or partially-run suite is a fact about the
+     compared in either state — an unrunnable suite is a fact about the
      environment at both ends and says nothing about this upgrade — so reverting discards a
      completed component on evidence that does not bear on it, and the build has already
-     succeeded at step 2, which is what `BUILD_FAILED` asserts. `PARTIAL` is incompleteness, not
-     a verdict.
+     succeeded at step 2, which is what `BUILD_FAILED` asserts.
 
    **The two states that still revert are the two that are about the change itself:** a build
    that could not be made to pass (`BUILD_FAILED`, step 2's own path), and a genuine regression
