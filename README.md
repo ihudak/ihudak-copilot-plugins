@@ -89,7 +89,7 @@ ihudak-copilot-plugins/
 ├── dev-workflows/
 │   ├── .plugin/plugin.json
 │   ├── README.md
-│   ├── agents/               ← 34 sub-agents, dispatched via task(agent_type: "dev-workflows:<name>")
+│   ├── agents/               ← 35 sub-agents, dispatched via task(agent_type: "dev-workflows:<name>")
 │   └── skills/
 │       ├── implement/
 │       ├── document/

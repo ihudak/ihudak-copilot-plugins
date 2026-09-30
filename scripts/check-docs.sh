@@ -219,7 +219,7 @@ check_inventory() {
 
   # reference FILES <-> docs/reference/references.md
   while IFS= read -r n; do
-    grep -qF "\`$n\`" "$d/reference/references.md" 2>/dev/null || fail 4 "reference file '$n' is absent from reference/references.md"
+    grep -qE "^[|-] .*\`$n\`" "$d/reference/references.md" 2>/dev/null || fail 4 "reference file '$n' has no row/entry in reference/references.md (a prose mention is not one)"
   done < <({ ls "$p/$REF_DIR"/*.md 2>/dev/null; ls "$p/$REF_DIR"/*.yaml 2>/dev/null; \
              [ -n "$REF_FLAT_EXTRA" ] && ls "$p/$REF_DIR/$REF_FLAT_EXTRA"/*.md 2>/dev/null; } | sed 's|.*/||')
   while IFS= read -r n; do
@@ -249,7 +249,7 @@ check_inventory() {
 
   # hooks <-> docs/reference/hooks.md
   while IFS= read -r n; do
-    grep -q "\`$n\`" "$d/reference/hooks.md" 2>/dev/null || fail 4 "hook '$n' is absent from reference/hooks.md"
+    grep -qE "^[|-] .*\`$n\`" "$d/reference/hooks.md" 2>/dev/null || fail 4 "hook '$n' has no row/entry in reference/hooks.md (a prose mention is not one)"
   done < <(ls "$p/hooks"/*.sh 2>/dev/null | sed 's|.*/||; s|\.sh$||')
   while IFS= read -r n; do
     [ -f "$p/hooks/$n.sh" ] || fail 4 "reference/hooks.md names '$n', which is not a hook"
@@ -267,7 +267,7 @@ check_inventory() {
     note "check 4 skills forward-check not applicable: skills/ is this edition's \$CMD_DIR, already covered by the command inventory above"
   else
     while IFS= read -r n; do
-      grep -q "\`$n\`" "$d/reference/references.md" 2>/dev/null || fail 4 "skill '$n' is absent from reference/references.md"
+      grep -qE "^[|-] .*\`$n\`" "$d/reference/references.md" 2>/dev/null || fail 4 "skill '$n' has no row/entry in reference/references.md (a prose mention is not one)"
     done < <(ls -d "$p/skills"/*/ 2>/dev/null | sed 's|/*$||; s|.*/||')
   fi
   while IFS= read -r n; do
@@ -506,17 +506,23 @@ check_prose_counts() {
       || fail 9 "$label: ${file#$root/} says $raw ($claimed), tree has $actual"
   }
 
-  _one "commands"        "$p/README.md"                  '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) slash commands'    "$(cmd_names "$p" | wc -l | tr -d ' ')"
-  _one "agents"          "$d/reference/agents.md"        '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) agents'           "$(ls "$p/agents"/*.md 2>/dev/null | wc -l | tr -d ' ')"
-  _one "reference files" "$d/reference/references.md"    '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) files'           "$(find "$p/$REF_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')"
-  _one "hooks"           "$d/reference/hooks.md"         '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) hooks'                   "$(ls "$p/hooks"/*.sh 2>/dev/null | wc -l | tr -d ' ')"
+  # Left-anchored, on EVERY alternation below without exception: without a boundary, an
+  # unenumerated compound like "twenty-five" would let the bare alternative "five" match its own
+  # tail and silently compare the wrong numeral instead of failing loudly -- "twenty-five slash
+  # commands" over a tree of five passed. (^|[^[:alnum:]_-]) keeps the match from starting
+  # mid-word or mid-compound; a captured boundary character is whitespace in every real sentence,
+  # so it disappears when `awk '{print $1}'` splits the extracted match.
+  _one "commands"        "$p/README.md"                  '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) slash commands'    "$(cmd_names "$p" | wc -l | tr -d ' ')"
+  _one "agents"          "$d/reference/agents.md"        '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) agents'           "$(ls "$p/agents"/*.md 2>/dev/null | wc -l | tr -d ' ')"
+  _one "reference files" "$d/reference/references.md"    '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) files'           "$(find "$p/$REF_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')"
+  _one "hooks"           "$d/reference/hooks.md"         '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) hooks'                   "$(ls "$p/hooks"/*.sh 2>/dev/null | wc -l | tr -d ' ')"
   # Inert where $CMD_DIR IS "skills" (see check 4's skills forward-check, same reason):
   # ls -d "$p/skills"/*/ would count this edition's commands plus $CMD_EXCLUDE, not
   # bundled skills -- there is no separate "N bundled skills" sentence to state there.
   if [ "$CMD_DIR" = "skills" ]; then
     note "check 9 skills-count assertion not applicable: skills/ is this edition's \$CMD_DIR, already counted by the commands assertion above"
   else
-    _one "skills"          "$d/README.md"                  '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) bundled skills'           "$(ls -d "$p/skills"/*/ 2>/dev/null | wc -l | tr -d ' ')"
+    _one "skills"          "$d/README.md"                  '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) bundled skills'           "$(ls -d "$p/skills"/*/ 2>/dev/null | wc -l | tr -d ' ')"
   fi
 
   # The user-settable total is derived the same way check 5 derives its scan, so the two
@@ -530,7 +536,7 @@ check_prose_counts() {
     case " $RUNTIME_VARS " in *" $v "*) continue ;; esac
     n_settable=$((n_settable + 1))
   done
-  _one "environment variables" "$d/reference/environment.md" '(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) user-settable' "$n_settable"
+  _one "environment variables" "$d/reference/environment.md" '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|twenty-one|thirty-four|ninety-eight|[0-9]+) user-settable' "$n_settable"
 
   # The size of the cost-emitting set is prose too, and it is the count that went stale the
   # moment /prompt and /feedback started emitting. Derived from the same extractor check 8 uses.
@@ -538,7 +544,7 @@ check_prose_counts() {
     local n_emit
     n_emit=$(emit_cost_calls "$p" | cut -d'|' -f1 | sort -u | grep -c . || true)
     _one "cost-emitting commands" "$d/reference/session-cost.md" \
-         '(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty-one|thirty-four|ninety-eight|[0-9]+) commands emit a cost entry' "$n_emit"
+         '(^|[^[:alnum:]_-])(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty-one|thirty-four|ninety-eight|[0-9]+) commands emit a cost entry' "$n_emit"
   else
     note "check 9 cost-emitting-commands assertion not applicable: this edition has no cost subsystem"
   fi
@@ -608,6 +614,16 @@ selftest() {
   # a line absent from the root README, so it is extracted AND counts as extra.
   expect_fail "an install line absent from the root README is rejected" 7 "printf '\n$CLI plugin ${CLI_VERBS##*|} ${PLUGIN_REL##*/}@extra-fixture-target\n' >> $PLUGIN_REL/docs/getting-started.md"
   expect_fail "a drifted prose count is rejected"              9 "mkdir -p $(dirname $(cmd_file $PLUGIN_REL gamma)) 2>/dev/null; printf -- '---\nname: gamma\n---\n' > $(cmd_file $PLUGIN_REL gamma) && printf -- '# /gamma\n\nPage.\n' > $PLUGIN_REL/docs/$DOC_CMD_DIR/gamma.md && sed -i.bak 's|($DOC_CMD_DIR/alpha.md)|($DOC_CMD_DIR/alpha.md), [\`/gamma\`]($DOC_CMD_DIR/gamma.md)|' $PLUGIN_REL/docs/README.md"
+  # The agents direction was row-anchored; its three siblings (reference files, hooks, skills)
+  # accepted a prose mention as "documented". This case pins the fix for the hook direction.
+  expect_fail "a hook row replaced by a prose mention is rejected" 4 \
+    "F=$PLUGIN_REL/docs/reference/hooks.md; h=\$(grep -oE '^\| \`[a-z-]+\`' \$F | head -1 | tr -d '|\` '); sed -i.bak \"/^| \\\`\$h\\\`/d\" \$F; printf 'The \`%s\` hook is described here in prose.\\n' \"\$h\" >> \$F"
+  # The anchor's own case. The fixture has ONE command, and "forty-one" is a compound the
+  # alternation does NOT enumerate whose tail is the true count: unanchored, the bare "one"
+  # matches inside it and the wrong sentence passes (1 == 1); anchored, nothing matches at a
+  # word boundary and check 9 fires with "no count sentence found". An ENUMERATED compound
+  # ("twenty-one") would not discriminate -- leftmost-longest reads it whole either way.
+  expect_fail "an unenumerated compound numeral is not read as its own tail" 9 "sed -i.bak 's|one slash commands|forty-one slash commands|' $PLUGIN_REL/README.md"
   expect_fail "a count sentence reworded away is rejected"     9 "sed -i.bak 's|one slash commands|a handful of slash commands|' $PLUGIN_REL/README.md"
   expect_fail "a wrong non-ASCII anchor is rejected"           2 "printf '\n[bad](#uber-config)\n' >> $PLUGIN_REL/docs/$DOC_CMD_DIR/alpha.md"
   expect_fail "a wrong duplicate-heading index is rejected"    2 "printf '\n[bad](#notes-2)\n' >> $PLUGIN_REL/docs/$DOC_CMD_DIR/alpha.md"

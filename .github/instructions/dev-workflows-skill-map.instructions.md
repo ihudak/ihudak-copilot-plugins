@@ -82,10 +82,10 @@ Key invariants enforced by all three code orchestrators (`implement:`, `vuln:`, 
 - `impl-maintenance` runs post-batch to update KB, `copilot-instructions.md`, and project docs
 
 Key invariants for `implement:` specifically:
-- Test baseline captured (Phase 2.6) **before** any source edits, using `test-baseliner`
-- `test-writer` sub-agent (Phase 3.7) writes tests for **new/changed behaviour** — mandatory for code changes
-- If no test framework is detected, user is asked explicitly — test-writing is never silently skipped
-- Full test suite verified against baseline (Phase 3.8) before Phase 4
+- Test baseline captured (Pre-Phase 3.5) **before** any source edits, using `test-baseliner` — every suite its detection table covers, all of them in a polyglot repository; a `PARTIAL` capture proceeds and names what it did not cover, and a `CAVEAT: ` note is surfaced whatever the `Status`
+- `test-writer` sub-agent (Phase 3.5 step 1; Phase 3B step 4a on the review-gated path) writes tests for **new/changed behaviour** — mandatory for code changes
+- If the pre-edit baseline captures nothing (`COMMAND_NOT_FOUND` or `RUN_FAILED`), the user is asked at Pre-Phase 3.5 — where a baseline can still be taken — never after the edits; a supplied command is recorded as `test_command_hint` and carried as `command_hint` on every later `test-baseliner` dispatch — test-writing is never silently skipped
+- Full test suite verified against baseline (Phase 3.5 step 4) before Phase 4
 
 Key invariants for `document:` doc-edit mode:
 - **No branch creation by default** — works on current branch unless user requests one
