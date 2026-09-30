@@ -138,7 +138,9 @@ Author `<KEY>_<slug>.md` live against `~/.copilot/installed-plugins/ihudak-copil
 7. **Scope** (In / Out)
 8. **Success Metrics** (`[SM#N]`)
 
-Then author the profile's **adapt-in clusters**, each **pulled only when the idea warrants it** (never an empty section). **For a complex VI (`classification` SIGNIFICANT), actively author the `[FR#N]` (full) and `[UC#N]` (hybrid/full) clusters** within the chosen profile — lower the bar for pulling them in, because ID'd functional requirements and use cases feed a finer downstream `epics:` `_coverage.md` (traceability to `[FR#N]`/`[UC#N]`, not only `US`/`AC`/`SM`); still never an empty section. Fold the idea's open `[NEEDS CLARIFICATION]` into the grill; resolve to zero where possible, leaving genuinely-unresolvable ones under `## Assumptions & open questions` (hybrid/full). Keep the VI **product-level** — no implementation detail. **Self-consistency check:** before writing each section, check it against the already-settled sections — a new `[AC#N]` must not deliver an Out-of-scope behaviour, the `## Goal` must not assert a scope the `## Scope` contradicts, and `[US#N]`s must not conflict. Resolve any contradiction inline with the user, or record it under `## Assumptions & open questions` — never leave it implicit (the Opus `vi-reviewer` flags a silently-baked contradiction).
+Then author the profile's **adapt-in clusters**, each **pulled only when the idea warrants it** (never an empty section). **For a complex VI (`classification` SIGNIFICANT), actively author the `[FR#N]` (full) and `[UC#N]` (hybrid/full) clusters** within the chosen profile — lower the bar for pulling them in, because ID'd functional requirements and use cases feed a finer downstream `epics:` `_coverage.md` (traceability to `[FR#N]`/`[UC#N]`, not only `US`/`AC`/`SM`); still never an empty section. Fold the idea's open `[NEEDS CLARIFICATION]` into the grill; resolve to zero where possible, leaving genuinely-unresolvable ones under `## Assumptions & open questions` (hybrid/full). Keep the VI **product-level** — no implementation detail. **Self-consistency check:** before writing each section, check it against the already-settled sections — a new `[AC#N]` must not deliver an Out-of-scope behaviour, the `## Goal` must not assert a scope the `## Scope` contradicts, and `[US#N]`s must not conflict. **Test every criterion against the `## Goal` too, not only against `## Scope` and its siblings** — an `[AC#N]` can be perfectly consistent with every other criterion and still defeat the outcome the VI was written to deliver, which no sibling comparison catches.
+
+**Docs grounding is evidence about the status quo, never a requirement.** Where a criterion is derived from a `docs_challenges` entry or any other grounding digest, the documented behaviour describes **what the product does today**. A VI that exists to *change* that behaviour must state explicitly, per imported constraint, whether it is being **inherited or overridden** — importing one unexamined inverts the feature's own value. The measured case: a VI whose entire purpose was to let customers override default update behaviour transcribed the platform's documented version-pruning rule straight into an acceptance criterion, which then contradicted the Goal, a use case, and another criterion — the document retained a build it then refused to offer. Treat a documented rule as an input to the grill, and ask which side of it this VI is on. Resolve any contradiction inline with the user, or record it under `## Assumptions & open questions` — never leave it implicit (the `vi-reviewer` gate flags a silently-baked contradiction).
 
 ---
 
@@ -154,7 +156,20 @@ is a **quality enhancement, not a gate** — it never blocks the handoff.
   >
   > files:    [absolute path to <KEY>_<slug>.md]
   > doc_type: prd
-  > emphasis: terminology and customer-facing captions, labels, messages, and text"
+  > emphasis: terminology and customer-facing captions, labels, messages, and text
+  >
+  > known_conventions:
+  >   - the section headings mandated verbatim by `_shared/vi-format.md` and matched
+  >     literally by `pre-lint.md`'s required-heading grep — sentence-casing them fails the
+  >     plugin's own lint
+  >   - the `&` in `## Use cases & user journey` and `## Assumptions & open questions`,
+  >     mandated verbatim by `vi-format.md`'s adapt-in table and parsed literally by
+  >     `jira-reader.md` on Jira re-import — expanding it to "and" breaks the round-trip
+  >   - spaced em dashes, the house convention in every plugin-authored artifact in the
+  >     specs repo
+  >   - bracketed requirement IDs (`[AC#1]`, `[US#1]`, `[SM#1]`, `[UC#1]`, `[FR#1]`)
+  >   - wikilinked tracker keys
+  >   - this is an internal planning document, exempt from the trademark/(R) rule"
 
 Act on the return:
 - **`OK`** — proceed to Phase 4.

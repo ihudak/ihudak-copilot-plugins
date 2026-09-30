@@ -232,6 +232,21 @@ destination decides the draft's whole shape. Confirm it by **consequence**, neve
 This fires ONLY when `imported_change_type` was null; when the Jira dropdown is already set, no
 prompt appears.
 
+**Contradictory Jira fields — report, never gate.** `relevant_for_release_notes` and
+`imported_change_type` can say opposite things: `relevant_for_release_notes: "Yes"` together
+with `change_type: "Not applicable"` is one field asserting a note is warranted and the other
+asserting none is authored. `release-note-types.md` §7 treats `not applicable` as
+non-routable and falls through to §2 inference, so the run still produces a correct draft —
+and resolves the contradiction **silently**, which is the defect. Both values are already in
+hand by this point, so cross-reference them: when `relevant_for_release_notes` is true and
+`imported_change_type` is present but non-routable, carry a note into the Phase 8 report
+naming **both values**, stating that the destination came from inference rather than the
+dropdown, and recommending the dropdown be corrected. This is a **report line, not a gate** —
+the run still produces the draft. It matters past tidiness because the docs automation that
+finally emits the note may route on the dropdown directly, in which case a correctly drafted
+note is pasted into Jira and then never published, with no visible symptom at the one point
+where someone could still fix it.
+
 State the inference, then ask:
 
 > This note reads like a `<proposed type>`, so the draft is shaped as `<shape>` and lands in
@@ -274,7 +289,24 @@ Pass `code_repos` (the Phase-4 resolved map) to the writer when diff-grounding i
 
 If the user chose a style check AND the `dt-style-guide` plugin is installed:
 
-→ task(agent_type: "dt-style-guide:dt-style-checker") on the `combined_rendered` draft (write it to the destination first when the destination is a file, or pass it inline). If violations are returned and the user chose auto-fix:
+→ task(agent_type: "dt-style-guide:dt-style-checker") on the `combined_rendered` draft (write it to the destination first when the destination is a file, or pass it inline). **Never dispatch this bare** — pass `doc_type` and a `known_conventions` block, because the auto-fix path below applies findings mechanically and a wrong MAJOR therefore reaches the draft unchallenged:
+
+```
+> files:    [the rendered draft]
+> doc_type: product-docs
+> emphasis: terminology and customer-facing prose
+>
+> known_conventions:
+>   - the shipped Managed documentation corpus carries NO (R) symbol on the product name;
+>     adding one here would make this the only release note in the corpus with it
+>   - "Cluster Management Console" is a distinct surface from the Environment UI; do NOT
+>     rewrite it to the branded web-UI term, which denotes the other surface
+>   - spaced em dashes, the house convention across the specs repo
+```
+
+The two conventions above are not hypotheticals: a bare dispatch on one release note returned exactly two MAJOR findings and **both were wrong** — the (R) rule fired against a corpus that omits it in all 130 occurrences of the product name, and the web-UI term was proposed for a sentence about the Cluster Management Console, which would have put a **factual error about a product surface into customer-facing documentation**. `doc-fixer.md` states that style-checker findings receive no triage before application ("a linter violation is not a claim about consequence") — sound for a deterministic linter, unsound for an LLM-based checker grounded only in generic vendored references. Preventing the finding is the fix; triaging it afterwards is not.
+
+If violations are returned and the user chose auto-fix:
 
 → task(agent_type: "dt-style-guide:dt-doc-fixer") to apply safe fixes.
 
@@ -285,7 +317,22 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 ## Phase 8 — Write + report
 
 1. **Write** the `combined_rendered` draft to the resolved destination:
-   - `file:<path>` → write it. If the file exists, ask: `["Overwrite", "Write to <path>.new", "Print to screen instead", "Skip"]`.
+   - `file:<path>` → write it. If the file exists, **archive it first, then ask**: copy the
+     existing file to `<path>.<YYYYMMDD-HHMMSS>.bak` before offering
+     `["Overwrite (the current draft is archived first)", "Write to <path>.new", "Print to screen instead", "Skip"]`.
+     The archive is unconditional and silent — it happens before the prompt, so "Overwrite"
+     cannot be the choice that loses a draft. **Why this matters here specifically:** the
+     destination is one persistent file per VI, and the draft it holds may be the one already
+     pasted into Jira, so the prior text is the record of what was published. Name the archive
+     path in the Phase 8 report.
+
+     **This is deliberately not the upstream append-per-section design.** `ai-workflows`
+     solved its own version of this by making Phase 8 append a section per version and never
+     ask — correct there, because its destination accumulates a release-notes history in the
+     PRD folder. This skill's destination is a single current draft to be pasted and then
+     superseded, so accumulating sections would put stale drafts, including ones a later VI
+     update has falsified, in the file someone pastes from. Overwrite stays the right default;
+     what was wrong was doing it without a copy.
    - `stdout` → include the full draft in the report under `### Release-notes draft`.
    - `skip` → do not write.
    NEVER write into a docs repo.

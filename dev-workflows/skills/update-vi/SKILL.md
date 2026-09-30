@@ -102,7 +102,11 @@ Run the corporate style check on the updated VI **before** the review gate — a
   >
   > files:    [absolute path to the updated <KEY>_<slug>.md]
   > doc_type: prd
-  > emphasis: terminology and customer-facing captions, labels, messages, and text"
+  > emphasis: terminology and customer-facing captions, labels, messages, and text
+  >
+  > known_conventions: [`create-vi:` Phase 3.5's block, verbatim — the format-mandated headings, the `&` headings, spaced em dashes, bracketed requirement IDs, wikilinked tracker keys, and the internal-document trademark exemption]"
+
+Passing `known_conventions` is what keeps the checker from raising findings that cannot be applied without failing the plugin's own lint.
 
 Act on the return: `OK` → proceed; `VIOLATIONS_FOUND` → apply the MAJOR fixes inline and re-run `dt-style-checker` once (record remaining MINOR/NIT); `ERROR` → surface and proceed (non-gating). If `dt-style-checker` is unavailable (the `dt-style-guide` plugin is not installed), **skip gracefully** and note `SKIPPED (dt-style-checker unavailable)`.
 

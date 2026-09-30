@@ -11,6 +11,15 @@ The following terms carry the ® symbol. Use ® on **first mention per page/docu
 only. Never use ® in headings, titles, or pluralised forms. Never make a trademarked
 term possessive when the ® symbol is attached.
 
+**Corpus exception — follow the corpus you are writing into, not this rule alone.** Where the
+shipped documentation for a product line omits the symbol throughout, do **not** introduce it:
+a single page carrying ® in a corpus that has none reads as an error, not as compliance. The
+measured case is the Managed documentation, which carries **zero** ® symbols across 130
+occurrences of "Dynatrace Managed" in `whats-new/`. Check the destination corpus before
+raising a missing-® finding, and never raise one at MAJOR on that evidence alone — this rule
+had no product-line exception, and applying it faithfully to Managed content produced a wrong
+MAJOR that an auto-fix path would have applied unchallenged.
+
 - Dynatrace®
 - OneAgent®
 - PurePath®
@@ -147,8 +156,9 @@ Optional prefix "Dynatrace" shown in brackets.
 | browser clickpath | clickpath monitor | |
 | Data Explorer | Data explorer (lowercase e) | |
 | Dynatrace Cluster | Dynatrace Server | |
+| Cluster Management Console | CMC (on first mention), cluster console, management console | The Managed cluster administration surface — **not** the Environment UI, and not interchangeable with "Dynatrace web UI". `CMC` is acceptable after first mention. |
 | Dynatrace environment | Dynatrace tenant | Never use "tenant" |
-| Dynatrace web UI | interface | |
+| Dynatrace web UI | interface | **Denotes the Environment UI specifically.** Do NOT apply this mapping to a sentence about the **Cluster Management Console**, a different surface (139 occurrences in the Managed documentation, and absent from these references until now) — rewriting one to the other is a factual error about the product, not a style fix. Where the surface is unclear from the sentence, ask rather than substitute. |
 | extension | plugin, add-on | Except "Plugins API" |
 | Full-Stack Monitoring (product); full-stack monitoring (generic) | full stack monitoring | |
 | Grail data lakehouse | Grail database | It's a lakehouse |

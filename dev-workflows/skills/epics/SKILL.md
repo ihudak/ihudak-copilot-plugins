@@ -399,7 +399,17 @@ Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (J
   >
   > files:    [absolute paths of every Epic file written in Phase 6]
   > doc_type: epic
-  > emphasis: terminology and customer-facing captions, labels, messages, and text"
+  > emphasis: terminology and customer-facing captions, labels, messages, and text
+  >
+  > known_conventions:
+  >   - the section headings mandated verbatim by the Epic template and matched
+  >     literally by `pre-lint.md`'s required-heading grep — sentence-casing them fails the
+  >     plugin's own lint
+  >   - spaced em dashes, the house convention in every plugin-authored artifact in the
+  >     specs repo
+  >   - bracketed requirement IDs (`[AC#1]`, `[US#1]`, `[SM#1]`, `[UC#1]`, `[FR#1]`)
+  >   - wikilinked tracker keys
+  >   - this is an internal planning document, exempt from the trademark/(R) rule"
 
 Act on the return:
 
