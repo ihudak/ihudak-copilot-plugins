@@ -6,6 +6,32 @@ Versions follow semver at the plugin level.
 
 ## [2.32.0] — 2026-09-30
 
+### Added — six more test stacks, and the repository's own test command where none is detected
+
+Written in the same change as `ai-workflows` `dev-workflows` 4.4.0 and the Claude edition; the agent body is the same in all three apart from each edition's command naming.
+
+- **`test-baseliner` detects six more stacks: .NET, PHP, Scala (sbt), Elixir (Mix), Dart and Flutter, and C++ (CTest).** Each row was measured against the runner's own output before it was written — .NET SDK 10.0.401, PHPUnit 13.3.6 and Pest 5.2.1 on PHP 8.4.8, sbt 1.11.7 with ScalaTest 3.2.19 and MUnit 1.1.1, Elixir 1.20.4 and 1.18.4, Dart 3.13.5 with `package:test` 1.32.0, Flutter 3.47.5, CMake 4.4.3 — and six of the commands differ from what each tool's documentation would have produced:
+  - .NET is one suite per test project, never per solution, because NUnit and MSTest print a test as its bare method name; the qualifier reads the project file for a test package because the MSTest template names only `MSTest`; and a `global.json` selecting Microsoft.Testing.Platform switches the command, since that runner rejects VSTest's `--logger` and exits 5 having run nothing while still printing `total: 0`.
+  - PHP runs `vendor/bin/pest` where it exists — `phpunit` over a Pest suite exits 255 — and `--testdox`, which is what names each test.
+  - sbt carries `NO_COLOR=1`, because MUnit colours piped output and ignores sbt's `-no-colors`, and reads two count lines, because sbt prints its own for MUnit and not for ScalaTest, which prints its own instead.
+  - Mix carries `--trace`, the only way to have passing tests named, and reads both summary formats — Elixir 1.20 prints `Result: 3/4 passed (…)` where 1.18 printed `1 doctest, 4 tests, 1 failure`.
+  - Dart asks for the `github` reporter, the one that prints a line per finished test; a Flutter package runs under `flutter test`, since `dart test` over one exits 65; and a package qualifies only with a `*_test.dart` file, since without one the runner exits 65 or 79 instead of reporting zero.
+  - CTest builds the configured tree before running `ctest` and never configures one: measured, `ctest` over a stale tree reported `100% tests passed` where a rebuild reported `0%`.
+- **Where nothing in the table qualifies, `test-baseliner` runs the test command the repository declares for itself** before returning `COMMAND_NOT_FOUND`. It reads the CI configuration — GitHub Actions, GitLab, CircleCI, Azure Pipelines, Bitbucket Pipelines, Jenkins — then `CONTRIBUTING.md` and `README.md`, stops at the first that yields a command, takes the one line of each step that runs the tests, and refuses a line carrying a CI expression, `sudo`, or an install, deploy or publish. Each is a `declared#<n>` suite, parsed with the table's row where its command names a runner the table knows, and every one carries a `CAVEAT: ` note naming its source. It fires only where the table matched nothing, so a declared command never runs beside or instead of a detected suite, and a verify runs the command the capture ran, read back from the baseline rather than re-read from a file the change may have edited.
+
+### Changed — with it
+
+- **A suite whose output yields no count or no test name is recorded by its exit status** — one test, `exit status 0` — where it read `RUN_FAILED` with counts of 0 before. That is the `Make` row's best-effort case, a declared suite, and a `command_hint` naming no runner in the table. A `make test` printing no count pattern used to fail at capture, and supplying `make test` as the operator's command hit the same wall; and a suite with counts but no test names could lose every test without verify seeing it, since verify compares identifiers only. What the rule gives up is which test broke, and its note is marked.
+- **`test-baseliner` prunes `deps/` and follows no symbolic link**: Mix fetches each dependency, with its own `mix.exs`, into `deps/`, and a Flutter application links each plugin into its platform directories, where two measured plugins would have qualified as suites of the repository.
+- **A `Makefile` CMake generated is no `Make` marker**: its `test` target runs `ctest` without building, which is the stale-tree measurement above arriving through the wrapper rule.
+- **A test identifier one suite prints more than once is a marked note**, since the lists record it once and a loss of one copy is masked by the other — ordinary on .NET, where two classes of one project naming a method alike print one bare name twice.
+- `test-writer` treats a `hinted` or `declared` framework as a command rather than a runner: it writes against the conventions of the tests that command already runs, and writes nothing rather than inventing a framework where it finds none.
+- The test-suite-detection page publishes the six rows, what was measured for each, the declared-command fallback and three more known limits: a suite recorded by exit status says that something broke but not what, Mix's `--trace` lifts per-test timeouts, and a test name printed twice is recorded once.
+
+### Changed
+
+- The §2.1 chain-head references in `/implement`, `/ready`, `/upgrade`, `/vuln` and `/design`, and the fallback chain on the model-routing docs page, name `claude-sonnet-5-5` — the current Sonnet, which no routing path could previously select.
+
 ### Changed — model routing splits by role
 
 - **Anthropic models do the work; top OpenAI models review it.** `model-routing.md` §2 was one multi-vendor peer set for every reasoning-heavy step. It is now two tiers. **§2 is the work tier** — planning and planning critique, synthesis, delegated authoring, implementation, fixes — Anthropic-first: Opus 5.5 → 5 → 4.8 → 4.7 → 4.6 → 4.5, then Sonnet 5.5 → 5 → 4.6 → 4.5 → Gemini 3.1 Pro Preview as announced degradations. **New §2.3 is the review tier** — every gate that judges (`code-review`, `doc-reviewer`, and the VI, ARD, spec, design, Epic and readiness reviewers) — OpenAI-first: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → the whole of §2. Two different models over one artifact catch more than one model looking twice, and a reviewer with no stake in the authoring is the point of a gate.

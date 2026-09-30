@@ -55,7 +55,7 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 ## Reference
 
 - [Agents](reference/agents.md) — the subagent inventory: what each of the 35 helper agents does and which skill calls it.
-- [Test suite detection](reference/test-suite-detection.md) — the eleven marker rows `test-baseliner` scans for, what each one runs, what happens to a stack the table does not list, and what adding one takes.
+- [Test suite detection](reference/test-suite-detection.md) — the seventeen marker rows `test-baseliner` scans for, what each one runs, the repository-declared test command it falls back to for a stack the table does not list, and what adding one takes.
 - [References](reference/references.md) — the reference-doc inventory under `skills/_shared/`, grouped by subtree.
 - [Environment](reference/environment.md) — every environment variable the plugin reads, and what it configures.
 - [Hooks](reference/hooks.md) — the bundled hooks and what each one does.

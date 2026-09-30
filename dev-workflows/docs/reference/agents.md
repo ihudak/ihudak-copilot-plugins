@@ -41,7 +41,7 @@ Read-only discovery and grounding — each returns a structured digest rather th
 | `jira-reader` | per routing | view, glob, grep | Reads a pre-exported Jira markdown hierarchy from the vault and returns a structured handoff — linked items, PR URLs with host classification, capability themes. | `create-ard:`, `document:`, `epics:`, `implement:`, `ready:`, `release-notes:`, `specify:` |
 | `vault-prior-art-finder` | per routing | view, glob, grep | Searches the vault for tracked initiatives that cover, precede, parallel, or are superseded by new work, returning each match classified, status-resolved, and summarised. | `idea:`, `create-vi:` |
 | `vuln-research` | per routing | view, grep, glob, bash, web_fetch | Read-only CVE research phase — NVD lookup, library detection in the repository, current-version discovery, and minimum-safe-version resolution. Has no side effects. | `vuln:` |
-| `test-baseliner` | per routing | bash, view, glob | Runs every test suite its [detection table](test-suite-detection.md) covers, all of them in a polyglot repo, in two modes — capture a baseline, or verify a later run against one. | `implement:`, `upgrade:`, `vuln:` |
+| `test-baseliner` | per routing | bash, view, glob | Runs every test suite its [detection table](test-suite-detection.md) covers, or else the test command the repository declares, in two modes — capture a baseline, or verify a later run against one. | `implement:`, `upgrade:`, `vuln:` |
 
 ## Writers
 
