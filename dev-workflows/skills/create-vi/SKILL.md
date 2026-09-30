@@ -75,6 +75,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
   enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # impl-maintenance
   review_model:    <§2.3 review tier>     # vi-reviewer (caller-pinned via `task(model:)`; recorded)
   authoring_model: <= current_model>   # the interactive grill + VI authoring (session model, not a delegated subagent)

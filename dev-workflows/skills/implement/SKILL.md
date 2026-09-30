@@ -162,6 +162,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator is running under>   # = the inline implementation coding
   enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer
   planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)
   review_model:  <§2.3 review tier>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)

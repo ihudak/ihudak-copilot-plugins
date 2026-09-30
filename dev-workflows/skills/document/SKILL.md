@@ -255,6 +255,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator is running under>   # = the inline writer + Phase 5.8 framing
   enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>
   planning_model:  <§2 powerful chain: claude-opus-5.5 … fallback Sonnet per §2>   # doc-planner (5.7)
   review_model:    <§2.3 review tier>     # doc-reviewer (dispatch-pinned to this chain; recorded here, no override added unless §10 enforces a model)
