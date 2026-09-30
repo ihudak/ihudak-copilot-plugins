@@ -5,7 +5,7 @@
 ```yaml
 jira_reader_handoff: <full YAML from jira-reader; see ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/jira-reader.md output schema>
 diff_summaries:      <optional array of diff-summarizer outputs; one entry per repo; omit when diff-grounding is off>
-code_repos:          <optional array of {slug, path}; provided when diff-grounding is on — enables the writer's Source-truth check>
+code_repos:          <optional array of {slug, path}; provided when diff-grounding is on — enables the code half of the writer's Source-truth check (8b); the acceptance-criteria half (8a) runs without it>
 imported_change_type:            <change_type from the imported VI frontmatter (jira-reader handoff); null otherwise>
 imported_release_notes_category: <release_notes_category from the imported VI frontmatter; null otherwise — used verbatim as the {{#context}} label>
 run_phase:                       <"pm" | "dev" — inferred by the skill from whether specification.md / design.md exist under the VI's specs dir; gates the release-note-types.md §4 documentation-link rule only>
