@@ -129,7 +129,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # code-scanner, interface-designer, impl-maintenance
-  review_model:    <§2 Opus chain>     # design-reviewer (caller-pinned; recorded)
+  review_model:    <§2.3 review tier>     # design-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + design.md authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -325,7 +325,7 @@ enforces the open-questions hard block).
 
 Dispatch `design-reviewer` (Opus):
 
-→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2 Opus chain; caller-pinned, recorded>`):
+→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2.3 review tier; caller-pinned, recorded>`):
   > "Review the design for this brief:
   >
   > Design path:        [absolute path to design.md]
@@ -344,8 +344,10 @@ Dispatch `design-reviewer` (Opus):
   report; no mandatory fix cycle.
 - **`PASS`** / **`PASS WITH RECOMMENDATIONS`** — proceed to Phase 7.
 
-**Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended. Phase 7 will not hand off a `design.md` with any unresolved
+Cap: one fix cycle + one re-review maximum. Phase 7 will not hand off a `design.md` with any unresolved
 `- [ ]`.
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 

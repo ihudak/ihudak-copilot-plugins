@@ -49,7 +49,7 @@ Exactly one Summary, rendered against [`skills/_shared/release-note-types.md`](.
 
 ## Gates
 
-No Opus review and no branch — `release-notes:` is a **light gate only**. Phase 7's optional style check runs `dt-style-guide:dt-style-checker` on the rendered draft when the user opts in and the `dt-style-guide` plugin is installed (skipped gracefully, noted in the report, when it isn't); safe fixes are applied by `dt-style-guide:dt-doc-fixer` on request, with no re-review cycle. When `release-notes-writer` returns `gaps[]` entries carrying `jira_phrasing` and `source_phrasing` (a Jira-vs-source discrepancy), Phase 6 walks the same per-claim discrepancy prompt [`document:`](document.md) (Jira mode) Phase 5.8 uses — decide per discrepancy, document all as code, document all as Jira, or skip and report (drafting a `<KEY>-implementation-gaps.md` bug report). The only two hard checkpoints across the whole run are the specs-repo git guards — `specs-preflight` at Phase 0, `commit-artifacts` at Phase 10.
+No review-tier review and no branch — `release-notes:` is a **light gate only**. Phase 7's optional style check runs `dt-style-guide:dt-style-checker` on the rendered draft when the user opts in and the `dt-style-guide` plugin is installed (skipped gracefully, noted in the report, when it isn't); safe fixes are applied by `dt-style-guide:dt-doc-fixer` on request, with no re-review cycle. When `release-notes-writer` returns `gaps[]` entries carrying `jira_phrasing` and `source_phrasing` (a Jira-vs-source discrepancy), Phase 6 walks the same per-claim discrepancy prompt [`document:`](document.md) (Jira mode) Phase 5.8 uses — decide per discrepancy, document all as code, document all as Jira, or skip and report (drafting a `<KEY>-implementation-gaps.md` bug report). The only two hard checkpoints across the whole run are the specs-repo git guards — `specs-preflight` at Phase 0, `commit-artifacts` at Phase 10.
 
 ## Example
 
@@ -65,4 +65,4 @@ The run resolves the VI under `$VAULT_PATH/jira-products/PRODUCT-4821`, confirms
 - [`release-note-types.md`](../../skills/_shared/release-note-types.md) — the destination map, per-destination draft shape, and Change Type sourcing this skill cites but never re-derives.
 - [`docs-grounding.md`](../../skills/_shared/docs-grounding.md) — the `dispatch-docs-grounder` indirection Phase 5.5 consumes.
 - [`jira-input-resolution.md`](../../skills/_shared/jira-input-resolution.md) — the shared front-end this skill's Synopsis argument resolves through.
-- [`model-routing.md`](../../skills/_shared/model-routing.md) — the classification rules Phase 1.5 applies (MODERATE, no Opus gate).
+- [`model-routing.md`](../../skills/_shared/model-routing.md) — the classification rules Phase 1.5 applies (MODERATE, no review gate).

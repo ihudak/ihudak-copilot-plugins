@@ -54,7 +54,7 @@ related:
 
 **phase values:**
 - `full` (or omitted) — apply changes, build, verify, output. Default.
-- `verify-resume` — second-call protocol after Opus review. Skip steps 1–2
+- `verify-resume` — second-call protocol after review-tier review. Skip steps 1–2
   (changes are already applied and built); resume at step 3 (Verify).
 - `regression-resume` — second-call protocol after the orchestrator asked the
   user about a `TEST_REGRESSION` return. Skip straight to "Test regression"
@@ -94,7 +94,7 @@ model_routing:           # echoed back when present in input
 - `TEST_REGRESSION_REVERTED` — the `regression-resume` call's `regression_decision` was `revert`
 - `AWAITING_REVIEW` — `gate_tests_on_review: true` was set; changes are
   applied and the build succeeded, but tests have **not** been run yet.
-  The orchestrator must perform the Opus code review, then re-invoke this
+  The orchestrator must perform the review-tier code review, then re-invoke this
   agent with `phase: verify-resume` to continue from the Verify step.
 - `BLOCKED` — the upgrade plan could not be read at the path the orchestrator supplied;
   nothing was changed. Per the read-failure contract
@@ -137,7 +137,7 @@ to: "3.3.11"
 related_applied:
   - {component: hibernate, from: "6.2.0", to: "6.4.0"}
 build: OK
-files_changed:                # full list — needed by the orchestrator's Opus review
+files_changed:                # full list — needed by the orchestrator's review-tier review
   - pom.xml
   - subproject/build.gradle
 notes: null                   # or any in-place adjustments made during apply

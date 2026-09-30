@@ -59,7 +59,7 @@ files:
 - `full` (or omitted) — baseline → create the fix branch → apply → build → verify. Default.
   The branch is created **before** the edit, so it exists on every path this agent can
   return from, including `AWAITING_REVIEW`.
-- `verify-resume` — second-call protocol after Opus review. Skip steps 1–4
+- `verify-resume` — second-call protocol after review-tier review. Skip steps 1–4
   (baseline, branch, fix, build are already done); resume at step 5 (Verify).
 - `regression-resume` — second-call protocol after the orchestrator asked the
   user about a `TEST_REGRESSION` return. Skip straight to "Test regression"
@@ -104,7 +104,7 @@ model_routing:           # echoed back when present in input
 - `AWAITING_REVIEW` — `gate_tests_on_review: true` was set; the branch exists and
   carries the applied fix, the build succeeded, but tests have **not** been run.
   The orchestrator must perform
-  the Opus code review, then re-invoke this agent with
+  the review-tier code review, then re-invoke this agent with
   `phase: verify-resume` to run Verify. Because the branch already exists, an
   orchestrator-side stop here still has somewhere to commit the work
   (`vuln:` Step 3.9 with `clean_finish: false`).
@@ -142,7 +142,7 @@ step 2 created it before the fix was applied):
 status: AWAITING_REVIEW
 branch: fix/MGD-2423-CVE-2023-46604
 build: OK
-files_changed:                # full list — needed by the orchestrator's Opus review
+files_changed:                # full list — needed by the orchestrator's review-tier review
   - pom.xml
 notes: null                   # or any in-place adjustments made during apply
 model_routing:

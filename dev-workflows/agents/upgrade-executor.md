@@ -112,7 +112,7 @@ If the orchestrator passes a `model_routing` block (see
   for SIGNIFICANT / HIGH-RISK upgrades), **stop after step 2 (Build)** and
   return `status: AWAITING_REVIEW` with the list of files changed and the
   build outcome. **Do NOT run `test-baseliner verify`.** The orchestrator will
-  perform an Opus code review, then re-invoke this agent with
+  perform a review-tier code review, then re-invoke this agent with
   `phase: verify-resume` to run step 3 onward.
 - For SIMPLE / MODERATE classification (or no `model_routing` block), proceed
   through all steps as normal.

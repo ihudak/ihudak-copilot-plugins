@@ -54,7 +54,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        current_model: <the model this orchestrator is running under>
        detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
        planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: <true for SIGNIFICANT/HIGH-RISK, false otherwise>
        notes: <any §2 / §2.1 fallback or degradation>"
@@ -137,7 +137,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        current_model: <the model this orchestrator is running under>
        detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
        planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: [true for SIGNIFICANT / HIGH-RISK, false otherwise]
        notes: <any §2 / §2.1 fallback or degradation>
@@ -148,14 +148,15 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 3a. **Handle an `upgrade-executor` stop.** If the executor returns `status: BLOCKED`, the upgrade plan at `plan_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this component `BLOCKED` in the Step 7 results table, and stop working this component (do not retry with a fresh planning pass). This applies regardless of classification — skip steps 4–6 for this component and continue the per-component loop with the next one.
 
-4. **Review gate for SIGNIFICANT / HIGH-RISK** — If the executor returns `status: AWAITING_REVIEW`, run the Opus code-review gate before any test verification:
+4. **Review gate for SIGNIFICANT / HIGH-RISK** — If the executor returns `status: AWAITING_REVIEW`, run the review-tier code-review gate before any test verification:
    - Capture the diff to a temp file: write `git add -N . && git diff` to `command mktemp -t dw-upgrade-diff-XXXXXX` (never inside a repo tree) and record its path as `review_diff_file`
    - Write the executor output to a temp file (`command mktemp -t dw-upgrade-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` using the approved risk plan, the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this component, marking it `BLOCKED` in the Step 7 results table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
    - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
-   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this component `BLOCKED` in the Step 7 results table, and stop working this component — skip steps 5–6 and continue the per-component loop with the next one. Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the Opus review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
+   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this component `BLOCKED` in the Step 7 results table, and stop working this component — skip steps 5–6 and continue the per-component loop with the next one. Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the review-tier review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
    - If the second verdict is still `BLOCK`, stop and escalate; do not continue to tests
+   - **The recorded verdict names the version it was taken against.** Both the resumed verify step below and any regression fix that follows it change the tree after the review that produced this verdict, so the run's report states what the verdict covers and names the edits that followed it, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where nothing followed it, it says that too.
 
 5. **Resume verify step after review** — Re-invoke `upgrade-executor` with `phase: verify-resume`, the original `READY` plan (from `plan_file`), and the same baseline block captured in Phase 2 prep. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
@@ -222,7 +223,7 @@ exactly `OK`, `TESTS_NOT_RUN`, `SKIPPED`, `BLOCKED`, `BUILD_FAILED`, `TEST_REGRE
 nothing else earns it** — a component whose post-upgrade verify could not run, or ran only in
 part, is **`TESTS_NOT_RUN`**, never `OK` with the qualification pushed into `Notes`.
 
-Append a `### Review triage` section with one line per SIGNIFICANT/HIGH-RISK component that went through Opus review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no Opus review)" for components that never reached review.
+Append a `### Review triage` section with one line per SIGNIFICANT/HIGH-RISK component that went through review-tier review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no review-tier review)" for components that never reached review.
 
 Include the `impl-maintenance` lessons-learned report after the summary table.
 
@@ -253,7 +254,7 @@ the decision:
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - NEVER skip per-component classification after planning
 - NEVER use Opus for a `MODERATE` component unless the user explicitly asks for it
-- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` component before the Opus review returns a non-BLOCK verdict
+- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` component before the review-tier review returns a non-BLOCK verdict
 - NEVER modify files during Phase 1
 - NEVER touch files before the upgrade branch exists
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run

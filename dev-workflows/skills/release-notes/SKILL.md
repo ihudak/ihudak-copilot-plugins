@@ -334,7 +334,7 @@ persists the plugin-facing slice of its report as session feedback.
    > - What was done: [one-paragraph summary of the release-notes draft produced]
    > - Key events: [source-truth discrepancies, PARTIAL renders, style-check failures, ambiguous destinations — or 'none']
    > - Workarounds used: [manual steps not automated by the workflow — or 'none']
-   > - Review verdict: N/A (light gate only, no Opus review)
+   > - Review verdict: N/A (light gate only, no review-tier review)
    > - Test result: N/A (no tests in release-notes:)
    > - Project root: [the resolved jira_export_root or the destination directory]"
 2. **Persist plugin feedback (automatic).** Project the report's plugin-facing
@@ -419,7 +419,7 @@ current working directory.
 - The run is GATED on the imported `relevant_for_release_notes`: an explicit `false` stops with `RELEASE_NOTES_NOT_RELEVANT` (overridable); absent proceeds silently.
 - NEVER write into a docs repo; the default destination is persistent (never `/tmp`).
 - ALWAYS use `choices` arrays; the last choice is always `"Other… (describe)"`.
-- Light gate only — no Opus review, no tests, no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none), and no commit of the draft or of anything in a docs/code repo, the vault, or the current working directory. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- Light gate only — no review-tier review, no tests, no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none), and no commit of the draft or of anything in a docs/code repo, the vault, or the current working directory. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - ALWAYS end the Phase 8 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked; the pipeline leaf (adaptive: continue any pending PA/PE phase, else the VI is fully processed).
 - ALWAYS end the Phase 8 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal maintenance phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a leaf-aware suggestion (done → nothing; pending role → `/clear`) + `/rename <VI-ID>-<slug>-pm`; guidance only, never auto-run.

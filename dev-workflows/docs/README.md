@@ -34,9 +34,9 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 - [`create-vi:`](skills/create-vi.md) — turn a refined `idea.md` plus a user-supplied Jira key into a reviewed Value Increment.
 - [`design:`](skills/design.md) — take over a merged `specification.md` and author a reviewed engineering `design.md`, grounded strictly in the mounted implementation code.
 - [`docs-profile:`](skills/docs-profile.md) — scan a documentation repository and write or refresh the machine-readable profile `document:` consumes.
-- [`document:`](skills/document.md) — read a Jira Value Increment hierarchy, resolve PR diffs, and synthesise product documentation, gated on style-check and Opus review.
+- [`document:`](skills/document.md) — read a Jira Value Increment hierarchy, resolve PR diffs, and synthesise product documentation, gated on style-check and review-tier review.
 - [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) — apply dynatrace-docs changelog-entry, managed-owners, and metadata frontmatter conventions when creating or editing a `dynatrace/_content/**` or `managed/_content/**` page.
-- [`epics:`](skills/epics.md) — draft child Epic definitions from a Value Increment, optionally scanning code repos, gated on dt-style-checker and Opus review.
+- [`epics:`](skills/epics.md) — draft child Epic definitions from a Value Increment, optionally scanning code repos, gated on dt-style-checker and review-tier review.
 - [`feedback:`](skills/feedback.md) — log a manual note about the plugin itself, for the maintainer to aggregate. Tied to no skill; run any time.
 - [`guideline-reviewer:`](skills/guideline-reviewer.md) — review Dynatrace app code and UI against the bundled Experience Standards (GUIDElines).
 - [`idea:`](skills/idea.md) — refine one source into a lean `idea.md` through a bounded one-question-at-a-time grill, seeding the future `create-vi:`.

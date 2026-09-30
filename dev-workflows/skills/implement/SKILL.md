@@ -1,7 +1,7 @@
 ---
 name: implement
 description: >
-  End-to-end code implementation workflow. Classifies task risk, creates a branch, plans (Opus for SIGNIFICANT/HIGH-RISK), implements, writes tests, runs Opus code review, and performs post-session maintenance.
+  End-to-end code implementation workflow. Classifies task risk, creates a branch, plans (Opus for SIGNIFICANT/HIGH-RISK), implements, writes tests, runs review-tier code review, and performs post-session maintenance.
   Activated when the user prompt starts with "implement:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -149,8 +149,8 @@ Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak
 
 - **SIMPLE** — local, trivial, clearly reversible; no mandatory Opus steps
 - **MODERATE** — bounded scope, few files, clear requirements; no mandatory Opus steps
-- **SIGNIFICANT** — risky in at least one dimension from the classification reference; Opus planning + Opus review are mandatory
-- **HIGH-RISK** — multiple risky dimensions, or security/migration/compliance scope; Opus planning + Opus review are mandatory and must be especially thorough
+- **SIGNIFICANT** — risky in at least one dimension from the classification reference; Opus planning + review-tier review are mandatory
+- **HIGH-RISK** — multiple risky dimensions, or security/migration/compliance scope; Opus planning + review-tier review are mandatory and must be especially thorough
 
 State the classification and the specific criterion that triggered it. When in doubt between MODERATE and SIGNIFICANT, pick SIGNIFICANT.
 
@@ -163,7 +163,7 @@ model_routing:
   current_model: <the model this orchestrator is running under>   # = the inline implementation coding
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer
   planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override)
-  review_model:  <§2 Opus chain>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override)
+  review_model:  <§2.3 review tier>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override)
   implementation_model: <= current_model>   # coding done inline by the orchestrator
   fixes_model: <= detection_model>          # review-fixer (Phase 3B)
   opus_available: <true if a §2 Opus model resolved, else false>
@@ -447,7 +447,7 @@ Once Phase 3.5 returns (passed, skipped, or accepted-with-regressions), return t
 
 ---
 
-## Phase 3B — Implementation + Opus review (SIGNIFICANT / HIGH-RISK)
+## Phase 3B — Implementation + review-tier review (SIGNIFICANT / HIGH-RISK)
 
 Use the currently selected model or Sonnet for implementation itself. Opus is reserved for the review.
 
@@ -460,7 +460,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 2. Make precise, surgical changes — do not modify unrelated code
 3. Follow existing code style and LF line endings
 4. If a **new ambiguity** emerges mid-implementation: STOP, ask with choices (last: `"Other… (describe)"`), resume after answer
-4a. **Invoke `test-writer` agent** (inserted before the review diff capture in step 5 so the Opus review sees code and tests together — test adequacy is already a review dimension in `code-review.md`). First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
+4a. **Invoke `test-writer` agent** (inserted before the review diff capture in step 5 so the review-tier review sees code and tests together — test adequacy is already a review dimension in `code-review.md`). First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
 
    → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain>`):
      > "Write tests for this brief:
@@ -471,17 +471,17 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
      > Project root: [absolute path]
      > Baseline: [paste the ## Test Baseline block captured in Pre-Phase 3.5]"
 
-   Check the `test-writer` report's first line before invoking Opus review. If it is `Diff: unreadable at <path>`, the orchestrator's own `test_diff_file` could not be read — this is an orchestrator bug, not a user choice: surface the unreadable path to the user and **stop the run**; do not invoke Opus review and do not run the framework prompt below. Otherwise, if the report shows `Framework: not detected`, ask the user **before** invoking Opus review (mirrors the SIMPLE/MODERATE branch — keeps the Opus-review input deterministic):
+   Check the `test-writer` report's first line before invoking review-tier review. If it is `Diff: unreadable at <path>`, the orchestrator's own `test_diff_file` could not be read — this is an orchestrator bug, not a user choice: surface the unreadable path to the user and **stop the run**; do not invoke review-tier review and do not run the framework prompt below. Otherwise, if the report shows `Framework: not detected`, ask the user **before** invoking review-tier review (mirrors the SIMPLE/MODERATE branch — keeps the Opus-review input deterministic):
    ```
    choices: ["Specify test command to use", "Skip tests for this run (document why in the final report — Phase 5 of the inherited implement: workflow)", "Cancel"]
    ```
    Record the choice. A "Skip" decision must be explicit and logged in the Phase 5 report.
 
 5. After all changes are written: **DO NOT run tests yet.** When `task_shape: bug`, first **strip every `[DEBUG-xxxx]` probe** added during diagnosis (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/bug-diagnosis.md`); the review diff must contain no debug instrumentation. Capture the diff and the project root. Use `git add -N . && git diff` — this includes intent-to-add untracked new files so the diff is never empty for implementations that only create new files, and it now also includes the test files from step 4a. Write this diff to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `review_diff_file`; the code-review dispatch (step 6) receives this path. Also capture `git diff --stat` for the summary (small — kept inline).
-6. **Opus code review** — spawn.
+6. **review-tier code review** — spawn.
 
-   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2 Opus chain; dispatch-pinned to this chain, recorded in model_routing, no override added
-     > "Produce the Opus code review for this brief:
+   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2.3 review tier; dispatch-pinned to this chain, recorded in model_routing, no override added
+     > "Produce the review-tier code review for this brief:
      >
      > Task description: [substitute full description]
      > Classification: [SIGNIFICANT | HIGH-RISK] — reason: [from Phase 1.5]
@@ -496,7 +496,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 
    **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop the run. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **`### Re-classification` section** — the reviewer decided the change is actually `SIMPLE` or `MODERATE` on inspection. Surface it to the user and ask `choices: ["Accept revised classification (Recommended)", "Override and keep the BLOCK-gated review", "Cancel"]`. If accepted, treat the review as an implicit PASS: skip the BLOCK branch, proceed to step 8, and do NOT re-invoke the reviewer on later fix deltas. Record the revised classification for the Phase 5 report. If overridden, re-invoke code-review with an explicit note that the classification is intentional.
-   - **BLOCK** — invoke the review-fixer agent (see Review-fixer sub-step below). If `Stop condition flag` is `CLEAR`, re-run the Opus code review on the updated diff (one re-review only). If `Stop condition flag` is `NEEDS HUMAN`, do not re-review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave and stop. If the second verdict is still BLOCK, stop: surface the remaining blockers to the user and ask `choices: ["Investigate further", "Abandon implementation and restore to pre-impl state", "Cancel"]`. Do not run tests until the verdict is not BLOCK.
+   - **BLOCK** — invoke the review-fixer agent (see Review-fixer sub-step below). If `Stop condition flag` is `CLEAR`, re-run the review-tier code review on the updated diff (one re-review only). If `Stop condition flag` is `NEEDS HUMAN`, do not re-review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave and stop. If the second verdict is still BLOCK, stop: surface the remaining blockers to the user and ask `choices: ["Investigate further", "Abandon implementation and restore to pre-impl state", "Cancel"]`. Do not run tests until the verdict is not BLOCK.
    - **PASS WITH RECOMMENDATIONS** — invoke the review-fixer agent for MAJOR findings (see Review-fixer sub-step below). MINOR / NIT findings may be deferred — note them in the Phase 5 report.
    - **PASS** — proceed.
 
@@ -517,7 +517,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
    - If the fix report contains any `DEFERRED — plan-conflict` finding, surface it to the user **immediately** (do not wait for the BLOCK-still-BLOCK path): show the finding beside the plan text it contradicts and ask `choices: ["Revise the plan (the finding governs)", "Apply the fix against the plan (the plan governs — logged in Phase 5)", "Other… (describe)"]`. Act on the answer before re-running the review.
 
 7.5. **Spec/design conformance escalation.** For each unresolved `missing`/`contradicts` in-scope requirement from the code-review Spec/design-conformance dimension, write a `- [ ]` note back onto the source `specification.md`/`design.md` under an `## Engineering review` heading (the same escalation `design:` uses; annotate only — never mutate existing `[Uxx]`/`[ACxx]`/`[TCxx]` IDs). Never silently drop them, never invent new Jira work. Record which of `specification.md`/`design.md` actually received a note — the handoff step needs to know whether only one, or both, were annotated. The notes are written here and handed off later — see the escalation handoff after Phase 4.
-8. **Run Phase 3.5 (post-review).** After the review gate clears (non-BLOCK verdict), run the Phase 3.5 sequence (lint/build, `test-baseliner` verify, fix loop) — **not before**. This preserves the invariant "NEVER run tests for SIGNIFICANT / HIGH-RISK before Opus review returns non-BLOCK". The fix loop inside Phase 3.5 applies fixes via the session model; if the fixes are non-trivial **and** the reviewer was NOT down-classified in step 7, re-invoke the Opus code review on the delta after Phase 3.5 completes (first overwrite `review_diff_file` with a fresh `git add -N . && git diff` so the re-review reads the post-Phase-3.5 diff). If the reviewer WAS down-classified, skip the re-review.
+8. **Run Phase 3.5 (post-review).** After the review gate clears (non-BLOCK verdict), run the Phase 3.5 sequence (lint/build, `test-baseliner` verify, fix loop) — **not before**. This preserves the invariant "NEVER run tests for SIGNIFICANT / HIGH-RISK before review-tier review returns non-BLOCK". The fix loop inside Phase 3.5 applies fixes via the session model; if the fixes are non-trivial **and** the reviewer was NOT down-classified in step 7, re-invoke the review-tier code review on the delta after Phase 3.5 completes (first overwrite `review_diff_file` with a fresh `git add -N . && git diff` so the re-review reads the post-Phase-3.5 diff). If the reviewer WAS down-classified, skip the re-review.
 9. Verify the outcome matches the approved plan and the review verdict.
 10. Proceed to Phase 4.
 
@@ -537,7 +537,7 @@ Classification: [SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK]
 Files changed (from git diff --stat):
 <paste the git diff --stat output>
 Notable additions/removals: [new commands, APIs, config keys, dependencies — one line each; or "none"]
-Opus review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK — or "N/A (SIMPLE / MODERATE)"]
+Review-tier review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK — or "N/A (SIMPLE / MODERATE)"]
 ```
 
 Then spawn all four agents. They are independent and can run in any order — spawn them all before waiting for any to complete:
@@ -646,8 +646,8 @@ Pass the §2.11 inputs:
 - `repo` — the repo Pre-Phase 3 branched; `branch` — the name it created (or the `-<short-sha>` variant it fell back to).
 - `pre_existing_dirty` and `stash_ref` — as recorded in Pre-Phase 3 step 1; both `null` on the clean-tree path.
 - `title` — the commit subject and pull-request title. With a `jira_key`: `<KEY> <one-line summary of what was built>`; direct mode: the imperative summary alone.
-- `body_facts` — what was implemented; the files changed; the Opus review verdict and triage summary where Phase 3B produced one; the `test-baseliner` verify result against the Pre-Phase 3.5 baseline; and any deferred `MINOR`/`NIT` findings.
-- `clean_finish` — `false` when the Opus review is still `BLOCK` after its one fix cycle plus re-review, or when the Phase 3.5 fix loop ended with regressions the user chose to keep; `true` otherwise. Per §2.9 this changes only the pull request (draft, with a DO-NOT-MERGE banner) — never whether the commit and push happen.
+- `body_facts` — what was implemented; the files changed; the review-tier review verdict and triage summary where Phase 3B produced one; the `test-baseliner` verify result against the Pre-Phase 3.5 baseline; and any deferred `MINOR`/`NIT` findings.
+- `clean_finish` — `false` when the review-tier review is still `BLOCK` after its one fix cycle plus re-review, or when the Phase 3.5 fix loop ended with regressions the user chose to keep; `true` otherwise. Per §2.9 this changes only the pull request (draft, with a DO-NOT-MERGE banner) — never whether the commit and push happen.
 - `commit_template: null` — `implement:` documents no template of its own, so §2.3 derives the subject from the repo's own `git log`.
 
 Emit the §3.1 `Code repo:` outcome line in the Phase 5 report's `### Branch` section — once, and verbatim. Once it is emitted, remove this run's now-unread temp files — `command rm -f -- "<summary_file>" "<plan_file>" "<test_diff_file>" "<review_diff_file>"` — for whichever of those the run actually created and no stop message above still cites.
@@ -677,11 +677,11 @@ Output a structured report — do NOT ask any closing confirmation:
 ### Files changed
 - path/to/file.ext — [what changed]
 
-### Opus review (if applicable)
+### Review-tier review (if applicable)
 [Verdict and 1-line summary, or "N/A (SIMPLE / MODERATE)"]
 
 ### Review triage
-- **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no Opus review)"
+- **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no review-tier review)"
 
 ### Spec/design conformance (if a spec/design was in scope)
 [coverage summary from code-review's dimension; list any missing/partial/contradicts — or "N/A"; if Phase 4.5 escalated notes, add the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1)]
@@ -783,7 +783,7 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the 
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - NEVER skip Phase 1.5 classification — every run must state the level
 - NEVER use Opus for routine implementation; reserve it for planning + review on SIGNIFICANT / HIGH-RISK
-- NEVER run tests on SIGNIFICANT / HIGH-RISK work before the Opus code review returns a non-BLOCK verdict
+- NEVER run tests on SIGNIFICANT / HIGH-RISK work before the review-tier code review returns a non-BLOCK verdict
 - NEVER skip Phase 3.5 — if no test framework is detected, ask the user rather than silently skipping; a "Skip" decision must be explicit and logged in the Phase 5 report
 - NEVER make assumptions that could have been asked — ask instead
 - NEVER end implementation with "Should I implement?" — if approved, implement
@@ -801,6 +801,7 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the 
 - ALWAYS pass `Command run: implement:` in the Phase 4 Agent 4 session handoff
 - ALWAYS pass `Change type: code` in the Phase 4 change summary block (scopes the four maintenance agents' suggestions to code-change territory — docs / Jira variants use `docs`)
 - AFTER one review-fixer pass + one re-review, if verdict is still BLOCK: stop and surface to user — do NOT loop
+- ALWAYS state, with the recorded review verdict, which version it was taken against — where any edit followed it (a review-fixer pass, a manual fix, a Phase 3.5 regression fix), the Phase 5 report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`; where none did, it says that too
 - AFTER two Phase 3.5 fix-loop attempts, if regressions remain: stop and surface to user — do NOT loop
 - ALWAYS classify each `@path` input by inspection (Phase 0) — never by matching the path string
 - WHEN `fan_out` is true (multi-repo or any directory input): floor classification at SIGNIFICANT (overridable at plan approval), run Phase 1.7, and feed its synthesized summary to the planner instead of the single Explore subagent

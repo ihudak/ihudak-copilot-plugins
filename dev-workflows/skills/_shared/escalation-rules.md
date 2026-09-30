@@ -170,6 +170,41 @@ A read-only mount is not a failure and does not use the `Refresh blocked` list: 
 
 The condition gates the prompt, so the `(Recommended — <why>)` reason annotation is well-formed under the rules at the top of this file.
 
+## A recorded verdict names the version it was taken against
+
+**The review cap assumes a fix cycle only removes defects, and live runs proved otherwise.** The fix
+applied after a review **introduces** something a later review would find — and by then the
+one-fix-cycle-plus-one-re-review budget is spent, so the run's choice is to ship a known defect or to
+fix it and leave the final text unreviewed. Both branches end the same way: the verdict on record
+was reached against a version of the artifact that is no longer the one on disk, and nothing says
+so. A reader meets a `PASS` beside a file the `PASS` never saw.
+
+**Every skill that records a review verdict states what that verdict was taken against**, and where
+**any** edit followed it — a `MAJOR` fix applied inline, an escalation's manual fix notes, a deferred
+finding written into the artifact, a style pass, a resumed verify step — the final report says so
+plainly and names the edits. One line: *"`<verdict>` was reached before <the edits>, which followed
+it; the current text has not been reviewed."*
+
+**Which skills those are is derived, not listed, and a phrase grep is not the derivation.** The set
+was first taken, upstream, from the ones carrying the literal *"one fix cycle + one re-review"* cap,
+which missed `vuln:` and `upgrade:` — both run one fixer pass and one re-review, both edit afterwards
+through a resumed verify step, and `upgrade:`'s own results table carries a `Review` column. The
+test is behavioural: **a skill records a review verdict, and anything it does afterwards can change
+what that verdict was about.**
+
+**This is deliberately a reporting rule and not another cycle.** Raising the cap trades one unreviewed
+version for a later one and has no fixed point, since each new review can find something the previous
+fix introduced. What actually costs the reader is not the unreviewed edit — a run has to stop
+somewhere — but believing the verdict covers it. Saying which version it covers costs nothing, cannot
+itself introduce a defect, and leaves the decision about the residue where it belongs. **Where no edit
+followed the verdict, say that too**, so a clean run reads as checked rather than as unreported.
+
+**The loop was proposed, built, and withdrawn.** A field report suggested replacing the cap with an
+outcome-keyed re-review loop; that loop was implemented across seven gates and then reverted, because
+the rule above is the fix for the same failure, had been upstream since 2026-09-09 and simply not
+ported, and rejects the loop for a stated reason. Adopting a loop as well is a design change to every
+edition, not a port; do not reintroduce one from the field report alone.
+
 ## Review verdict BLOCK (unresolved after one fix cycle) — document:
 
 `choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run"]`

@@ -152,7 +152,7 @@ An exhausted ladder (or no `origin`) means no pull request can be opened: report
 
 `clean_finish: false` when the caller reports any of:
 
-- an Opus review verdict still `BLOCK` after its single allowed fix cycle plus re-review;
+- a review-tier review verdict still `BLOCK` after its single allowed fix cycle plus re-review;
 - test regressions the user chose to keep rather than fix or revert;
 - a unit of work the caller marked `BLOCKED` (a `vuln:` CVE, an `upgrade:` component) **that reached the repository** — a unit that stopped before writing anything (an unreadable input, a failed baseline) changed nothing and must not flip the flag for the rest of the batch.
 

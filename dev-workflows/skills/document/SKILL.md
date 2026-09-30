@@ -10,7 +10,7 @@ Generate product documentation for the Jira Value Increment: the argument (text 
 
 Signature: `PRODUCT-NNNN [saas|managed] [--counterpart <JiraID|PR-url>]`. The optional second token is a **space constraint**, not a target list. When you pass `saas` or `managed`, the command documents **only that space** and leaves the OTHER space's rendered output unchanged (SaaS pages stay as they are when you pass `managed`, and vice-versa). When you omit it, the command **determines the applicable space(s)** from the Jira hierarchy and the resolved repos, then confirms with you. `both` is intentionally NOT an accepted value — omit the argument to cover both spaces. `--counterpart <JiraID | PR-url>` is an optional named flag (valid only on a space-constrained run) that points at the OTHER space's documentation for this feature — a Jira key or a PR URL (merged or not). It is used as **read-only grounding**; on a both-space run it is rejected. See Phase 5.6.5.
 
-`document:` (Jira mode) is the **Jira-driven feature-documentation** workflow. Given a Jira Value Increment key, it reads the full Jira hierarchy from pre-exported markdown in the user's Obsidian vault, resolves PR URLs to local git repos, runs parallel PR-diff summaries, synthesises product documentation, runs style-check + Opus review gates, and writes the output to the current working directory (a product docs repository).
+`document:` (Jira mode) is the **Jira-driven feature-documentation** workflow. Given a Jira Value Increment key, it reads the full Jira hierarchy from pre-exported markdown in the user's Obsidian vault, resolves PR URLs to local git repos, runs parallel PR-diff summaries, synthesises product documentation, runs style-check + review-tier review gates, and writes the output to the current working directory (a product docs repository).
 
 For small one-off doc edits, use direct mode (below). For writing child Epic drafts from a VI, use `epics:`. For release notes, use `release-notes:` — this command never writes release-notes / what's-new pages, because those are generated from Jira by the docs team's automation.
 
@@ -245,7 +245,7 @@ Also display (for user context):
 
 Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then classify the task as exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, or `HIGH-RISK`. Jira-driven feature docs are typically **SIGNIFICANT** (large blast radius if wrong — published documentation). State the classification and a one-sentence reason.
 
-SIGNIFICANT → no separate Opus **risk-planner** for the high-level plan (the Jira hierarchy + diff summaries *are* the plan), **but `doc-planner` (Phase 5.7) is pinned to the §2 Opus reasoning chain**; the `doc-reviewer` gate (Opus) is mandatory.
+SIGNIFICANT → no separate Opus **risk-planner** for the high-level plan (the Jira hierarchy + diff summaries *are* the plan), **but `doc-planner` (Phase 5.7) is pinned to the §2 Opus reasoning chain**; the `doc-reviewer` gate (§2.3 review tier) is mandatory.
 
 **Resolve the per-step routing.** Following `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9, record a `model_routing` block (reusing the §4 field names) resolving each model against the fallback chains:
 
@@ -256,14 +256,14 @@ model_routing:
   current_model: <the model this orchestrator is running under>   # = the inline writer + Phase 5.8 framing
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>
   planning_model:  <§2 powerful chain: claude-opus-5.5 … fallback Sonnet per §2>   # doc-planner (5.7)
-  review_model:    <§2 powerful chain>     # doc-reviewer (dispatch-pinned to this chain; recorded here, no override added)
+  review_model:    <§2.3 review tier>     # doc-reviewer (dispatch-pinned to this chain; recorded here, no override added)
   implementation_model: <= planning_model>  # the doc-writer subagent (Phase 6.3) — now a delegated, Opus-pinned writer
   fixes_model: <= detection_model>         # doc-fixer (6.4 / 7) runs on the detection chain
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2 / §2.1 fallback or degradation>
 ```
 
-Each subagent dispatch below cites which chain it uses (the §9 role→chain map): `doc-planner` → `planning_model`; `jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, and the Phase 8 maintenance agents → `detection_model`; `doc-reviewer` keeps its Opus pin fixed at every dispatch (recorded as `review_model`, no override added).
+Each subagent dispatch below cites which chain it uses (the §9 role→chain map): `doc-planner` → `planning_model`; `jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, and the Phase 8 maintenance agents → `detection_model`; `doc-reviewer` keeps its §2.3 review-tier pin fixed at every dispatch (recorded as `review_model`, no override added).
 
 **Orchestration advisory (window-focused).** `doc-planner` (5.7) and `doc-writer` (6.3) run on the §2 Opus chain regardless of session; only coordination + the interactive gates (4.5, 5.8 decision, 5.9, 6.1) run on `current_model`. So:
 
@@ -273,7 +273,7 @@ Each subagent dispatch below cites which chain it uses (the §9 role→chain map
   choices: ["Relaunch document: under Opus — I'll restart (Recommended)", "Proceed on <current_model>", "Cancel"]
   ```
   Otherwise proceed without prompting.
-- **`current_model` is NOT on the §2 chain and `opus_available: false`** → `planning_model`, `review_model`, and the **doc-writer** all fall to the Sonnet floor; record the degradation in `notes` and the Phase 9 report; proceed.
+- **`current_model` is NOT on the §2 chain and `opus_available: false`** → `planning_model` and the **doc-writer** fall to the Sonnet floor, and `review_model` resolves by §2.3 — a version-6 GPT model where one is reachable, else that same floor; record the degradation in `notes` and the Phase 9 report; proceed.
 
 ---
 
@@ -971,7 +971,9 @@ Act on the verdict:
 
 - **PASS** — proceed to Phase 8.
 
-**Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended.
+Cap: one fix cycle + one re-review maximum.
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 
@@ -1308,7 +1310,7 @@ in full.
 - ALWAYS append each gate's ledger row at the moment that gate completes, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` — NEVER reconstruct the ledger at Phase 9, and NEVER leave a registry gate without a row
 - NEVER present a phase's `choices:` array in an order, wording, or recommendation other than the one written; the "Choice lists are presented verbatim" rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` binds every prompt in this command
 - ALWAYS invoke `doc-reviewer` before Phase 8 maintenance
-- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — `doc-planner` to the §2 Opus chain, the mechanical steps (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, maintenance) to the §2.1 detection chain; `doc-reviewer` keeps its Opus pin fixed at dispatch (no override); the inline writer + gates run on `current_model` (advisory only)
+- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — `doc-planner` to the §2 Opus chain, the mechanical steps (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, maintenance) to the §2.1 detection chain; `doc-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override); the inline writer + gates run on `current_model` (advisory only)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block
 - ALWAYS pass `Command run: document:` in the Phase 8 Agent 4 session handoff
@@ -1406,7 +1408,7 @@ choices: ["Re-run under document: (Jira mode) (for Jira-sourced feature document
 
 State the classification and a one-line reason, then proceed to Phase 2A.
 
-*(There is no Phase 2B, Phase 3B, or Opus review in this command. A mandatory Phase 3.5 style check runs after Phase 3. Phase numbering is kept aligned with `implement:` to make cross-referencing straightforward; the A-suffix on Phase 2A below is retained for symmetry, not because a Phase 2B exists for docs.)*
+*(There is no Phase 2B, Phase 3B, or review-tier review in this command. A mandatory Phase 3.5 style check runs after Phase 3. Phase numbering is kept aligned with `implement:` to make cross-referencing straightforward; the A-suffix on Phase 2A below is retained for symmetry, not because a Phase 2B exists for docs.)*
 
 ---
 

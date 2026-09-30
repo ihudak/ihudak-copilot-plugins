@@ -161,7 +161,7 @@ If the orchestrator passes a `model_routing` block (see
   the build outcome. **Do NOT run `test-baseliner verify`.** The branch from step 2
   exists and carries the uncommitted fix — that is what lets the orchestrator commit
   the work even if its review never clears.
-  The orchestrator will perform an Opus code review, then
+  The orchestrator will perform a review-tier code review, then
   re-invoke this agent with `phase: verify-resume` to run step 5 onward.
 - For SIMPLE / MODERATE classification (or no `model_routing` block), proceed
   through all steps as normal.

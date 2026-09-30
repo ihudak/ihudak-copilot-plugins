@@ -162,7 +162,7 @@ full review.
 Return this exact shape (no chatter, no preamble):
 
 ```markdown
-## Opus code review
+## Review-tier code review
 
 ### Verdict
 [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
@@ -229,7 +229,7 @@ a substantive `BLOCK` without parsing findings — and STOP:
 ```markdown
 Diff: unreadable at <path>
 
-## Opus code review
+## Review-tier code review
 
 ### Verdict
 BLOCK

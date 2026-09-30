@@ -10,7 +10,7 @@ Draft child Epics for the Jira Value Increment: the argument (text following the
 
 Usage: `epics: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 2).
 
-`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown in the user's Obsidian vault, optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on an Opus review.
+`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown in the user's Obsidian vault, optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on a review-tier review.
 
 Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not yet implemented** — there are no PRs to diff. Code scanning (when enabled) is a plain filesystem search to understand what exists and what needs to be built.
 
@@ -120,7 +120,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, dt-style-checker, doc-fixer, epic-writer (MODERATE), Phase 8 maintenance agents
-  review_model:    <§2 Opus chain>     # epic-reviewer (dispatch-pinned to this chain; recorded, no override)
+  review_model:    <§2.3 review tier>     # epic-reviewer (dispatch-pinned to this chain; recorded, no override)
   implementation_model: <= detection_model>   # the epic-writer subagent (Phase 6); planning_model if SIGNIFICANT/HIGH-RISK
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -472,7 +472,9 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 
 - **PASS** — proceed to Phase 8.
 
-**Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended.
+Cap: one fix cycle + one re-review maximum.
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 
@@ -720,7 +722,7 @@ in full.
 - ALWAYS write to the resolved `output_dir` — `$VAULT_PATH/jira-drafts/<jira_key>/` when `$VAULT_PATH` is set, else `<parent-of-jira_export_root>/epic-drafts/<jira_key>/` (or the user-confirmed alternative) — auto-create the directory if missing
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `epic-reviewer` before Phase 8 maintenance
-- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its Opus pin fixed at dispatch (no override); coordination + interactive gates run on `current_model`
+- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override); coordination + interactive gates run on `current_model`
 - ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts (still true — the drafts land in the vault / output directory, which the terminal `commit-artifacts` step never stages; git management there is the user's responsibility)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block

@@ -327,8 +327,9 @@ The CLI's `task` tool accepts an explicit `model:` override. Use it like this:
 ```
 task(
   agent_type: "dev-workflows:risk-planner" | "dev-workflows:code-review" | "general-purpose",
-  model:      "claude-opus-5.5", # or the highest available strong-tier peer per §2;
-                                 # under §10, the enforced model. Pass the DISPATCH FORM (below)
+  model:      "claude-opus-5.5", # a WORK dispatch: the highest available row of §2. A REVIEW
+                                 # dispatch passes §2.3's pick instead ("gpt-6-astra", ...).
+                                 # Under §10, the enforced model. Pass the DISPATCH FORM (below)
   prompt:     "<full self-contained context — sub-agent has no memory>",
   description:"Strong-tier planning critique" | "Strong-tier code review",
   mode:       "sync"               # always sync for plan/review gates
@@ -340,7 +341,7 @@ task(
 - For **planning** on SIGNIFICANT/HIGH-RISK tasks, prefer `agent_type: "dev-workflows:risk-planner"`
   with the strong tier, asking it to critique the proposed plan.
 - For **post-implementation review** on SIGNIFICANT/HIGH-RISK tasks, use
-  `agent_type: "dev-workflows:code-review"` with the strong tier, passing the diff and §6 checklist.
+  `agent_type: "dev-workflows:code-review"` on the **§2.3 review tier**, passing the diff and §6 checklist.
 - If `dev-workflows:code-review` is unavailable in the environment, fall back to
   `agent_type: "general-purpose"` with the same strong-tier model and the explicit
   §6 checklist embedded in the prompt.
@@ -563,14 +564,16 @@ against the §2 (strong) and §2.1 (detection) chains.
 |------|-------|
 | Synthesis / planner (e.g. `doc-planner`) | §2 strong |
 | Reader / summarizer / locator / style-checker / fixer / maintenance (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `docs-style-checker`, `doc-fixer`, maintenance agents) | §2.1 detection |
-| Domain reviewer (`doc-reviewer`, `epic-reviewer`) | §2 strong — dispatch-pinned to this chain at every call (no agent in this edition carries a `model:` frontmatter field); the orchestrator records it and adds **no** override |
+| Domain reviewer (`doc-reviewer`, `epic-reviewer`) | §2.3 review tier — dispatch-pinned to this chain at every call (no agent in this edition carries a `model:` frontmatter field); the orchestrator records it and adds **no** override |
 | Delegated writer (`doc-writer` / `epic-writer`) | §2 strong for SIGNIFICANT/judgment writing; §2.1 detection for MODERATE writing |
 | Coordination + interactive gates (the orchestrator itself) | session model; narrowed-window advisory for large non-strong-tier runs (§9.1) |
 
 ### 9.3 No-strong-tier degradation
 
-When no strong-tier peer is available (per §2), run the reasoning / review roles
-on the next available fallback, **skip** the relaunch advisory (there is nothing
+When no Opus model is available (§2 rows 1–6), run the work roles on the next
+available §2 fallback; a review role that also finds no version-6 GPT model
+(§2.3 rows 1–3) is already on §2 by §2.3's own row 4, and follows the same
+fallback. In either case, **skip** the relaunch advisory (there is nothing
 to relaunch onto), and announce the degradation in the `model_routing` record and
 the final report — the same rule as §2.
 
@@ -592,7 +595,7 @@ escalate a single oversized repo slice's `code-scanner` to the strong tier (§8.
 
 `run_flags.enforced_model` (`run-flags.md`) lets a run pin every subagent dispatch to one model, bypassing this policy's own per-step selection. Classification and the routing rules above are unchanged in what they select — this section changes only which model each selection resolves to.
 
-- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1 and §2.2 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
+- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1, §2.2 and §2.3 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
 - **Every dispatch.** Every `task` dispatch passes `model: <enforced>` explicitly, in §5's dispatch form, including agents whose frontmatter pins a tier: the dispatch's `model:` argument overrides the frontmatter pin. Every "frontmatter-pinned … no override" statement at a dispatch site reads "no override unless §10 enforces a model".
 - **Nested dispatch.** An agent that itself dispatches another (`docs-style-checker` → `dt-style-checker`; `upgrade-executor` / `vuln-fixer` → `test-baseliner`) receives `enforced_model` in its prompt and passes it on its own dispatch, so enforcement reaches every model a run touches.
 - **Steps unchanged.** Classification still runs and still selects the §3 sequence for the task's class. Enforcement changes which model each selected step runs on, never whether the step runs.

@@ -60,7 +60,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, impl-maintenance
-  review_model:    <§2 Opus chain>     # ard-reviewer (caller-pinned; recorded)
+  review_model:    <§2.3 review tier>     # ard-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + ARD authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -139,13 +139,15 @@ proceed to Phase 5 once findings are surfaced. `ard-reviewer` remains the gate.
 ## Phase 5 — Review gate
 Dispatch `ard-reviewer` (Opus, caller-pinned; recorded as `review_model`):
 
-→ task(agent_type: "dev-workflows:ard-reviewer", model: `<review_model — §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:ard-reviewer", model: `<review_model — §2.3 review tier>`):
   > "Review the ARD:
   >
   > ARD path: [absolute path to the *_ARD.md]
   > Scope: [vi | epic]"
 
-On `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the ARD — no delegated writer) and re-review **once**; if still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. `PASS` / `PASS WITH RECOMMENDATIONS` → proceed. **Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended. (For a per-area split, review each area ARD.)
+On `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the ARD — no delegated writer) and re-review **once**; if still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. `PASS` / `PASS WITH RECOMMENDATIONS` → proceed. Cap: one fix cycle + one re-review. (For a per-area split, review each area ARD.)
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 
@@ -197,4 +199,4 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (git 
 ---
 
 ## Final report
-Report: the ARD path(s) + scope (VI/Epic, any per-area split); the grounded repos + any descoped/ungrounded ones; `AD#N` count; open-question count; the `ard-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); resolved model routing (+ any Opus gate/degradation); the feedback path; the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and the adaptive next-step recommendation.
+Report: the ARD path(s) + scope (VI/Epic, any per-area split); the grounded repos + any descoped/ungrounded ones; `AD#N` count; open-question count; the `ard-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); resolved model routing (+ any review gate/degradation); the feedback path; the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and the adaptive next-step recommendation.

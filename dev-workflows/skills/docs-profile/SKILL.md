@@ -63,7 +63,7 @@ model_routing:
   reason: "cross-cutting synthesis of the whole docs repo; output steers all later document: runs"
   current_model: <the model this orchestrator is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>
-  planning_model: <§2 powerful chain: claude-opus-5.5 … fallback Sonnet 5/4.6/4.5/GPT-5.4>
+  planning_model: <§2 work tier: claude-opus-5.5 … fallback Sonnet 5.5/5/4.6/4.5>
   review_model: <same as planning_model — conceptually the synthesis_model; the synthesis step runs on the §2 Opus chain>
   opus_available: true | false
   notes: <any §2.1/§2 degradation, e.g. "Opus unavailable; synthesis fell back to claude-sonnet-4.6">

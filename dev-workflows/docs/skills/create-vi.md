@@ -1,6 +1,6 @@
 # create-vi:
 
-Turns a refined `idea.md` plus a user-supplied Jira key into a high-quality, product-level Value Increment, gated by an Opus (or GPT-5.6/5.5) review.
+Turns a refined `idea.md` plus a user-supplied Jira key into a high-quality, product-level Value Increment, gated by a review-tier review (GPT-6 first, else Opus).
 
 ## Who runs it
 

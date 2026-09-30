@@ -122,7 +122,7 @@ model_routing:
   reason: <one-line>
   current_model: <the model this orchestrator is running under>
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader (Phase 2); the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
-  review_model:    <§2 Opus chain>     # readiness-reviewer (caller-pinned; recorded)
+  review_model:    <§2.3 review tier>     # readiness-reviewer (caller-pinned; recorded)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
 ```
@@ -232,7 +232,7 @@ artifact paths from Phase 1 (the reviewer reads each end-to-end itself — it ca
 `grep`), the Phase 2 declared statuses, `applicable_ard` (omit entirely when Phase 2.5 was `none`),
 and a pointer to the rubric.
 
-→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2.3 review tier>`):
   > "Review readiness for this brief:
   >
   > Task description: [one paragraph: <VI> [+ <EPIC>], the declared status(es), what is being verified]
@@ -573,7 +573,7 @@ ADDITIVE — this phase itself NEVER fails the run and touches neither `_readine
 - ALWAYS pass the Phase 2 declared status to `readiness-reviewer` exactly as read — never inferred,
   never re-derived
 - ALWAYS resolve the `model_routing` block at Phase 1.5 and pin `jira-reader` to the §2.1 detection chain;
-  `readiness-reviewer` is pinned by the caller to the §2 Opus chain; coordination + the Phase 3
+  `readiness-reviewer` is pinned by the caller to the §2.3 review tier; coordination + the Phase 3
   deterministic skeleton run on `current_model`
 - ALWAYS invoke `readiness-reviewer` before Phase 5 — no verdict is written or reported without it
 - ALWAYS pass `Change type: docs` in the Phase 6 change summary block

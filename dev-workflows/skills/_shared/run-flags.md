@@ -25,7 +25,7 @@ Single source of truth for the run flags every applicable skill accepts, their e
 
 ## 2. Model values
 
-**This edition's strong tier is a multi-vendor peer set** (`model-routing.md` §2 is Anthropic-first for work and §2.3 OpenAI-first for review, with Gemini at §2's floor), which is why the alias table below is not simply a family map: `gpt-6-astra` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family and are reachable only as full ids.
+**This edition routes across vendors** (`model-routing.md` §2 is Anthropic-first for work and §2.3 OpenAI-first for review, with Gemini at §2's floor), which is why the alias table below is not simply a family map: `gpt-6-astra` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family and are reachable only as full ids.
 
 | Value form | Resolves to |
 |---|---|

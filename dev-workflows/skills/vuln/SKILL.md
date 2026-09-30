@@ -1,7 +1,7 @@
 ---
 name: vuln
 description: >
-  Security vulnerability fix workflow. Researches CVEs via NVD, applies dependency and code fixes one at a time, runs Opus code review, and verifies with tests.
+  Security vulnerability fix workflow. Researches CVEs via NVD, applies dependency and code fixes one at a time, runs review-tier code review, and verifies with tests.
   Activated when the user prompt starts with "vuln:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -63,7 +63,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>"
@@ -117,7 +117,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>
@@ -168,7 +168,7 @@ task(
     current_model: <the model this orchestrator is running under>
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: true
     notes: <any §2 / §2.1 fallback or degradation>
@@ -177,14 +177,15 @@ task(
 )
 ```
 
-3. **Handle a `vuln-fixer` stop.** If the fixer returns `status: BLOCKED`, the research report at `research_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE (do not retry with a fresh research pass, and do not proceed to Opus review). Otherwise, if the fixer returns `AWAITING_REVIEW`, run Opus code review before tests:
+3. **Handle a `vuln-fixer` stop.** If the fixer returns `status: BLOCKED`, the research report at `research_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE (do not retry with a fresh research pass, and do not proceed to review-tier review). Otherwise, if the fixer returns `AWAITING_REVIEW`, run review-tier code review before tests:
    - Capture the diff to a temp file: write `git add -N . && git diff` to `command mktemp -t dw-vuln-diff-XXXXXX` (never inside a repo tree) and record its path as `review_diff_file`
    - Write the fixer output to a temp file (`command mktemp -t dw-vuln-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this CVE, marking it `BLOCKED` in the Step 4 summary table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
    - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
-   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE — do not continue to tests, and do not re-review. Then run Step 3.9 with `clean_finish: false`: the fix is on disk and stopping the CVE is not a reason to leave it in a working tree, so it is committed and pushed, and its pull request is opened as a draft carrying the DO-NOT-MERGE banner (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.9). Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the Opus review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
+   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE — do not continue to tests, and do not re-review. Then run Step 3.9 with `clean_finish: false`: the fix is on disk and stopping the CVE is not a reason to leave it in a working tree, so it is committed and pushed, and its pull request is opened as a draft carrying the DO-NOT-MERGE banner (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.9). Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the review-tier review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
    - If the second verdict is still `BLOCK`, stop and escalate; do not continue to tests. Run Step 3.9 with `clean_finish: false` — same reasoning as the `NEEDS HUMAN` stop above: the work is committed and pushed, and the pull request is a draft the banner says not to merge
+   - **The recorded verdict names the version it was taken against.** Both the resumed verify step below and any regression fix that follows it change the tree after the review that produced this verdict, so the run's report states what the verdict covers and names the edits that followed it, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where nothing followed it, it says that too.
 
 4. **Resume the fixer after review** — Re-invoke `vuln-fixer` with `phase: verify-resume`, the same baseline block, and the original research report re-supplied from `research_file`. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this CVE. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
@@ -203,7 +204,7 @@ Runs after the fixer's last return for this CVE — after the `verify-resume` ca
 - `pre_existing_dirty` — as recorded at the top of Step 3; `stash_ref: null`.
 - `commit_template` — the "Commit message" template in this skill's Git Workflow section below. `vuln:` is the one caller with a template of its own, so §2.3 uses it verbatim rather than deriving a subject from the repo's log.
 - `title` — `fix(deps): <library> upgrade to remediate <CVE-ID>`, with ` [<JIRA-ID>]` appended when the CVE has one.
-- `body_facts` — the CVE summary, the vulnerable range, the version change applied, the classification, the Opus review verdict and triage where the CVE went through review, and the test counts before and after.
+- `body_facts` — the CVE summary, the vulnerable range, the version change applied, the classification, the review-tier review verdict and triage where the CVE went through review, and the test counts before and after.
 - `clean_finish` — `false` when the CVE ended `BLOCKED`, when its review is still `BLOCK`, when the user chose `keep-anyway` on a regression, or when the fixer returned **`TESTS_NOT_RUN`**; `true` otherwise. `TESTS_NOT_RUN` belongs here because it is the honest disposition for a fix nothing verified: the change is real and applied, so it is committed and offered for push under the run's one consent choice, and its pull request is a draft leading with the DO-NOT-MERGE line — rather than being reverted, which would destroy a working security fix over a suite that could not run. Per §2.9 the commit and the push happen either way; only the pull request changes (draft, DO-NOT-MERGE banner).
 
 §2.4's choice is asked on the **first** CVE and reused for every later one (`code_handoff_choice`) — a ten-CVE run asks once, not ten times. Emit the §3.1 `Code repo:` line per CVE and carry its pull-request number into the Step 4 table's `PR` column.
@@ -240,9 +241,9 @@ with the qualification pushed into a note. Filling the cell by pattern-matching 
 how a fix nobody verified gets reported as verified: they show only `OK` and `SKIP`, and `OK` is
 the nearer of the two for a fix that applied cleanly and built.
 
-Append a `### Model Routing` section summarising the per-CVE classification, why it was chosen, the models used, and any Opus review verdicts.
+Append a `### Model Routing` section summarising the per-CVE classification, why it was chosen, the models used, and any review-tier review verdicts.
 
-Append a `### Review triage` section with one line per CVE that went through Opus review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE path, no Opus review)" for CVEs that never reached review.
+Append a `### Review triage` section with one line per CVE that went through review-tier review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE path, no review-tier review)" for CVEs that never reached review.
 
 Then invoke `impl-maintenance` with a compact session handoff covering the CVEs fixed, notable regressions, workarounds, and overall outcome. **Always pass `Command run: vuln:`** in that handoff — omitting it makes `impl-maintenance` default to `implement:`, mislabeling the run.
 
@@ -332,7 +333,7 @@ All three are Step 3.9's, through `finish-code-branch` (`~/.copilot/installed-pl
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - ALWAYS classify **per CVE** after research
 - NEVER use Opus for a `MODERATE` fix unless the user explicitly asks for it
-- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` CVE before the Opus review returns a non-BLOCK verdict
+- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` CVE before the review-tier review returns a non-BLOCK verdict
 - ALWAYS pass the captured baseline block back to `vuln-fixer` on `phase: verify-resume`
 - ALWAYS run Step 3.9 (`finish-code-branch`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md`) after a CVE's last fixer return — the commit is prompt-free (§1 rule 5), §2.4's choice is asked once per run and reused for every later CVE, and a CVE whose fix is on disk is never left uncommitted
 - NEVER let `vuln-fixer` commit, push, or open a pull request — it creates the branch and applies the fix; the orchestrator owns the handoff, because the consent choice behind it is one a sub-agent cannot ask
