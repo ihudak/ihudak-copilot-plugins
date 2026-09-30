@@ -61,7 +61,7 @@ task(
     classification: MODERATE
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
-    detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -115,7 +115,7 @@ task(
     classification: [MODERATE]
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
-    detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -166,7 +166,7 @@ task(
     classification: [SIGNIFICANT | HIGH-RISK]
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
-    detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -204,7 +204,7 @@ Runs after the fixer's last return for this CVE — after the `verify-resume` ca
 - `commit_template` — the "Commit message" template in this skill's Git Workflow section below. `vuln:` is the one caller with a template of its own, so §2.3 uses it verbatim rather than deriving a subject from the repo's log.
 - `title` — `fix(deps): <library> upgrade to remediate <CVE-ID>`, with ` [<JIRA-ID>]` appended when the CVE has one.
 - `body_facts` — the CVE summary, the vulnerable range, the version change applied, the classification, the Opus review verdict and triage where the CVE went through review, and the test counts before and after.
-- `clean_finish` — `false` when the CVE ended `BLOCKED`, when its review is still `BLOCK`, or when the user chose `keep-anyway` on a regression; `true` otherwise. Per §2.9 the commit and the push happen either way; only the pull request changes (draft, DO-NOT-MERGE banner).
+- `clean_finish` — `false` when the CVE ended `BLOCKED`, when its review is still `BLOCK`, when the user chose `keep-anyway` on a regression, or when the fixer returned **`TESTS_NOT_RUN`**; `true` otherwise. `TESTS_NOT_RUN` belongs here because it is the honest disposition for a fix nothing verified: the change is real and applied, so it is committed and offered for push under the run's one consent choice, and its pull request is a draft leading with the DO-NOT-MERGE line — rather than being reverted, which would destroy a working security fix over a suite that could not run. Per §2.9 the commit and the push happen either way; only the pull request changes (draft, DO-NOT-MERGE banner).
 
 §2.4's choice is asked on the **first** CVE and reused for every later one (`code_handoff_choice`) — a ten-CVE run asks once, not ten times. Emit the §3.1 `Code repo:` line per CVE and carry its pull-request number into the Step 4 table's `PR` column.
 
@@ -231,6 +231,14 @@ After all CVEs are processed, remove each CVE's now-unread temp files — `comma
 | CVE-2023-46604 | activemq-broker | 5.15.5→5.15.16 | MODERATE     | OK      | #42 |
 | CVE-2024-99999 | (not in repo)   | —              | —            | SKIP    | —   |
 ```
+
+**The `Result` vocabulary is fixed here, not inferred from the example rows above.** It is
+exactly `OK`, `TESTS_NOT_RUN`, `SKIP`, `BLOCKED`, `BUILD_FAILED`, `REVERTED`,
+`REGRESSION_KEPT`. **`OK` means the comparison happened and found no regression, and nothing
+else earns it** — a fix whose post-fix verify could not run is **`TESTS_NOT_RUN`**, never `OK`
+with the qualification pushed into a note. Filling the cell by pattern-matching the examples is
+how a fix nobody verified gets reported as verified: they show only `OK` and `SKIP`, and `OK` is
+the nearer of the two for a fix that applied cleanly and built.
 
 Append a `### Model Routing` section summarising the per-CVE classification, why it was chosen, the models used, and any Opus review verdicts.
 

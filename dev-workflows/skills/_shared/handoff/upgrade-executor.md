@@ -3,6 +3,10 @@
 ## Input (orchestrator → upgrade-executor)
 
 The upgrade plan from upgrade-planner with `status: READY`, plus baseline info:
+command_hint: "mvn test"   # optional; the operator-supplied test command, passed
+                           # straight through to BOTH test-baseliner calls (capture and verify,
+                           # incl. verify-resume). A verify over a different set of suites is
+                           # not a comparison -- see the agent file.
 
 The `## Upgrade Plan` section may arrive inline (as shown below) **or** as a line naming the
 absolute path of a `mktemp` file the orchestrator wrote it to. When given a path, `view` the file
@@ -60,7 +64,10 @@ related:
 
 ```markdown
 ## Upgrade Result: spring-boot
-status: OK              # OK | BUILD_FAILED | SKIPPED | TEST_REGRESSION | TEST_REGRESSION_KEPT | TEST_REGRESSION_REVERTED | AWAITING_REVIEW | BLOCKED
+status: OK              # OK | BUILD_FAILED | SKIPPED | TEST_REGRESSION | TEST_REGRESSION_KEPT | TEST_REGRESSION_REVERTED | AWAITING_REVIEW | TESTS_NOT_RUN | BLOCKED
+                        # TESTS_NOT_RUN: the component is upgraded and kept; the post-upgrade
+                        # verify could not run or ran only in part. NOT a verdict, NOT a revert.
+                        # OK means the comparison happened and found no regression -- nothing else earns it.
 component: spring-boot
 from: "3.1.4"
 to: "3.3.11"

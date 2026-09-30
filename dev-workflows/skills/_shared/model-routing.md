@@ -79,53 +79,41 @@ when the change is **production-critical, security-critical, or data-irreversibl
 
 ---
 
-## 2. Strong (reasoning) tier — "strongest available reasoning model"
+## 2. Strong (reasoning) tier — Anthropic-first, and the default for work
 
-Reasoning-heavy work (planning critique, code review, product-doc review, Epic
-review, engineering-design review, synthesis) runs on the **strong tier**.
+**Two tiers, split by role.** This section is the **work** tier — it runs everything that
+*produces*: planning and planning critique, synthesis, delegated authoring, implementation, and
+fixes. §2.3 is the **review** tier, which runs the gates that *judge*, and it is OpenAI-first.
 
-The strong tier is a **peer set**, not a single vendor ladder:
+The split is deliberate and is the house policy: **Anthropic models do the work, top OpenAI
+models review it.** Two different models looking at one artifact catch more than one model
+looking twice, and the reviewer having no stake in the authoring is the point of a gate.
 
-- `claude-opus-5.5`
-- `claude-opus-5`
-- `gpt-5.6`
-- `claude-opus-4.8`
-- `claude-opus-4.7`
-- `claude-opus-4.6`
-- `gpt-5.5`
+Use the first available:
 
-These seven are **first-class peers**. GPT-5.6 and GPT-5.5 are strong reasoning
-models in their own right — they are **not** degraded fallbacks, and choosing one
-is never announced as a downgrade. (GPT models were unavailable in Claude Code, so
-the original policy was Opus-only; on Copilot CLI, GPT-5.6 and GPT-5.5 are co-equal
-strong options.)
+1. `claude-opus-5.5`
+2. `claude-opus-5`
+3. `claude-opus-4.8`
+4. `claude-opus-4.7`
+5. `claude-opus-4.6`
+6. `claude-opus-4.5`
 
-**Selection rule:**
+**Further fallbacks** (only if no Opus is available — announce the degradation in the routing
+record and the final report):
 
-1. Prefer the model the **orchestrator is already running under** if it is in the
-   strong-tier peer set (e.g. an Opus 5 session pins gates to Opus 5; a
-   GPT-5.6 session pins gates to GPT-5.6).
-2. Otherwise pick the first available peer in the list order above.
+7. `claude-sonnet-5.5`
+8. `claude-sonnet-5`
+9. `claude-sonnet-4.6`
+10. `claude-sonnet-4.5`
+11. `gemini-3.1-pro-preview`
 
-**Further fallbacks** (only if no strong-tier peer is available — announce the
-degradation in the routing record and final report):
+`gemini-3.1-pro-preview` is the floor; if no model in the list is available, abort the
+SIGNIFICANT/HIGH-RISK gates and ask the user how to proceed rather than silently downgrading.
 
-8.  `claude-opus-4.5`
-9.  `claude-sonnet-5`
-10. `claude-sonnet-4.6`
-11. `claude-sonnet-4.5`
-12. `gpt-5.4`
-13. `gemini-3.1-pro-preview`
-
-`gemini-3.1-pro-preview` is the floor; if no model in the list is available,
-abort the SIGNIFICANT/HIGH-RISK gates and ask the user how to proceed rather than
-silently downgrading.
-
-The list of available models can be inspected from the `task` tool's `model`
-parameter documentation. The "currently selected model" is whatever the
-orchestrator itself is running under (see `~/.copilot/settings.json` → `model`).
-Sub-agents inherit it unless the orchestrator explicitly overrides via the
-`task` tool's `model` argument.
+**Selection rule:** prefer the model the **orchestrator is already running under** where it is
+one of rows 1–6, otherwise take the first available row in list order. (Preferring the session
+model is an economy, not a policy: it avoids paying to switch when the session is already on a
+qualifying model.)
 
 ---
 
@@ -142,8 +130,15 @@ Use the first available:
 1. `claude-sonnet-5.5`
 2. `claude-sonnet-5`
 3. `claude-sonnet-4.6`
-4. `claude-sonnet-4.5`
-5. `gpt-5.4` (further fallback — note the degradation in the report)
+4. `claude-sonnet-4.5` (further fallback — note the degradation in the report)
+
+**No GPT row sits here, by policy and by fact.** By policy: detection is work, and §2's split
+puts work on Anthropic. By fact: this chain used to end in `gpt-5.4`, which appears in no
+current Copilot model list — the 5.x GPT families are `gpt-5.6-<codename>`, and there is no
+bare `gpt-5.4`, `gpt-5.5` or `gpt-5.6` at all. `gpt-6-luna` *is* reachable and is the
+cost-efficient member of its family, so it is the one GPT model that would fit a cheap tier;
+it is left out because §2's role split is the simpler rule to hold, and mixing vendors in the
+cheap tier buys nothing a Sonnet row does not already give.
 
 If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
@@ -159,6 +154,65 @@ resolves `run-flags.md` §2's `haiku` value. Use the first available:
 2. the §2.1 chain
 
 Record it as `defect_model:` in the `model_routing` block when used.
+
+---
+
+## 2.3 Review tier — OpenAI version 6 first
+
+**Every gate that judges an artifact runs here**, not on §2: `code-review`, `doc-reviewer`,
+`vi-reviewer`, `ard-reviewer`, `spec-reviewer`, `design-reviewer`, `epic-reviewer`,
+`readiness-reviewer`, and any reviewer added later. Use the first available:
+
+1. `gpt-6-astra`
+2. `gpt-6.1-sol`
+3. `gpt-6-sol`
+4. **the §2 chain** (Opus 5.5 → 5 → 4.8 → 4.7 → 4.6 → 4.5, then §2's own further fallbacks)
+
+Rows 1–3 are the version-6 OpenAI models; row 4 is the whole of §2, so a session with no
+version-6 model reachable reviews on Anthropic exactly as it did before this split, and that
+is **not announced as a degradation** — it is a documented branch of the policy.
+
+**`gpt-6-astra` leads by house preference**, not by measurement in this repository. GitHub
+describes Astra as built for "long-horizon, autonomous coding and agentic tasks" and Sol as "a
+balanced model for interactive and agentic coding, and a strong all-round choice for
+development tasks that benefit from careful, multistep validation" — and *multistep validation*
+is arguably the better description of a review gate. The order here is the one the house asked
+for; if a measured comparison ever disagrees, change it here and say so, rather than quietly
+re-ranking at a call site.
+
+**`gpt-6.1-sol` sits ahead of `gpt-6-sol`** because it is the newer Sol: GitHub's changelog
+(2026-09-29) records it completing tasks with "noticeably fewer tokens and steps than earlier
+models in the GPT-6 and GPT-5.6 families". Newest-within-a-codename is the rule; Astra-before-Sol
+is the house preference above it.
+
+**The selection rule of §2 does NOT apply here.** A review does not prefer the session model,
+because the whole purpose of this tier is that the reviewer is not the author. A GPT-6 session
+still reviews on §2.3 row 1 and an Opus session still reviews on §2.3 row 1 — the session model
+changes nothing about which model judges.
+
+**Models deliberately NOT in this tier**, so nobody reads their absence as an oversight:
+
+- **`gpt-6-luna`** — GitHub's own description is "a lightweight, cost-efficient model for
+  smaller, faster tasks and the lowest-cost option in the GPT-6 family". A review gate is the
+  one place in this plugin where cost is explicitly subordinate to judgement, so the cheapest
+  member of a family is the wrong choice for it. Luna is reachable and unused.
+- **`gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`** — superseded. The 6.1 changelog above
+  measures the newer model as cheaper *and* better than this family, so there is no position in
+  which a 5.6 model is the right answer while any version-6 row or §2 is reachable.
+
+**The ids in this section are exact, and the shape matters.** The GPT-5.6 family is
+`gpt-5.6-<codename>`; **there is no bare `gpt-5.6`.** This file previously listed `gpt-5.6`,
+`gpt-5.5` and `gpt-5.4` as chain rows, and none of those three appears in any current Copilot
+model list — a chain naming an id the harness does not offer fails its dispatch or silently
+falls through, which is the same class of defect as passing a full id to a parameter that
+accepts only families (§5). Verified against GitHub's changelogs for GPT-6 Astra (2026-09-04),
+GPT-6 Sol and Luna (2026-09-22), GPT-6.1 Sol (2026-09-29) and the GPT-5.6 family (2026-07-09).
+
+The list of available models can be inspected from the `task` tool's `model` parameter
+documentation. The "currently selected model" is whatever the orchestrator itself is running
+under (see `~/.copilot/settings.json` → `model`). Sub-agents inherit it unless the orchestrator
+explicitly overrides via the `task` tool's `model` argument (and under §10 every dispatch
+overrides it).
 
 ---
 
@@ -185,7 +239,7 @@ The orchestrator MUST execute these steps in order:
    Sub-agents that do the actual file edits inherit the orchestrator's model
    unless overridden.
 4. **Strong-tier code review** of the completed implementation. This is a
-   dedicated `code-review` sub-agent invocation pinned to the §2 strong tier. It
+   dedicated `code-review` sub-agent invocation pinned to the **§2.3 review tier**. It
    MUST cover every item in the §6 checklist. Tests MUST NOT be run until this
    review completes.
 5. **Run tests** (build + test suite per the executor / fixer skill).
@@ -211,21 +265,26 @@ sub-agent it invokes. Format:
 model_routing:
   classification: SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK
   reason: <one-line justification citing the §1 trigger that applied>
-  current_model: <e.g. claude-opus-5 or gpt-5.6>   # the model the orchestrator is running
-  planning_model: <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
-  review_model:   <e.g. claude-opus-5>       # strong tier; only set for SIGNIFICANT/HIGH-RISK
-  implementation_model: <e.g. claude-sonnet-5 or current_model>
+  current_model: <e.g. claude-opus-5 or gpt-6-astra>   # the model the orchestrator is running
+  planning_model: <e.g. claude-opus-5-5>     # §2 WORK tier; only set for SIGNIFICANT/HIGH-RISK
+  review_model:   <e.g. gpt-6-astra>         # §2.3 REVIEW tier -- the gates that JUDGE, never §2.
+                                             # Falls back to the whole of §2 (row 4) where no
+                                             # version-6 GPT is reachable; that is a documented
+                                             # branch, not a degradation. Only set for
+                                             # SIGNIFICANT/HIGH-RISK.
+  implementation_model: <e.g. claude-sonnet-5-5 or current_model>
   detection_model: <e.g. claude-sonnet-5.5>  # mid-tier steps (§2.1); never the session model
   defect_model:   <e.g. claude-haiku-4.5>    # §2.2 cheap chain; set only under --skip-feedback
   fixes_model:    <same as implementation_model>
-  opus_available: true | false             # true if any §2 peer (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) is available
+  opus_available: true | false             # true if any §2 row 1-6 (Opus 5.5/5/4.8/4.7/4.6/4.5) is available
+  review_tier_vendor: openai | anthropic   # which branch of §2.3 the review_model came from
   enforced_model: <e.g. claude-opus-5.5>   # §10: set only when run_flags.enforced_model is set
   routing: bypassed                        # §10: present only alongside enforced_model
   gate_tests_on_review: true | false   # optional; default false. Only meaningful for SIGNIFICANT/HIGH-RISK.
                                        # When true, the executor/fixer sub-agent stops after the build,
                                        # returns status: AWAITING_REVIEW, and waits for a follow-up call
                                        # with phase: verify-resume to run tests / commit / PR.
-  notes: <optional — e.g. "Opus unavailable; ran gates on gpt-5.5 (peer, not a downgrade)">
+  notes: <optional — e.g. "no version-6 GPT reachable; reviews ran on the §2 Anthropic chain (a documented §2.3 branch, not a downgrade)">
 ```
 
 The `phase` field used to resume an executor/fixer after the strong-tier review
@@ -249,7 +308,8 @@ Sub-agents that receive a `model_routing` block:
   `gate_tests_on_review: true` flag — both styles are acceptable.
 - `risk-planner`, `code-review`, `epic-reviewer`, `doc-reviewer`, `vi-reviewer`,
   `ard-reviewer`, `spec-reviewer`, `design-reviewer`, `readiness-reviewer`: the
-  orchestrator pins these to the §2 strong tier via the `task` tool's `model:`
+  orchestrator pins the REVIEWERS among them to the §2.3 review tier and the
+  planner to the §2 work tier, via the `task` tool's `model:`
   argument. They receive the `model_routing` block for context and reporting.
 - `jira-reader`, `code-scanner`, `diff-summarizer`, `doc-location-finder`,
   `docs-style-checker`, `doc-fixer`: pinned to the §2.1 detection chain.

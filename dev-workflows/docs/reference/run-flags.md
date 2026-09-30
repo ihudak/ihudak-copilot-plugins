@@ -27,7 +27,7 @@ The run reports `Session feedback: bugs-only (--skip-feedback) — N defect(s) p
 
 Pins every subagent the run dispatches to one model, bypassing model routing's own per-step selection — including the agents the caller otherwise always pins to the strong tier. The value is a family alias (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or **any full model id**.
 
-**This edition's strong tier is a multi-vendor peer set**, which matters here: `gpt-5.6` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family, so they are reachable only as full ids and have no alias. Note also that ids in this edition use **dots**, not dashes — `claude-opus-5.5`, not `claude-opus-5-5` — matching what the CLI's `model:` parameter accepts.
+**This edition's strong tier is a multi-vendor peer set**, which matters here: `gpt-6-astra` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family, so they are reachable only as full ids and have no alias. Note also that ids in this edition use **dots**, not dashes — `claude-opus-5.5`, not `claude-opus-5-5` — matching what the CLI's `model:` parameter accepts.
 
 **It never moves the orchestrator itself.** A skill cannot switch the model it is running under from inside a run, so enforcement pins the subagents and leaves the session model alone. When the two differ the run says so once. For the same reason, every gate that requires a strong-tier *session* stops firing under enforcement: the inline grill and authoring those gates protect still run on your session model, so pointing them at the enforced model instead would let a weak session pass a strong gate.
 

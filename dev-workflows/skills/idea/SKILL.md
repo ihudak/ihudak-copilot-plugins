@@ -41,7 +41,7 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
      classification: MODERATE          # idea refinement is typically MODERATE
      reason: <one-line>
      current_model: <the model this orchestrator/grill is running under>
-     detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # idea-reader
+     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # idea-reader
      authoring_model: <= current_model>   # the interactive grill + idea.md authoring (session model, not a delegated subagent)
      opus_available: <true if a §2 Opus model resolved, else false>
      notes: <any §2/§2.1 fallback or degradation>

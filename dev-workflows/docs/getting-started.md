@@ -50,7 +50,7 @@ export GIT_USER_INITIALS="iv-gu"          # optional: identity segment for branc
 
 Persistent defaults for this edition's two **run flags** — `--skip-feedback` and `--enforce-model=<model>`. Set one and you get that flag's behaviour on every run without typing it; pass the flag itself and it wins over the variable.
 
-`WORKFLOWS_SKIP_FEEDBACK` is a boolean (`1`, `true`, or `yes` turns it on) and narrows the end-of-run maintenance pass to bugs only: you lose the in-session Lessons Learned report and keep the defect capture. `WORKFLOWS_ENFORCE_MODEL` takes a model instead — a family (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full id including a non-Claude peer like `gpt-5.6` — and pins every subagent a run dispatches to it. It never moves the orchestrator off your session model; when the two differ the run says so once. A value it cannot resolve or reach stops the run before anything is written.
+`WORKFLOWS_SKIP_FEEDBACK` is a boolean (`1`, `true`, or `yes` turns it on) and narrows the end-of-run maintenance pass to bugs only: you lose the in-session Lessons Learned report and keep the defect capture. `WORKFLOWS_ENFORCE_MODEL` takes a model instead — a family (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full id including a non-Claude peer like `gpt-6-astra` — and pins every subagent a run dispatches to it. It never moves the orchestrator off your session model; when the two differ the run says so once. A value it cannot resolve or reach stops the run before anything is written.
 
 **There is no `WORKFLOWS_SKIP_COSTS` in this edition**, because there is no cost subsystem to skip. For the full grammar and per-skill applicability, see [Environment](reference/environment.md).
 

@@ -55,7 +55,12 @@ guideline-reviewer:      → guideline-reviewer skill → guideline-reviewer age
 
 Utilities: feedback:, prompt:, prompt-brainstorm:, prompt-grill-me:
 
-"@strong" = strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller.
+"@strong" = strong reasoning tier, pinned by the caller, and it now resolves by ROLE:
+**work** steps (planning and planning critique, synthesis, delegated authoring,
+implementation, fixes) take `model-routing.md` §2, Anthropic-first — Opus
+5.5/5/4.8/4.7/4.6/4.5; **review** gates take §2.3, OpenAI-first — `gpt-6-astra` →
+`gpt-6.1-sol` → `gpt-6-sol`, falling back to the whole of §2. A review never prefers
+the session model: the point of the tier is that the reviewer is not the author.
 ```
 
 Key invariants for the VI-creation flow (`idea:`, `create-vi:`, `create-ard:`, `specify:`, `design:`, `implement:`, `epics:`, `ready:`):

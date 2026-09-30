@@ -4,6 +4,40 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [2.32.0] — 2026-09-30
+
+### Changed — model routing splits by role
+
+- **Anthropic models do the work; top OpenAI models review it.** `model-routing.md` §2 was one multi-vendor peer set for every reasoning-heavy step. It is now two tiers. **§2 is the work tier** — planning and planning critique, synthesis, delegated authoring, implementation, fixes — Anthropic-first: Opus 5.5 → 5 → 4.8 → 4.7 → 4.6 → 4.5, then Sonnet 5.5 → 5 → 4.6 → 4.5 → Gemini 3.1 Pro Preview as announced degradations. **New §2.3 is the review tier** — every gate that judges (`code-review`, `doc-reviewer`, and the VI, ARD, spec, design, Epic and readiness reviewers) — OpenAI-first: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → the whole of §2. Two different models over one artifact catch more than one model looking twice, and a reviewer with no stake in the authoring is the point of a gate.
+- **Row 4 is a documented branch, not a degradation.** A session with no version-6 GPT reachable reviews on Anthropic exactly as before, and the report does not call it a downgrade.
+- **A review never prefers the session model.** The work tier does, as an economy — it avoids paying to switch when the session already qualifies. The review tier deliberately does not: a GPT-6 session and an Opus session both review on §2.3 row 1, because the whole purpose of the tier is that the reviewer is not the author.
+- **`risk-planner` is on the work tier**, a deliberate boundary call recorded here so it is not silently moved: it produces a plan, and the split is that OpenAI critiques while Anthropic creates. Its two peer labels were retargeted to the work tier while the eight reviewers' sixteen were retargeted to the review tier.
+- `model_routing` gains `review_tier_vendor: openai | anthropic`, recording which branch of §2.3 the `review_model` came from, and `review_model`'s example is now a GPT-6 id.
+
+### Fixed — the chains named model ids that do not exist
+
+- **`gpt-5.6`, `gpt-5.5` and `gpt-5.4` appear in no current Copilot model list.** They sat in §2 as peer rows and at the floor of the §2.1 detection chain. The GPT-5.6 family is `gpt-5.6-<codename>` (Sol, Terra, Luna) — **there is no bare `gpt-5.6`** — and a chain row naming an id the harness does not offer fails its dispatch or silently falls through, the same class of defect as passing a full id to a parameter that accepts only families (§5). All three are gone: the detection chain now ends at `claude-sonnet-4.5` and carries no GPT row at all, since detection is work and work is Anthropic. Verified against GitHub's changelogs for GPT-6 Astra (2026-09-04), GPT-6 Sol and Luna (2026-09-22), GPT-6.1 Sol (2026-09-29) and the GPT-5.6 family (2026-07-09).
+- **The §2.1 detection chain's inline labels in 13 skills were two generations stale**, reading `claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4` — omitting Sonnet 5 entirely and ending in a non-existent id. All now read the real chain.
+- `gpt-6-luna` and the `gpt-5.6-*` family are named as **reachable and deliberately unused**, with reasons, so their absence is not read as an oversight: Luna is its family's lowest-cost member and a review gate is the one place cost is subordinate to judgement, and the 5.6 family is superseded by a model GitHub measures as cheaper *and* better.
+
+### Fixed — destructive revert, and a fix reported as verified
+
+- **BLOCKER: `vuln-fixer` and `upgrade-executor` reverted a working change when the post-change verify could not run.** Both read `test-baseliner`'s `RUN_FAILED` at the **verify** step as grounds to revert and report `BUILD_FAILED`. Nothing was compared in that state — an unrunnable suite is a fact about the environment at both ends and says nothing about the change — so a completed security fix, or a completed upgrade, was destroyed on evidence that did not bear on it, and labelled with a build failure that had not happened (the build succeeded one step earlier). Both now keep the change and return `TESTS_NOT_RUN`; `PARTIAL` is incompleteness, not a verdict, and does not revert either. The two states that still revert are the two about the change itself. `vuln:` carries `TESTS_NOT_RUN` into `clean_finish: false`, so the fix is committed, offered for push, and its PR is a draft leading with DO-NOT-MERGE.
+- **A fix nobody verified would have been reported as verified.** `vuln:`'s summary table showed only `OK` and `SKIP` in its examples and `upgrade:`'s showed `OK` in three of four rows, so an agent filling the cell by pattern-matching writes `OK` for a `TESTS_NOT_RUN` unit. Both vocabularies are now fixed in the skill, and **`OK` means the comparison happened and found no regression — nothing else earns it.**
+- **`command_hint` never reached the verify call.** Now an optional input of both agents, passed through to the `capture` and the `verify`, including on a `verify-resume`. Dropping it either finishes a unit `TESTS_NOT_RUN` after the operator supplied a working command, or runs a different command at verify than at capture — every baseline test falls out as **Missing from run** and the verify reports a regression the run manufactured itself.
+
+### Changed — review convergence is outcome-keyed, not capped
+
+- **"Cap: one fix cycle + one re-review" is withdrawn from all 7 gates**, replaced by the new `skills/_shared/review-convergence.md`: re-review while the last pass's own fixes introduced something, stop when they did not, and the user may decline from the second pass onward. A fixed count cannot bound this — fixes introduce defects at a rate comparable to the ones they resolve — and a ceiling binds precisely when the artifact is furthest from correct. **If you fix a MAJOR under a passing verdict you must still re-review**: the reviewer approved the artifact it saw, not the one your fix produced. Demonstrated wrong twice on one document, including a defect that reached the default branch by exactly that route.
+
+### Added — stale-downstream-artifact detection
+
+- **`update-vi:` now discovers what the update may INVALIDATE, not only what grounds it.** New Phase 0 step 5a globs for artifacts a later phase already produced — the release-notes draft in the feature folder and under `$VAULT_PATH`, plus any ARD, specification and design — and Phase 1 confirms each with its path and mtime. The next-phase offer is then **conditional**: an artifact the update contradicts is named, recommended and put first; one it does not touch is listed without recommendation; one that does not exist is dropped from the menu. An update once reversed an acceptance criterion a published release-notes draft depended on, turning it into a false customer-facing claim about data retention, and it was caught only because the same session had authored the draft and the orchestrator remembered. A write hook was considered and declined, with the reason recorded.
+
+### Fixed — carried over
+
+- NB-13, NB-14 (the gradle branch's `first()` dropped a failing earlier subproject — a red build could notify as green), NB-15.
+
 ## [2.31.0] — 2026-09-30
 
 Ports the run-flags and model-dispatch work from `mgd-claude-plugins` 2.63.0 (itself a harvest of `ai-workflows` `workflows-core` 1.8.0 / 1.8.1), adapted to this edition: two flags, not three, and a multi-vendor strong tier.

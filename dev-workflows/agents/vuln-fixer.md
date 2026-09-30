@@ -20,6 +20,18 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/vuln/SKILL.md` sections "Git Workflow" and "Handling Test Failures" for branch naming and the regression protocol. The commit message and PR format documented there are the **orchestrator's** to apply in Step 3.9 — read them for context, never act on them.
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md` for the test-baseliner handoff format.
 
+**`command_hint` is carried through to every `test-baseliner` call this agent makes** — the
+`capture` and the `verify` alike, including on a `verify-resume`, where the orchestrator
+re-supplies it beside the baseline. It is an optional input of this agent, passed straight
+through untouched. Two reachable failures come from dropping it, and the second is worse: where
+the hint was the only thing that detected a runner, the verify detects nothing and returns
+`COMMAND_NOT_FOUND`, so the unit finishes `TESTS_NOT_RUN` after the operator supplied a command
+that works; and where it named a working alternative to a broken runner, the verify runs a
+*different* command from the capture, every baseline test falls out as **Missing from run**, and
+the verify reports `REGRESSIONS` — a regression the run manufactured itself. A verify over a
+different set of suites is not a comparison.
+
+
 ## Process
 
 Receive the research report for **one CVE** with `status: READY`. The report may be provided inline or as an absolute file path — `view` the file first when given a path.
@@ -88,7 +100,19 @@ reconstruct it.
 5. **Verify** — Invoke `test-baseliner` in `verify` mode, passing the baseline from step 1.
    - `status: OK` → proceed to step 6.
    - `status: REGRESSIONS` → follow "Test regression" below.
-   - `status: RUN_FAILED` → revert fix, set `status: BUILD_FAILED`, return.
+   - `status: RUN_FAILED`, `COMMAND_NOT_FOUND`, or `PARTIAL` → **keep the fix.** Set
+     `status: TESTS_NOT_RUN`, leave the change applied on the step-2 branch, and return, naming
+     in `notes` which of the three it was and the command that failed. **Do NOT revert, and do
+     NOT report `BUILD_FAILED`.** Nothing was compared in any of these states: an unrunnable or
+     partially-run suite is a fact about the environment at both ends of the comparison and says
+     nothing about this change, so reverting destroys a security fix on evidence that does not
+     bear on it — and the build has already succeeded at step 4, which is what `BUILD_FAILED`
+     asserts. `PARTIAL` is incompleteness, not a verdict, so it does not revert either.
+
+   **The two states that still revert are the two that are about the change itself:** a build
+   that could not be made to pass in one further attempt (`BUILD_FAILED`, step 4's own path), and
+   a genuine regression on which the **orchestrator** — never this agent, which cannot prompt —
+   answered `regression_decision: revert`.
 
 6. **Output** — Produce the result record (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/vuln-fixer.md` output format).
 

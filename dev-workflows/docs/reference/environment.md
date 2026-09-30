@@ -78,7 +78,7 @@
 
 - **`$WORKFLOWS_ENFORCE_MODEL`** — the persistent default for the `--enforce-model` run flag; pins every subagent a skill dispatches to one model, bypassing model routing's own per-step selection.
 
-**Resolution.** A family alias (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full model id — including a non-Claude peer such as `gpt-5.6`, which belongs to no family and is reachable only as a full id. Note this edition's id form uses **dots**, not dashes (`claude-opus-5.5`). `routing`, unset, or set-but-empty all mean no enforcement. An `--enforce-model=<value>` flag always overrides it.
+**Resolution.** A family alias (`opus`, `sonnet`, `haiku`, `fable`), a versioned form (`opus5.5`), or any full model id — including a non-Claude peer such as `gpt-6-astra`, which belongs to no family and is reachable only as a full id. Note this edition's id form uses **dots**, not dashes (`claude-opus-5.5`). `routing`, unset, or set-but-empty all mean no enforcement. An `--enforce-model=<value>` flag always overrides it.
 
 **When the value is bad.** On a run whose command line gives no `--enforce-model` of its own, a value matching none of `run-flags.md` §2's forms stops every skill the flag applies to with `RUN_FLAGS_BAD_MODEL`, and one resolving to an unreachable model stops it with `RUN_FLAGS_MODEL_UNAVAILABLE` — both in Phase 0, before any write, each message tagged `(from WORKFLOWS_ENFORCE_MODEL)`. A skill the flag does not apply to ignores it silently, bad value or not.
 

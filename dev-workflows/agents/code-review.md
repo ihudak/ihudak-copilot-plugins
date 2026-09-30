@@ -1,11 +1,11 @@
 ---
 name: code-review
-description: "Post-implementation code review for SIGNIFICANT / HIGH-RISK tasks. Checks correctness, security, architecture, edge cases, migration, dependencies, tests, rollback. Returns PASS / PASS WITH RECOMMENDATIONS / BLOCK and gates the test run. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
+description: "Post-implementation code review for SIGNIFICANT / HIGH-RISK tasks. Checks correctness, security, architecture, edge cases, migration, dependencies, tests, rollback. Returns PASS / PASS WITH RECOMMENDATIONS / BLOCK and gates the test run. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Deep post-implementation code reviewer for SIGNIFICANT / HIGH-RISK tasks. Uses
-the strongest available reasoning model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5).
+the strongest available reasoning model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)).
 
 Invoked from the dev-workflows commands (`implement:`, `vuln:`, `upgrade:`) after the implementation is
 complete, but BEFORE the test suite is run. The review gates the test run -

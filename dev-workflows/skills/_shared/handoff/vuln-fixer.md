@@ -3,6 +3,10 @@
 ## Input (orchestrator → vuln-fixer)
 
 The research report from vuln-research for a SINGLE CVE with `status: READY`, plus:
+command_hint: "mvn test"   # optional; the operator-supplied test command, passed
+                           # straight through to BOTH test-baseliner calls (capture and verify,
+                           # incl. verify-resume). A verify over a different set of suites is
+                           # not a comparison -- see the agent file.
 
 The `## Research Report` section may arrive inline (as shown below) **or** as a line naming the
 absolute path of a `mktemp` file the orchestrator wrote it to. When given a path, `view` the file
@@ -66,7 +70,10 @@ files:
 
 ```markdown
 ## Vuln Fix Result: CVE-2023-46604
-status: SUCCESS         # SUCCESS | BUILD_FAILED | TEST_REGRESSION | REVERTED | SKIPPED_BY_USER | AWAITING_REVIEW | BASELINE_FAILED | BLOCKED
+status: SUCCESS         # SUCCESS | BUILD_FAILED | TEST_REGRESSION | REVERTED | SKIPPED_BY_USER | AWAITING_REVIEW | BASELINE_FAILED | TESTS_NOT_RUN | BLOCKED
+                        # TESTS_NOT_RUN: the fix is applied and still on its branch; the post-fix
+                        # verify could not run (RUN_FAILED / COMMAND_NOT_FOUND) or ran only in
+                        # part (PARTIAL). NOT a verdict on the change, and NOT a revert.
 branch: fix/MGD-2423-CVE-2023-46604
                         # no `pr_url` and no commit sha: this agent creates the branch and stops.
                         # The commit, the push, and the pull request are the orchestrator's, in

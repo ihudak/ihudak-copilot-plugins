@@ -128,7 +128,7 @@ model_routing:
   classification: <SIMPLE|MODERATE|SIGNIFICANT|HIGH-RISK>
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # code-scanner, interface-designer, impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # code-scanner, interface-designer, impl-maintenance
   review_model:    <§2 Opus chain>     # design-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + design.md authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
@@ -344,7 +344,7 @@ Dispatch `design-reviewer` (Opus):
   report; no mandatory fix cycle.
 - **`PASS`** / **`PASS WITH RECOMMENDATIONS`** — proceed to Phase 7.
 
-Cap: one fix cycle + one re-review maximum. Phase 7 will not hand off a `design.md` with any unresolved
+**Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended. Phase 7 will not hand off a `design.md` with any unresolved
 `- [ ]`.
 
 ---

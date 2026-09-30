@@ -17,6 +17,18 @@ Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/upgrade/ecosystems.md` for per-ecosystem update commands.
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md` for the test-baseliner handoff format.
 
+**`command_hint` is carried through to every `test-baseliner` call this agent makes** — the
+`capture` and the `verify` alike, including on a `verify-resume`, where the orchestrator
+re-supplies it beside the baseline. It is an optional input of this agent, passed straight
+through untouched. Two reachable failures come from dropping it, and the second is worse: where
+the hint was the only thing that detected a runner, the verify detects nothing and returns
+`COMMAND_NOT_FOUND`, so the unit finishes `TESTS_NOT_RUN` after the operator supplied a command
+that works; and where it named a working alternative to a broken runner, the verify runs a
+*different* command from the capture, every baseline test falls out as **Missing from run**, and
+the verify reports `REGRESSIONS` — a regression the run manufactured itself. A verify over a
+different set of suites is not a comparison.
+
+
 ## Process
 
 Receive one upgrade plan with `status: READY`. The plan may be provided inline or as an absolute file path — `view` the file first when given a path.
@@ -45,7 +57,18 @@ reconstruct it.
 3. **Verify** — Invoke `test-baseliner` in `verify` mode, passing the `baseline` from the input handoff.
    - `status: OK` → all green, proceed to step 4.
    - `status: REGRESSIONS` → follow "Test regression" below.
-   - `status: RUN_FAILED` → revert all changes, set `status: BUILD_FAILED`.
+   - `status: RUN_FAILED`, `COMMAND_NOT_FOUND`, or `PARTIAL` → **keep the component.** Set
+     `status: TESTS_NOT_RUN` and return, naming in `notes` which of the three it was and the
+     command that failed. **Do NOT revert, and do NOT report `BUILD_FAILED`.** Nothing was
+     compared in any of these states — an unrunnable or partially-run suite is a fact about the
+     environment at both ends and says nothing about this upgrade — so reverting discards a
+     completed component on evidence that does not bear on it, and the build has already
+     succeeded at step 2, which is what `BUILD_FAILED` asserts. `PARTIAL` is incompleteness, not
+     a verdict.
+
+   **The two states that still revert are the two that are about the change itself:** a build
+   that could not be made to pass (`BUILD_FAILED`, step 2's own path), and a genuine regression
+   on which the **orchestrator** answered `regression_decision: revert`.
 
 4. **Output** — Produce the summary record (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/upgrade-executor.md`).
 

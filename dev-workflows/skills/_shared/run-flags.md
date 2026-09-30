@@ -25,7 +25,7 @@ Single source of truth for the run flags every applicable skill accepts, their e
 
 ## 2. Model values
 
-**This edition's strong tier is a multi-vendor peer set** (`model-routing.md` §2: Opus, GPT and — at the floor — Gemini rows), which is why the alias table below is not simply a family map: `gpt-5.6` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family and are reachable only as full ids.
+**This edition's strong tier is a multi-vendor peer set** (`model-routing.md` §2 is Anthropic-first for work and §2.3 OpenAI-first for review, with Gemini at §2's floor), which is why the alias table below is not simply a family map: `gpt-6-astra` and `gemini-3.1-pro-preview` belong to no `claude-<family>` family and are reachable only as full ids.
 
 | Value form | Resolves to |
 |---|---|
@@ -34,7 +34,7 @@ Single source of truth for the run flags every applicable skill accepts, their e
 | `haiku` | the highest reachable Haiku row of `model-routing.md` §2.2 |
 | `fable` | the reachable `claude-fable-…` id highest by version number — no chain names one |
 | `<family><major>` / `<family><major>.<minor>` | `claude-<family>-<major>` / `claude-<family>-<major>.<minor>` |
-| any full model id | itself, unchanged — `claude-opus-5.5`, `gpt-5.6`, `gemini-3.1-pro-preview` |
+| any full model id | itself, unchanged — `claude-opus-5.5`, `gpt-6-astra`, `gemini-3.1-pro-preview` |
 
 `family` ∈ `opus | sonnet | haiku | fable`. The alias rows are matched case-insensitively; a full id is taken as written. **Note this edition's id form uses dots, not dashes** (`claude-opus-5.5`, not `claude-opus-5-5`) — matching what the CLI's `model:` parameter accepts. Anything matching none of the rows above stops the run with `RUN_FLAGS_BAD_MODEL`, naming the rejected value verbatim (or `(missing)`) together with its source — `(from --enforce-model)` or `(from WORKFLOWS_ENFORCE_MODEL)` — and listing the accepted forms. **Where the rejected value is itself a run-flag token the pair form consumed**, the message also says so: `--enforce-model took '<token>' as its value; write --enforce-model=<model>, or put <token> before it`.
 

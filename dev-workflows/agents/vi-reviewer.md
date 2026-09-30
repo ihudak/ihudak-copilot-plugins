@@ -1,11 +1,11 @@
 ---
 name: vi-reviewer
-description: "Reviews a Value Increment (<KEY>_<slug>.md) authored by create-vi: or update-vi: for goal crispness, user-story/acceptance-criteria testability, scope concreteness, internal consistency (no self-contradiction), measurable metrics, product-level purity (no implementation detail), downstream-contract frontmatter, and profile completeness. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
+description: "Reviews a Value Increment (<KEY>_<slug>.md) authored by create-vi: or update-vi: for goal crispness, user-story/acceptance-criteria testability, scope concreteness, internal consistency (no self-contradiction), measurable metrics, product-level purity (no implementation detail), downstream-contract frontmatter, and profile completeness. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-VI reviewer for drafts produced by `create-vi:` or `update-vi:`. Uses the strongest available reasoning
-model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** `<KEY>_<slug>.md` and checks it against the per-section
+model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)). Reads the **whole** `<KEY>_<slug>.md` and checks it against the per-section
 rules in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-format.md` plus the checks below. Never edits the VI.
 
 Invoked from `create-vi:` Phase 4 after authoring and `update-vi:` Phase 4 after updating. A `BLOCK` verdict gates the handoff — the caller

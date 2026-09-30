@@ -52,7 +52,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
-       detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
+       detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
        planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
        review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
@@ -135,7 +135,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [component class]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
-       detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
+       detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
        planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
        review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
        opus_available: <true if a §2 Opus model resolved, else false>
@@ -215,6 +215,12 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 Tests: 142 passed, 0 regressions (baseline: 142 passing)
 ```
+
+**The `Status` vocabulary is fixed here, not inferred from the example rows above.** It is
+exactly `OK`, `TESTS_NOT_RUN`, `SKIPPED`, `BLOCKED`, `BUILD_FAILED`, `TEST_REGRESSION_KEPT`,
+`TEST_REGRESSION_REVERTED`. **`OK` means the comparison happened and found no regression, and
+nothing else earns it** — a component whose post-upgrade verify could not run, or ran only in
+part, is **`TESTS_NOT_RUN`**, never `OK` with the qualification pushed into `Notes`.
 
 Append a `### Review triage` section with one line per SIGNIFICANT/HIGH-RISK component that went through Opus review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no Opus review)" for components that never reached review.
 

@@ -27,6 +27,14 @@ Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs | --docs <path>]`
 4. **Resolve the base VI — Jira-import-first.** Execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi <KEY>`): the re-imported `$VAULT_PATH/jira-products/<KEY>` VI (body + `-comments.md`) is the **authoritative base**; not imported → stop and ask to import; stale (>3 days) → offer re-import.
 5. **Secondary grounding (read-only).** Discover in the feature folder: the frozen specs draft (glob `<KEY>_*.md`, `issue_type: ValueIncrement`), any `*_ARD.md`, `specification.md`; plus any `@transcript` / notes path(s) passed in the argument.
 
+5a. **Downstream-artifact discovery (read-only) — what this update may INVALIDATE.** Step 5 finds what grounds the update; this step finds what the update could falsify. Glob for artifacts a **later** phase already produced from the document you are about to change, in every place one can land: `<feature-folder>/<KEY>-release-notes.md`, `${VAULT_PATH}/**/<KEY>-release-notes.md`, plus the `*_ARD.md`, `specification.md` and `design.md` step 5 already found. Read-only, never gated, and **never a reason to stop**.
+
+   Report every hit in the Phase 1 confirmation as a **downstream artifact that may be invalidated by this update**, naming its path and its mtime. Carry the list into the next-phase offer.
+
+   **Why this is control flow and not a reminder.** An update run reversed an acceptance criterion that an already-written release-notes draft depended on — the draft said a pinned build remains obtainable for as long as any cluster is pinned to it, including after that version line reaches end of support, and the update inverted exactly that. The draft became a false customer-facing claim about data retention, behind a follow-up task telling someone to publish it. It was caught **only because the same session had authored it and the orchestrator remembered**; a different session, a different person, or a context clear in between, and a false retention claim reaches customers. Discovery belongs here, where the run is already globbing the folder and already has a confirmation step to surface it in, rather than in anyone's memory.
+
+   **A write hook on the canonical document path was considered and declined.** It would be an always-on backstop independent of any orchestrator, which is its appeal. But it fires on every write including the ones that change nothing a draft asserts, it cannot tell an invalidating edit from a typo fix, and a hook must exit 0 and so can only warn into a stream nobody is reading at that moment. This step and the conditional offer cover the case structurally; revisit the hook only if a run is found that bypasses both.
+
 These reads are deliberately **not** gated: `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) is never executed by this command. `update-vi:`'s authoritative base is the Jira import, and Phase 2 already rules that the import wins where a frozen draft disagrees. Gating advisory grounding would block a legitimate VI refresh because an unrelated ARD sits on a branch. Where a discovered `*_ARD.md` or `specification.md` is **not** on the specs repo's default branch, say so in the Phase 1 confirmation — the user should know the grounding is unapproved, not be stopped by it.
 
 `update-vi:` is **cwd-agnostic** and needs **no repos mounted** (product-level; no code scan).
@@ -56,7 +64,7 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT for large/cross-cutting VIs
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # impl-maintenance
   review_model:    <§2 Opus chain>     # vi-reviewer (caller-pinned via `task(model:)`; recorded)
   authoring_model: <= current_model>   # the interactive grill + VI authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
@@ -115,7 +123,7 @@ Dispatch `vi-reviewer` (Opus, caller-pinned via `task(model:)`; recorded as `rev
   > VI path: [absolute path to the updated <KEY>_<slug>.md]
   > Profile: [lean | hybrid | full — infer from the sections present]"
 
-Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER. Cap: one fix cycle + one re-review.
+Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER. **Review convergence is outcome-keyed, not capped** — read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/review-convergence.md` and follow it: re-review while the last pass's own fixes introduced something, stop when they did not, and offer the user a decline from the second pass onward. **If you fix a MAJOR under a passing verdict you must still re-review** — the reviewer approved the artifact it saw, not the one your fix produced. The final report names the pass count and why the loop ended.
 
 ---
 
@@ -141,6 +149,15 @@ Offer these — guidance only, never auto-invoke — per `~/.copilot/installed-p
 ```
 choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists)", "Re-run epics — epics: <KEY> (PE)", "Re-run the spec — specify: <KEY> (PE, if one exists)", "Stop here", "Other… (describe)"]
 ```
+
+**The offer is conditional on Phase 0 step 5a, not flat.** The list above is the shape; what this run actually shows depends on which downstream artifacts exist and whether this update touched anything they assert.
+
+- **A downstream artifact exists AND this update changed something it depends on** — say so before the list, naming the artifact, its path, and the specific criterion or section the update altered. Mark its re-run option **(Recommended — <artifact> asserts something this update reversed)** and put it first. This is the case that reached a false customer-facing retention claim: the option was present, worded identically to the ones beside it, and carried nothing to distinguish "you should do this" from "you could do this".
+- **A downstream artifact exists and this update touched nothing it asserts** — list its re-run option with the artifact named, so the user knows it exists, and no recommendation.
+- **No such artifact exists** — drop that option rather than offering a re-run of something never produced. An option that cannot apply is noise in a menu whose whole job is to direct attention.
+
+**Whether an update "changed something the artifact depends on" is judged, not grepped** — the run has both the artifact's text and its own diff in context. Where the answer is genuinely unclear, treat it as changed: the cost of an unnecessary re-draft is one command, and the cost of a missed one is a false published claim.
+
 
 ### Context hygiene
 
