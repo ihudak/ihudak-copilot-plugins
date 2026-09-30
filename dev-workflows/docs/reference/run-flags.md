@@ -8,12 +8,12 @@ A flag may sit anywhere in the argument list, with one exception covered below.
 
 ## Which skills each flag applies to
 
-Not every flag applies to every skill, because not every skill does the thing the flag turns off. A flag given to a skill outside its set prints `Run flags: --<flag> does not apply to /<skill> — ignored` and changes nothing; an *environment* default outside its set is ignored silently, so exporting one never alters a skill it does not apply to.
+Not every flag applies to every skill, because not every skill does the thing the flag turns off. A flag given to a skill that has at least one applicable flag but not this one prints `Run flags: --<flag> does not apply to /<skill> — ignored` and changes nothing; a skill neither flag applies to does not parse run flags at all; an *environment* default outside its set is ignored silently, so exporting one never alters a skill it does not apply to.
 
 | Flag | Applies to | Does not apply to |
 |---|---|---|
-| `--skip-feedback` | the 13 skills with an `impl-maintenance` maintenance phase | `docs-profile:` (dispatches none), `feedback:` and `prompt:` (they *are* the feedback surface), the two guideline reviewers |
-| `--enforce-model` | those 13 plus `docs-profile:` and `feedback:` | the two guideline reviewers |
+| `--skip-feedback` | the 13 skills with an `impl-maintenance` maintenance phase | `docs-profile:` (dispatches none), `feedback:` and the three `prompt` skills (they *are* the feedback surface), the two guideline reviewers |
+| `--enforce-model` | those 13 plus `docs-profile:` | `feedback:` and the three `prompt` skills (they dispatch no subagent), the two guideline reviewers |
 
 ## `--skip-feedback`
 
@@ -37,6 +37,6 @@ A value that resolves to nothing, or to a model your environment cannot reach, s
 
 ## The one placement exception
 
-A handful of skills take **prose** as an argument — `feedback:`, `prompt:`, `prompt-brainstorm:`, `prompt-grill-me:`, `implement:`, `idea:`, and `document:` in direct mode. Inside that prose, a flag name is just a word, so run flags are stripped only from the *leading* and *trailing* runs of flag tokens and everything between is kept verbatim.
+Three of the skills a run flag applies to take **prose** as an argument — `implement:`, `idea:`, and `document:` in direct mode. (`feedback:` and the three `prompt` skills take prose too, but no run flag applies to them, so nothing is ever stripped from theirs.) Inside that prose, a flag name is just a word, so run flags are stripped only from the *leading* and *trailing* runs of flag tokens and everything between is kept verbatim.
 
 The cost is real and worth knowing: **prose that genuinely ends in a flag name loses it**, and where that flag is `--enforce-model`, the word before it goes too, consumed as its value. Because the trailing run is the longest parsing suffix, this can reach further back than the last word or two. Keep a flag name away from the end of your prose, and you will not meet this.

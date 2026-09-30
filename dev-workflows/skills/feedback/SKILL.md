@@ -22,8 +22,6 @@ project. Target-project tooling advice does not belong here (see
 
 ## Phase 0 — Specs-repo preflight
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill **only `--enforce-model` applies** — this skill *is* the feedback surface and cites no `impl-maintenance`, so an explicit `--skip-feedback` is reported ignored. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
-
 Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover
 session artifacts from an earlier run, retry an artifact commit that failed to

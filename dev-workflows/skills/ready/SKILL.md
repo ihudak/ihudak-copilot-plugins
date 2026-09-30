@@ -28,7 +28,7 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
 
 ## Phase 0 — Resolve input
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Resolve the Jira input via the shared front-end.** Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `ready:` trigger). `ready:` is
@@ -121,6 +121,7 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT possible for a large multi-Epic VI
   reason: <one-line>
   current_model: <the model this orchestrator is running under>
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader (Phase 2); the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
   review_model:    <§2.3 review tier>     # readiness-reviewer (caller-pinned; recorded)
   opus_available: <true if a §2 Opus model resolved, else false>
@@ -138,7 +139,7 @@ falls to the Sonnet floor — record the degradation in `notes` and the final re
 Invoke `jira-reader` with `depth: vi-plus-epics` — this is the authoritative status/requirement source
 the reviewer verifies the declared status against (never Phase 1's status peek).
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -232,7 +233,7 @@ artifact paths from Phase 1 (the reviewer reads each end-to-end itself — it ca
 `grep`), the Phase 2 declared statuses, `applicable_ard` (omit entirely when Phase 2.5 was `none`),
 and a pointer to the rubric.
 
-→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2.3 review tier>`):
+→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2.3 review tier; under §10, run_flags.enforced_model>`):
   > "Review readiness for this brief:
   >
   > Task description: [one paragraph: <VI> [+ <EPIC>], the declared status(es), what is being verified]

@@ -18,7 +18,7 @@ Each component is committed on its own as soon as its gates pass; the branch is 
 
 ## Phase 0 — Specs-repo preflight
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from an earlier run, retry an artifact commit that failed to push, and settle the branch. This runs against `$SPECS_PATH` only — `git -C "$SPECS_PATH"`, never a `cd`, so the code repo this run is about to upgrade is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal `commit-artifacts` step skips on it.
 
@@ -37,7 +37,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    ```
    task(
      agent_type: "dev-workflows:upgrade-planner",
-     model: `<detection_model — §2.1 detection chain>`,
+     model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
      description: "Plan component upgrade",
      prompt: "## Upgrade Plan Request
      repo: [absolute repo path]
@@ -52,9 +52,10 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
+       enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
        detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: <true for SIGNIFICANT/HIGH-RISK, false otherwise>
        notes: <any §2 / §2.1 fallback or degradation>"
@@ -106,7 +107,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    ```
    task(
      agent_type: "dev-workflows:test-baseliner",
-     model: `<detection_model — §2.1 detection chain>`,
+     model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
      description: "Capture test baseline",
      prompt: "Mode: capture
      Project root: [absolute repo path]"
@@ -122,11 +123,12 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    ```
    task(
      agent_type: "dev-workflows:upgrade-executor",
-     model: `<detection_model — §2.1 detection chain — for SIMPLE/MODERATE; planning_model — §2 Opus chain — only if HIGH-RISK>`,
+     model: `<detection_model — §2.1 detection chain — for SIMPLE/MODERATE; planning_model — §2 Opus chain — only if HIGH-RISK; under §10, run_flags.enforced_model>`,
      description: "Execute component upgrade",
      prompt: "## Upgrade Execution Request
      repo: [absolute repo path]
      phase: full
+     enforced_model: [run_flags.enforced_model, or omit]   # §10 — the agent passes it on its own test-baseliner dispatch
      baseline:
        passing_count: [captured count]
        passing_tests:
@@ -135,9 +137,10 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [component class]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
+       enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
        detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: [true for SIGNIFICANT / HIGH-RISK, false otherwise]
        notes: <any §2 / §2.1 fallback or degradation>
@@ -153,14 +156,14 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    - Write the executor output to a temp file (`command mktemp -t dw-upgrade-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` using the approved risk plan, the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this component, marking it `BLOCKED` in the Step 7 results table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
-   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
+   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>` for the surviving `BLOCKER` and `MAJOR` findings
    - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this component `BLOCKED` in the Step 7 results table, and stop working this component — skip steps 5–6 and continue the per-component loop with the next one. Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the review-tier review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
    - If the second verdict is still `BLOCK`, stop and escalate; do not continue to tests
    - **The recorded verdict names the version it was taken against.** Both the resumed verify step below and any regression fix that follows it change the tree after the review that produced this verdict, so the run's report states what the verdict covers and names the edits that followed it, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where nothing followed it, it says that too.
 
-5. **Resume verify step after review** — Re-invoke `upgrade-executor` with `phase: verify-resume`, the original `READY` plan (from `plan_file`), and the same baseline block captured in Phase 2 prep. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
+5. **Resume verify step after review** — Re-invoke `upgrade-executor` with `phase: verify-resume` (and the same `enforced_model:` where the first dispatch carried one), the original `READY` plan (from `plan_file`), and the same baseline block captured in Phase 2 prep. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
-6. **If the executor returns `status: TEST_REGRESSION`**, follow "Handling Test Failures" below, then re-invoke `upgrade-executor` with `phase: regression-resume` + the chosen `regression_decision`, the original `READY` plan (from `plan_file`), and the same baseline block. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
+6. **If the executor returns `status: TEST_REGRESSION`**, follow "Handling Test Failures" below, then re-invoke `upgrade-executor` with `phase: regression-resume` (and the same `enforced_model:` where the first dispatch carried one) + the chosen `regression_decision`, the original `READY` plan (from `plan_file`), and the same baseline block. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
 6.5. **Commit this component (in-loop, prompt-free)** — Once this component's own gates have settled — its review verdict is non-`BLOCK` or the user chose to keep it, and its verify step has returned — commit it before moving to the next one. Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` and execute **§2.1–§2.3 only** (the split-call form of §2.12 — the gate runs every time): stage per §2.2 honouring `pre_existing_dirty`, and commit per §2.3 with a subject derived from the repo's own `git log` — with a Jira key `<KEY> upgrade <component> to <version>`, otherwise matching whatever convention that log shows. Do **not** push here and do **not** ask §2.4's choice; step 7.5 owns both.
 

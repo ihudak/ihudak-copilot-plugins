@@ -12,7 +12,7 @@ Implement the following: the argument (text following the `implement:` trigger)
 
 ## Phase 0 — Load and classify inputs
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 the argument (text following the `implement:` trigger) may contain free-text prose plus **zero or more `@path` tokens** (today's single-`@file` form is a subset). Resolve each `@path` relative to the current working directory. Classify each `@path` — and the current working directory — **by inspection, not by matching the path string**:
 
@@ -161,9 +161,10 @@ model_routing:
   classification: <SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK>
   reason: <one-line>
   current_model: <the model this orchestrator is running under>   # = the inline implementation coding
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer
-  planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override)
-  review_model:  <§2.3 review tier>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override)
+  planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)
+  review_model:  <§2.3 review tier>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)
   implementation_model: <= current_model>   # coding done inline by the orchestrator
   fixes_model: <= detection_model>          # review-fixer (Phase 3B)
   opus_available: <true if a §2 Opus model resolved, else false>
@@ -201,7 +202,7 @@ Runs after Phase 1.6 and replaces the single Phase 2B exploration subagent for m
 
 1. **Read Jira ticket folders.** For each Jira ticket folder, invoke `jira-reader` (read-only):
 
-   → task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "Return the structured handoff for this brief — linked items, PR URLs (identifiers only — no fetching), and capability themes:
      >
      > jira_export_root: [the resolved jira_export_root (from the Phase 0 front-end), or the ticket-folder absolute path]
@@ -219,7 +220,7 @@ Runs after Phase 1.6 and replaces the single Phase 2B exploration subagent for m
 
 3. **Fan out `code-scanner` — one per repo, single response, cap 4 concurrent.** Spawn all repo scanners in **one** message (batch in groups of 4 if there are more than 4 repos). For each code repo:
 
-   → task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "repo_path: <absolute repo path>
      >  capability_themes: <themes from steps 1–2 + the implementation spec>
      >  context: <3–5 sentences: the implementation goal and what the change must accomplish>
@@ -248,7 +249,7 @@ Only when the run resolved a Jira key (VI/Epic) — i.e. NOT direct-prompt mode 
 
 **Codebase exploration** — Before writing the plan, spawn an exploration subagent to map the relevant parts of the codebase:
 
-→ task(agent_type: "general-purpose", tools: view/glob/grep only — no bash, no edit, model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "general-purpose", tools: view/glob/grep only — no bash, no edit, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   "Given this implementation description: [paste the full implementation description from Phase 0 or Phase 1 here], find and return:
    - Relevant source files and their primary responsibility
    - Existing patterns and conventions used in this codebase
@@ -291,7 +292,7 @@ Once the file map is returned, delegate planning to Opus.
 
 When a `specification.md`/`design.md` is in scope, extract its **in-scope** `[Uxx]`/`[ACxx]`/`[TCxx]` IDs (reuse the specs resolved in Phase 0) into `in_scope_ids` for the review dispatch below. When `task_shape: bug`, the plan will lead with a repro step and a ranked-hypotheses section — surface them in the normal plan-approval gate (no extra interrupt) **when the ranking is present**. When the planner instead returns `Ranking withheld — no red-capable repro`, the withheld-repro branch below fires first and the normal gate does not run.
 
-→ task(agent_type: "dev-workflows:risk-planner"):  # planning_model — §2 Opus chain; dispatch-pinned to this chain, recorded in model_routing, no override added
+→ task(agent_type: "dev-workflows:risk-planner"):  # planning_model — §2 Opus chain; dispatch-pinned to this chain, recorded in model_routing, no override added unless §10 enforces a model
   > "Produce the risk-weighted plan for the following brief:
   >
   > Task description: [substitute full description]
@@ -373,7 +374,7 @@ Placed **after** branch creation (Pre-Phase 3), **before** any file edits. The `
 
 Invoke the `test-baseliner` agent in capture mode:
 
-→ task(agent_type: "dev-workflows:test-baseliner", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:test-baseliner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Run the agent in the following mode:
   >
   > Mode: capture
@@ -404,7 +405,7 @@ Runs after Phase 3A step 5 completes (all code changes written), before the outc
 
 1. **Invoke `test-writer` agent.** First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`command mktemp -t dw-impl-diff-XXXXXX`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
 
-   → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "Write tests for this brief:
      >
      > Task description: [substitute full description]
@@ -425,7 +426,7 @@ Runs after Phase 3A step 5 completes (all code changes written), before the outc
 
 4. **Invoke `test-baseliner` in verify mode** against the baseline captured in Pre-Phase 3.5:
 
-   → task(agent_type: "dev-workflows:test-baseliner", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:test-baseliner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "Run the agent in the following mode:
      >
      > Mode: verify
@@ -462,7 +463,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 4. If a **new ambiguity** emerges mid-implementation: STOP, ask with choices (last: `"Other… (describe)"`), resume after answer
 4a. **Invoke `test-writer` agent** (inserted before the review diff capture in step 5 so the review-tier review sees code and tests together — test adequacy is already a review dimension in `code-review.md`). First, at the orchestrator, capture the diff for the dispatch: write `git add -N . && git diff` (so new files are included) to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `test_diff_file`. `test-writer` has no shell tool — it can only `view` the path it is given. Then spawn:
 
-   → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:test-writer", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "Write tests for this brief:
      >
      > Task description: [substitute full description]
@@ -480,7 +481,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 5. After all changes are written: **DO NOT run tests yet.** When `task_shape: bug`, first **strip every `[DEBUG-xxxx]` probe** added during diagnosis (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/bug-diagnosis.md`); the review diff must contain no debug instrumentation. Capture the diff and the project root. Use `git add -N . && git diff` — this includes intent-to-add untracked new files so the diff is never empty for implementations that only create new files, and it now also includes the test files from step 4a. Write this diff to a temp file (`mktemp -t dw-impl-diff-XXXX.patch`, never inside a repo tree) and record its absolute path as `review_diff_file`; the code-review dispatch (step 6) receives this path. Also capture `git diff --stat` for the summary (small — kept inline).
 6. **review-tier code review** — spawn.
 
-   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2.3 review tier; dispatch-pinned to this chain, recorded in model_routing, no override added
+   → task(agent_type: "dev-workflows:code-review"):  # review_model — §2.3 review tier; dispatch-pinned to this chain, recorded in model_routing, no override added unless §10 enforces a model
      > "Produce the review-tier code review for this brief:
      >
      > Task description: [substitute full description]
@@ -504,7 +505,7 @@ At each checkpoint, also consider suggesting **`/compact`** to free context befo
 
    **Review-fixer sub-step** (for BLOCK and PASS WITH RECOMMENDATIONS): first write the **triaged survivor list** from the sub-step above — the surviving findings only, each with its severity, location, observation, and suggestion — to a temp file (`mktemp -t dw-impl-review-XXXX.md`, never inside a repo tree) and record its path as `review_file`. Dismissed findings NEVER enter that file; they go to the `### Review triage` report section instead.
 
-   → task(agent_type: "dev-workflows:review-fixer", model: `<fixes_model — = detection_model, §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:review-fixer", model: `<fixes_model — = detection_model, §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "Fix the review findings for this brief:
      >
      > Task description: [substitute full description]

@@ -8,9 +8,9 @@ Logs a manual note about the dev-workflows plugin itself — friction you hit, o
 
 ## Synopsis
 
-    feedback: [<note>] [--enforce-model=<model>]
+    feedback: [<note>]
 
-[Run flags](../reference/run-flags.md): only `--enforce-model` applies — this skill *is* the feedback surface and cites no `impl-maintenance`, so `--skip-feedback` is reported ignored. It has an environment default (`$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
+[Run flags](../reference/run-flags.md): none applies — this skill *is* the feedback surface and dispatches no subagent, so it does not parse run flags, and an exported `$WORKFLOWS_*` default changes nothing here.
 
 The argument (everything after the `feedback:` trigger) is the note text — the friction you hit and the improvement you want, in your own words. Leave it empty and Phase 1 asks for it directly; it never guesses at content you didn't express.
 

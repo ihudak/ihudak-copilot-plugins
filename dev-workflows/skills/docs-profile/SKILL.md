@@ -22,7 +22,7 @@ For one-off doc edits use direct mode; for Jira-driven feature documentation use
 
 ## Phase 0 — Resolve and validate the target repo
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill **only `--enforce-model` applies** — this skill dispatches no `impl-maintenance`, so an explicit `--skip-feedback` is reported ignored rather than acted on. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill **only `--enforce-model` applies** — this skill dispatches no `impl-maintenance`, so an explicit `--skip-feedback` is reported ignored rather than acted on. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Resolve the repo path.** Take the first token of the argument (text following the `docs-profile:` trigger) as the target path; if the argument (text following the `docs-profile:` trigger) is empty, default to the current working directory. Resolve it to an absolute path and record it as `<repo>`. Treat a `--inline` token (in any position) as the inline-mode flag, not a path; record `inline = true` when present.
 
@@ -62,6 +62,7 @@ model_routing:
   classification: SIGNIFICANT
   reason: "cross-cutting synthesis of the whole docs repo; output steers all later document: runs"
   current_model: <the model this orchestrator is running under>
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>
   planning_model: <§2 work tier: claude-opus-5.5 … fallback Sonnet 5.5/5/4.6/4.5>
   review_model: <same as planning_model — conceptually the synthesis_model; the synthesis step runs on the §2 Opus chain>
@@ -77,7 +78,7 @@ The detection phase (Phase 2) pins its subagent to `detection_model` (the §2.1 
 
 Dispatch a **read-only** detection subagent **pinned to the §2.1 mid-tier chain** via the `task` tool's `model:` override — `claude-sonnet-5.5`, fallback `claude-sonnet-5`/`4.6`/`4.5`; record the model actually used as `detection_model` in the `model_routing` block. Detection is mechanical repo scanning, so it must NOT inherit the session model (an Opus session would otherwise burn Opus on a cheap step, per §2.1).
 
-→ task(agent_type: "general-purpose", model: `<detection_model — §2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>`):
+→ task(agent_type: "general-purpose", model: `<detection_model — §2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5; under §10, run_flags.enforced_model>`):
   > "Read-only detection scan for a docs-profile. Do NOT write or edit any file — return a structured detection report only.
   >
   > repo_root: <resolved git root from Phase 0>
@@ -104,7 +105,7 @@ Dispatch a **read-only** detection subagent **pinned to the §2.1 mid-tier chain
 
 On the §2 powerful chain (`planning_model`), turn the detection report into a draft `docs-profile.yml`. This synthesis is the SIGNIFICANT reasoning step, so it runs on the strongest available reasoning model (Opus), pinned via the `task` tool's `model:` override — not the §2.1 detection chain.
 
-→ task(agent_type: "general-purpose", model: `<planning_model — §2 chain: claude-opus-5.5, fallback per §2>`):
+→ task(agent_type: "general-purpose", model: `<planning_model — §2 chain: claude-opus-5.5, fallback per §2; under §10, run_flags.enforced_model>`):
   > "Synthesise a docs-profile from a detection report. This is a planning/synthesis task, not a code change — return the drafted YAML + drafted copilot-instructions.md additions, nothing else; do not write files.
   >
   > Schema (the draft MUST conform exactly): `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/docs-profile-schema.md`

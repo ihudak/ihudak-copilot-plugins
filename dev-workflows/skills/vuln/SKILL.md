@@ -14,7 +14,7 @@ Each argument token is either `JIRA-ID:CVE-ID` (e.g. `MGD-2423:CVE-2023-46604`) 
 
 ## Step 0 — Classify & Route (mandatory)
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then classify **per CVE**, based on the size of the required repository change — not the CVE category alone.
 
@@ -49,7 +49,7 @@ Invoke one research task per valid CVE. Use a single agent message for the batch
 ```
 task(
   agent_type: "dev-workflows:vuln-research",
-  model: `<detection_model — §2.1 detection chain>`,
+  model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
   description: "Research CVE",
   prompt: "## Vuln Research Request
   repo: [absolute repo path]
@@ -61,9 +61,10 @@ task(
     classification: MODERATE
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
+    enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>"
@@ -103,11 +104,12 @@ Invoke `vuln-fixer` with `baseline_tests: run-fresh`:
 ```
 task(
   agent_type: "dev-workflows:vuln-fixer",
-  model: `<detection_model — §2.1 detection chain>`,
+  model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
   description: "Fix CVE",
   prompt: "## Vuln Fix Request
   repo: [absolute repo path]
   phase: full
+  enforced_model: [run_flags.enforced_model, or omit]   # §10 — the agent passes it on its own test-baseliner dispatch
   branch: [the branch name Step 1 resolved for this CVE]
   baseline_tests: run-fresh
   jira_placeholder: [NOJIRA or omit]
@@ -115,9 +117,10 @@ task(
     classification: [MODERATE]
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
+    enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: false
     notes: <any §2 / §2.1 fallback or degradation>
@@ -132,7 +135,7 @@ this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE. Do no
 a fresh research pass — that would re-derive the evidence instead of surfacing the failure.
 
 Otherwise, if the fixer returns `status: TEST_REGRESSION`, follow "Handling Test Failures"
-below, then re-invoke `vuln-fixer` with `phase: regression-resume` + the chosen
+below, then re-invoke `vuln-fixer` with `phase: regression-resume` (and the same `enforced_model:` where the first dispatch carried one) + the chosen
 `regression_decision`, passing the same CVE input with the original research report
 re-supplied from `research_file`.
 
@@ -150,11 +153,12 @@ prevent.
 ```
 task(
   agent_type: "dev-workflows:vuln-fixer",
-  model: `<detection_model for SIGNIFICANT; planning_model (§2 Opus chain) only if HIGH-RISK>`,
+  model: `<detection_model for SIGNIFICANT; planning_model (§2 Opus chain) only if HIGH-RISK; under §10, run_flags.enforced_model>`,
   description: "Apply CVE fix before review",
   prompt: "## Vuln Fix Request
   repo: [absolute repo path]
   phase: full
+  enforced_model: [run_flags.enforced_model, or omit]   # §10 — the agent passes it on its own test-baseliner dispatch
   branch: [the branch name Step 1 resolved for this CVE]
   baseline_tests: provided
   baseline_passing: [captured count]
@@ -166,9 +170,10 @@ task(
     classification: [SIGNIFICANT | HIGH-RISK]
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
+    enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
     detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
-    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override)
+    review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
     gate_tests_on_review: true
     notes: <any §2 / §2.1 fallback or degradation>
@@ -182,15 +187,15 @@ task(
    - Write the fixer output to a temp file (`command mktemp -t dw-vuln-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` with the CVE summary, the research handoff (from `research_file`), the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this CVE, marking it `BLOCKED` in the Step 4 summary table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
-   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
+   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>` for the surviving `BLOCKER` and `MAJOR` findings
    - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this CVE `BLOCKED` in the Step 4 summary table, and stop working this CVE — do not continue to tests, and do not re-review. Then run Step 3.9 with `clean_finish: false`: the fix is on disk and stopping the CVE is not a reason to leave it in a working tree, so it is committed and pushed, and its pull request is opened as a draft carrying the DO-NOT-MERGE banner (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.9). Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the review-tier review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
    - If the second verdict is still `BLOCK`, stop and escalate; do not continue to tests. Run Step 3.9 with `clean_finish: false` — same reasoning as the `NEEDS HUMAN` stop above: the work is committed and pushed, and the pull request is a draft the banner says not to merge
    - **The recorded verdict names the version it was taken against.** Both the resumed verify step below and any regression fix that follows it change the tree after the review that produced this verdict, so the run's report states what the verdict covers and names the edits that followed it, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where nothing followed it, it says that too.
 
-4. **Resume the fixer after review** — Re-invoke `vuln-fixer` with `phase: verify-resume`, the same baseline block, and the original research report re-supplied from `research_file`. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this CVE. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
+4. **Resume the fixer after review** — Re-invoke `vuln-fixer` with `phase: verify-resume` (and the same `enforced_model:` where the first dispatch carried one), the same baseline block, and the original research report re-supplied from `research_file`. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this CVE. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
 5. **If the fixer returns `status: TEST_REGRESSION`** (from step 4's resumed verify), follow
-   "Handling Test Failures" below, then re-invoke `vuln-fixer` with `phase: regression-resume` +
+   "Handling Test Failures" below, then re-invoke `vuln-fixer` with `phase: regression-resume` (and the same `enforced_model:` where the first dispatch carried one) +
    the chosen `regression_decision`, the same baseline block, and the original research report
    re-supplied from `research_file`. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this CVE. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 

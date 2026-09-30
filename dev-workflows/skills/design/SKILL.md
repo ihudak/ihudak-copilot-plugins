@@ -31,7 +31,7 @@ Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-b
 
 ## Phase 0 — Resolve input
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Resolve the Jira input via the shared front-end.** Classify the argument (text following the `design:` trigger) **minus every recognised flag** (`--design-twice`) before resolving — strip it first, exactly as `skills/idea/SKILL.md`'s Phase 1 strips its own flags: an unstripped `--design-twice` is parsed as part of the Jira key and the run resolves the wrong feature, or fails. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument. `design:` is
@@ -128,6 +128,7 @@ model_routing:
   classification: <SIMPLE|MODERATE|SIGNIFICANT|HIGH-RISK>
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # code-scanner, interface-designer, impl-maintenance
   review_model:    <§2.3 review tier>     # design-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + design.md authoring (session model, not a delegated subagent)
@@ -200,7 +201,7 @@ Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per t
 **all** confirmed, mounted repos (the scan runs over the full set regardless of classification — only
 grill depth / sections / review scale by tier). Wait for each batch before the next.
 
-→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Scan this repo for the brief:
   >
   > repo_path:     <resolved absolute path for this repo from Phase 3>
@@ -284,7 +285,7 @@ response** (the plugin's existing parallel fan-out pattern), each blind to the o
 take, labelled **A**, **B**, and **C** in that order; those are the labels the Final report's
 `chose <A|B|C|hybrid>` refers to:
 
-→ task(agent_type: "dev-workflows:interface-designer", model: `<detection_model — §2.1 detection chain>`) ×3:
+→ task(agent_type: "dev-workflows:interface-designer", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) ×3:
   > "Produce one interface proposal for this brief:
   >
   > constraint: [A — Minimise the interface | B — Maximise flexibility | C — Optimise for the most common caller]
@@ -325,7 +326,7 @@ enforces the open-questions hard block).
 
 Dispatch `design-reviewer` (Opus):
 
-→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2.3 review tier; caller-pinned, recorded>`):
+→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2.3 review tier; caller-pinned, recorded; under §10, run_flags.enforced_model>`):
   > "Review the design for this brief:
   >
   > Design path:        [absolute path to design.md]
@@ -391,7 +392,7 @@ persists the plugin-facing slice of its report as session feedback.
 §1 — this block prints the guidance only), then a
 same-role `/compact` suggestion + `/rename <VI-ID>-<slug>-dev`. Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`):
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
    > "Analyse this session and return a Lessons Learned report.
    >
    > Session handoff:

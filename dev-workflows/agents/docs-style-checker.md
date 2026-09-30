@@ -35,6 +35,8 @@ spaces:    # OPTIONAL. Supplied by the caller from profile.spaces + profile.comm
   - id:           <space id>
     content_root: <path relative to repo_root, e.g. managed/_content>
     lint:         <the space's lint command, e.g. "pnpm managed:lint">
+enforced_model: <model id>   # OPTIONAL. Set by the caller under --enforce-model (model-routing.md §10);
+                             # passed as `model:` on the nested dt-style-checker dispatch in step 5.
 ```
 
 Refuse to run without `repo_root` and at least one entry in `files`. `spaces` is optional: when absent
@@ -86,6 +88,7 @@ or empty, run the whole-repo detection ladder below unchanged.
 
    If the `dt-style-guide` plugin is installed (its `dt-style-checker` agent is available), invoke it:
    - `agent_type: "dt-style-guide:dt-style-checker"`
+   - `model:` the caller's `enforced_model` where this agent's prompt carries one (`_shared/model-routing.md` §10), else the §2.1 detection chain — in §5's dispatch form. Without this the nested pass inherits whatever model this agent happens to run on, and an enforced run would silently not be.
    - Input: `files: <the same files list>`, `doc_type: <"product-docs" for docs repos, "general" otherwise>`.
 
    Map the return into this agent's schema:

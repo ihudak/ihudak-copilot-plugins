@@ -18,7 +18,7 @@ For small one-off doc edits, use direct mode (below). For writing child Epic dra
 
 ## Mode detection
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 `document:` has **two modes**, selected by the first argument token:
 
@@ -254,16 +254,17 @@ model_routing:
   classification: SIGNIFICANT
   reason: <one-line>
   current_model: <the model this orchestrator is running under>   # = the inline writer + Phase 5.8 framing
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>
   planning_model:  <§2 powerful chain: claude-opus-5.5 … fallback Sonnet per §2>   # doc-planner (5.7)
-  review_model:    <§2.3 review tier>     # doc-reviewer (dispatch-pinned to this chain; recorded here, no override added)
+  review_model:    <§2.3 review tier>     # doc-reviewer (dispatch-pinned to this chain; recorded here, no override added unless §10 enforces a model)
   implementation_model: <= planning_model>  # the doc-writer subagent (Phase 6.3) — now a delegated, Opus-pinned writer
   fixes_model: <= detection_model>         # doc-fixer (6.4 / 7) runs on the detection chain
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2 / §2.1 fallback or degradation>
 ```
 
-Each subagent dispatch below cites which chain it uses (the §9 role→chain map): `doc-planner` → `planning_model`; `jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, and the Phase 8 maintenance agents → `detection_model`; `doc-reviewer` keeps its §2.3 review-tier pin fixed at every dispatch (recorded as `review_model`, no override added).
+Each subagent dispatch below cites which chain it uses (the §9 role→chain map): `doc-planner` → `planning_model`; `jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, and the Phase 8 maintenance agents → `detection_model`; `doc-reviewer` keeps its §2.3 review-tier pin fixed at every dispatch (recorded as `review_model`, no override added unless §10 enforces a model).
 
 **Orchestration advisory (window-focused).** `doc-planner` (5.7) and `doc-writer` (6.3) run on the §2 Opus chain regardless of session; only coordination + the interactive gates (4.5, 5.8 decision, 5.9, 6.1) run on `current_model`. So:
 
@@ -306,7 +307,7 @@ choices: ["Approve & continue (Recommended)", "Revise plan", "Cancel"]
 
 Invoke `jira-reader` with `depth: full`:
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root from Phase 0]
@@ -395,7 +396,7 @@ Spawn `diff-summarizer` instances in **batches of up to 4 concurrent agents** pe
 
 For each repo, in the same task message:
 
-→ task(agent_type: "dev-workflows:diff-summarizer", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:diff-summarizer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Summarise this repo's PRs for the brief:
   >
   > repo_path:     <resolved absolute path for this repo from Phase 4>
@@ -435,7 +436,7 @@ choices: ["Proceed with Jira-only content (Recommended — writer/planner draw f
 
 Invoke `doc-location-finder`:
 
-→ task(agent_type: "dev-workflows:doc-location-finder", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:doc-location-finder", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Find write target(s) for the brief:
   >
   > repo_root:       [the resolved docs_repo_path (Phase 0)]
@@ -551,7 +552,7 @@ The **counterpart space** is the one space in `profile.spaces[]` not in `target_
 
 Invoke `counterpart-finder`:
 
-→ task(agent_type: "dev-workflows:counterpart-finder", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:counterpart-finder", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Discover counterpart-space grounding:
   >
   > repo_root:          [docs_repo_path]
@@ -590,7 +591,7 @@ Record the confirmed `counterpart_references[]`. It threads into Phase 5.7 (`doc
 
 Invoke `doc-planner`:
 
-→ task(agent_type: "dev-workflows:doc-planner", model: `<planning_model — §9 / §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:doc-planner", model: `<planning_model — §9 / §2 Opus chain; under §10, run_flags.enforced_model>`):
   > "Produce the documentation checklist for the brief:
   >
   > jira_reader_handoff: [paste full YAML from Phase 3; when focus_key is set, restrict linked items to focus_items]
@@ -769,7 +770,7 @@ The writing is delegated to the **`doc-writer`** subagent (pinned to the §2 Opu
 
 2. **Dispatch the writer:**
 
-→ task(agent_type: "dev-workflows:doc-writer", model: `<planning_model — §9 / §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:doc-writer", model: `<planning_model — §9 / §2 Opus chain; under §10, run_flags.enforced_model>`):
   > "Write the product documentation for this brief.
   >
   > handoff_file: [absolute path of the temp handoff file from step 1]"
@@ -803,10 +804,11 @@ This table governs the **documentation write target only**. Independently of eve
 
 Invoke `docs-style-checker` on the files written in Phase 6.3:
 
-→ task(agent_type: "dev-workflows:docs-style-checker", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:docs-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Run the style check for this brief:
   >
   > repo_root: [the resolved docs_repo_path (Phase 0)]
+  > enforced_model: [run_flags.enforced_model, or omit]   # §10 — passed on its nested dt-style-checker dispatch
   > files:     [absolute paths of every file written or modified in Phase 6.3]
   > spaces:    [one entry per space in profile.spaces that has a profile.commands.per_space entry — {id, content_root, lint}; omit the key entirely when the profile declares no per_space commands]"
 
@@ -835,7 +837,7 @@ Then act on the return:
 - **`status: OK`** — the chain ran (primary and/or complementary), zero merged violations. Proceed to Phase 7.
 - **`status: VIOLATIONS_FOUND`** — invoke `doc-fixer` with the violations treated as per their severity. After `doc-fixer` completes, **check its `Stop condition flag`**: `docs-style-checker` maps a linter's own blocking failure to `BLOCKER` (`agents/docs-style-checker.md`), so this dispatch can return `NEEDS HUMAN` — the fixer deferred a blocking violation it could not safely fix. On `NEEDS HUMAN`, surface each deferred BLOCKER with the fixer's reason and ask the user how to resolve it — fix by hand and re-run, or skip the check. A silent re-run only reports the same violation again. The `style_check` gate row stays open until that answer lands and then records its outcome per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` — `RAN` after a hand fix and re-run, `SKIPPED_BY_USER` with the choice quoted verbatim if skipped. Only on `CLEAR` re-run the linter once:
 
-  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain>`):
+  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
     > "Fix the style violations for this brief:
     >
     > Task description: [doc writing for <JIRA_KEY>]
@@ -959,7 +961,7 @@ Act on the verdict:
 
 - **PASS WITH RECOMMENDATIONS** — invoke `doc-fixer` for MAJOR findings only:
 
-  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain>`):
+  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
     > "Fix the review findings for this brief:
     >
     > Task description: [doc writing for <JIRA_KEY>]
@@ -998,7 +1000,7 @@ Doc-review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
 
 Then spawn all four Phase 4-style maintenance agents in a **single task message**. They are independent and run concurrently.
 
-**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain>`):
+**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write documentation review. Change summary:
 > [paste change summary block]
 >
@@ -1009,7 +1011,7 @@ Then spawn all four Phase 4-style maintenance agents in a **single task message*
 > If an update is warranted: apply minimal edits to the relevant section(s).
 > Return: file updated and what changed, OR 'no update required (reason)'."
 
-**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain>`):
+**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write knowledge review. Change summary:
 > [paste change summary block]
 >
@@ -1024,7 +1026,7 @@ Then spawn all four Phase 4-style maintenance agents in a **single task message*
 > - **Ref**: [first 60 chars of the Jira key + feature summary]
 > Return: `{file, anchor, replacement, reason}` — `anchor` is the exact existing text to change, or the section to append to; `replacement` is the entry above in full; `reason` is why it's warranted — OR 'no update required'."
 
-**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain>`):
+**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write instructions review. Change summary:
 > [paste change summary block]
 >
@@ -1034,7 +1036,7 @@ Then spawn all four Phase 4-style maintenance agents in a **single task message*
 > If YES: keep it minimal, additive, and scoped — do not propose rewriting sections wholesale — and return a proposed edit — write nothing.
 > Return: `{file, anchor, replacement, reason}` — `anchor` is the exact existing text to change, or the section to append to; `replacement` is the proposed new/changed text; `reason` is what this run revealed that warrants it — OR 'no update required'."
 
-**Agent 4 — Session maintenance** (dev-workflows:impl-maintenance, model: `<detection_model — §9 / §2.1 detection chain>`):
+**Agent 4 — Session maintenance** (dev-workflows:impl-maintenance, model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
 
 **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 > "Analyse this session and return a Lessons Learned report.
@@ -1310,7 +1312,7 @@ in full.
 - ALWAYS append each gate's ledger row at the moment that gate completes, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` — NEVER reconstruct the ledger at Phase 9, and NEVER leave a registry gate without a row
 - NEVER present a phase's `choices:` array in an order, wording, or recommendation other than the one written; the "Choice lists are presented verbatim" rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` binds every prompt in this command
 - ALWAYS invoke `doc-reviewer` before Phase 8 maintenance
-- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — `doc-planner` to the §2 Opus chain, the mechanical steps (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, maintenance) to the §2.1 detection chain; `doc-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override); the inline writer + gates run on `current_model` (advisory only)
+- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — `doc-planner` to the §2 Opus chain, the mechanical steps (`jira-reader`, `diff-summarizer`, `doc-location-finder`, `counterpart-finder`, `docs-style-checker`, `doc-fixer`, maintenance) to the §2.1 detection chain; `doc-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override unless §10 enforces a model); the inline writer + gates run on `current_model` (advisory only)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block
 - ALWAYS pass `Command run: document:` in the Phase 8 Agent 4 session handoff
@@ -1480,6 +1482,7 @@ After writing the edits and before Phase 4, dispatch `docs-style-checker` on the
 
 → task(agent_type: "dev-workflows:docs-style-checker"):
   > repo_root: [cwd's git root]
+  > enforced_model: [run_flags.enforced_model, or omit]   # §10 — passed on its nested dt-style-checker dispatch
   > files:     [the files edited in Phase 3]
 
 - `VIOLATIONS_FOUND` → apply safe fixes via `doc-fixer` (one fix cycle), then check the fixer's `Stop condition flag`. On `NEEDS HUMAN` it deferred a blocking violation it could not safely fix: surface each deferred BLOCKER with the fixer's reason and ask the user whether to fix it by hand and re-run, or skip the check — direct mode runs no reviewer, so nothing downstream would catch it. Record the `style_check` row from that answer per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` (`RAN` after a hand fix and re-run, `SKIPPED_BY_USER` with the choice quoted verbatim). Only on `CLEAR` re-run once.

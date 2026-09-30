@@ -25,7 +25,7 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
 
 ## Phase 0 — Resolve input
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Resolve the Jira input via the shared front-end.** Strip every recognised flag first — `--no-docs`
    and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never
@@ -153,6 +153,7 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT possible for large/cross-cutting VIs
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner
   review_model:    <§2.3 review tier>     # spec-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + specification.md authoring (session model, not a delegated subagent)
@@ -184,7 +185,7 @@ Otherwise (`focus_key` is null), dispatch `jira-reader` at the **cheap** `depth:
 determine the item's type and enumerate its child Epics *without* reading the full Story/Sub-task
 subtree:
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -247,7 +248,7 @@ than Step A's `vi-plus-epics`, because `specify:` needs the full linked subtree 
 the raw material for user stories, acceptance criteria, and test cases; `vi-plus-epics` would starve
 the grill of exactly the detail it needs.
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -324,7 +325,7 @@ contradicting existing behaviour, not a full reuse audit.
 
 For each repo in the batch:
 
-→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Scan this repo for the brief:
   >
   > repo_path:     <resolved absolute path for this repo from Phase 3>
@@ -397,7 +398,7 @@ the grill/author. **Advisory** — never blocks; proceed to Phase 6 once finding
 
 2. **Dispatch `spec-reviewer`.**
 
-→ task(agent_type: "dev-workflows:spec-reviewer", model: `<review_model — §2.3 review tier; caller-pinned; recorded>`):
+→ task(agent_type: "dev-workflows:spec-reviewer", model: `<review_model — §2.3 review tier; caller-pinned; recorded; under §10, run_flags.enforced_model>`):
   > "Review the specification for this brief:
   >
   > Specification path: [absolute path to specification.md]
@@ -472,7 +473,7 @@ persists the plugin-facing slice of its report as session feedback.
 span suggestion (VI-level→`epics:` `/compact`; Epic-level→`design:` `/clear`) +
 `/rename <VI-ID>-<slug>-pe`. Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`):
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
    > "Analyse this session and return a Lessons Learned report.
    >
    > Session handoff:

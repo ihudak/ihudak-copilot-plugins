@@ -22,7 +22,7 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
 
 ## Phase 0 — Validate environment + resolve model routing
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Validate `$VAULT_PATH`.** It must be **set**, an **existing directory**, and **writable** — the
    env var is the user's explicit declaration of their personal store; the plugin trusts it and does
@@ -41,6 +41,7 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
      classification: MODERATE          # idea refinement is typically MODERATE
      reason: <one-line>
      current_model: <the model this orchestrator/grill is running under>
+     enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
      detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # idea-reader
      authoring_model: <= current_model>   # the interactive grill + idea.md authoring (session model, not a delegated subagent)
      opus_available: <true if a §2 Opus model resolved, else false>
@@ -108,7 +109,7 @@ Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copi
 
 Dispatch `idea-reader` to read the source and return a structured digest:
 
-→ task(agent_type: "dev-workflows:idea-reader", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:idea-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Ingest this idea source and return the structured digest:
   >
   > argument:        [the resolved argument]
@@ -155,7 +156,7 @@ Runs only when `--ground-code` was given; otherwise take the OFF branch at the e
 
 **2. Round 1 — broad.** Spawn `code-scanner` on the confirmed set in **batches of up to 4 concurrent agents per task message**, on `detection_model` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §8.3. For each repo in the batch:
 
-→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Scan this repo for the brief:
   >
   > repo_path:        <resolved absolute path>
@@ -310,7 +311,7 @@ abandoned at the block still records the gap. NEVER `emit-block` for an environm
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — a same-role `/compact` suggestion
 (no `resume.md`, no `/rename`: pre-VI, short PM phase). Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`):
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 
    **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
    > "Analyse this session and return a Lessons Learned report.

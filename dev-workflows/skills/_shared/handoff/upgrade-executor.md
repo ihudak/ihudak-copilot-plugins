@@ -3,6 +3,9 @@
 ## Input (orchestrator → upgrade-executor)
 
 The upgrade plan from upgrade-planner with `status: READY`, plus baseline info:
+enforced_model: <model id>   # optional; set by the orchestrator under --enforce-model
+                             # (model-routing.md §10). Passed as `model:` on this agent's own
+                             # test-baseliner dispatch; re-supplied on every resume.
 command_hint: "mvn test"   # optional; the operator-supplied test command, passed
                            # straight through to BOTH test-baseliner calls (capture and verify,
                            # incl. verify-resume). A verify over a different set of suites is

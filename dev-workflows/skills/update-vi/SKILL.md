@@ -19,7 +19,7 @@ Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs | --docs <path>]`
 
 ## Phase 0 — Resolve inputs
 
-**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report.
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **`KEY` (mandatory).** Strip every recognised flag first — `--no-docs` and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never mistaken for the key or a transcript path. Parse the first remaining non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, stop: `UPDATE_VI_NEEDS_KEY: update-vi: needs the VI's Jira key — 'update-vi: <KEY>'.`
 2. **`$SPECS_PATH` (required).** If unset, stop naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
@@ -64,6 +64,7 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT for large/cross-cutting VIs
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # impl-maintenance
   review_model:    <§2.3 review tier>     # vi-reviewer (caller-pinned via `task(model:)`; recorded)
   authoring_model: <= current_model>   # the interactive grill + VI authoring (session model, not a delegated subagent)
@@ -95,7 +96,7 @@ Update the VI live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/
 
 Run the corporate style check on the updated VI **before** the review gate — a **quality enhancement, not a gate**; it never blocks the handoff (mirrors `create-vi:` Phase 3.5).
 
-→ task(agent_type: "dt-style-guide:dt-style-checker", model: <detection_model — §2.1 detection chain>):
+→ task(agent_type: "dt-style-guide:dt-style-checker", model: <detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>):
   > "Run the style check for this brief:
   >
   > files:    [absolute path to the updated <KEY>_<slug>.md]
@@ -117,7 +118,7 @@ Before the review gate, run the deterministic checks in
 
 Dispatch `vi-reviewer` (Opus, caller-pinned via `task(model:)`; recorded as `review_model`):
 
-→ task(agent_type: "dev-workflows:vi-reviewer", model: <review_model — §2.3 review tier>):
+→ task(agent_type: "dev-workflows:vi-reviewer", model: <review_model — §2.3 review tier; under §10, run_flags.enforced_model>):
   > "Review the Value Increment:
   >
   > VI path: [absolute path to the updated <KEY>_<slug>.md]
@@ -180,7 +181,7 @@ Terminal phase — runs after Phase 6, NEVER interrupts an earlier phase.
 the guidance only),
 then a span suggestion (PM continue → `/compact`; PA/PE handoff → `/clear`). Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`) with a compact handoff: command `update-vi:`; what was updated (which sections changed + why); key events (import/freshness friction, BLOCK reviews, unresolved clarifications — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) with a compact handoff: command `update-vi:`; what was updated (which sections changed + why); key events (import/freshness friction, BLOCK reviews, unresolved clarifications — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
 
    **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 2. **Persist plugin feedback (automatic).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6) with the Lessons Learned report, `command: update-vi:`, the run's `jira_key`, `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). Surface the persisted path (or "no plugin-facing signal — nothing persisted").
