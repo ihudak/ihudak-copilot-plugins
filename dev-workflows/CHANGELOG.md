@@ -38,6 +38,58 @@ Versions follow semver at the plugin level.
 - **A nested dispatch is pinned.** Three agents dispatch another agent — `vuln-fixer` and `upgrade-executor` (→ `test-baseliner`), `docs-style-checker` (→ `dt-style-checker`) — and none passed a model, so the nested step inherited whatever the agent ran on and an enforced run was silently not enforced there. Each now takes `enforced_model` in its handoff and passes it on, and otherwise pins the nested dispatch to the §2.1 detection chain. `vuln:` and `upgrade:` re-supply the field on every resume; `document:` passes it in both modes.
 - **`feedback:` was in the `--enforce-model` set by accident.** The maintainer recipe was `grep -l 'model-routing'`, and that bare word is also a feedback *category* named in `feedback:`'s body — so a skill that dispatches nothing was counted as routed, its Phase 0 validated the value, and a bad `$WORKFLOWS_ENFORCE_MODEL` stopped it. The recipe and the runtime test now name the file `_shared/model-routing.md` (14 skills, not 15); `feedback:` is back to parsing no run flags, like the three `prompt` skills; and the free-text list in `run-flags.md` §3 names only the three prose-taking skills that actually strip.
 
+### Fixed — an audit of upstream's fix history, ported from the Claude edition
+
+Every fix commit upstream made since 2026-08-20 was given a disposition against the Claude edition, and what was needed there was then carried here. Nothing in this section depends on anything this edition lacks.
+
+**Test baseline — `implement:`, `vuln:`, `upgrade:`**
+
+- **A polyglot repository was baselined on whichever stack sat first in a five-row list.** A Java suite beside an Angular one, or a Rails suite beside a JavaScript one, got a baseline from one of them, and a green verify said nothing about the other; Go, Cargo and Xcode had no row at all. `test-baseliner` and its handoff are now upstream's: every marker is collected and qualified, every suite that qualifies runs from its own directory under its own ten-minute bound, identifiers carry their suite's prefix, and the return reports per suite — eleven rows over fourteen markers. A run where some suites produced counts and some did not is `PARTIAL`, and a note whose harm the `Status` cannot show opens with `CAVEAT: `. `implement:` records both in Deferred items, `vuln:`'s summary table gains a `Notes` column, `upgrade:`'s summary gains `Not verified:` and `Caveats:` lines. New page: `docs/reference/test-suite-detection.md`.
+- **A test command the operator supplied went nowhere.** `implement:` asked *Specify test command* after the edits; `test-baseliner` took no `command_hint`, no dispatch carried one, and the baseline it would have been compared with had captured nothing. The question moves to Pre-Phase 3.5, where a baseline can still be taken, and the answer is carried as `command_hint` on every later dispatch. A skip drops the tests only — lint and build still run. Two failed commands record the skip as the run's own, which finishes `clean_finish: false`.
+- **A verify against a baseline that captured nothing returned `OK`.** With no passing test recorded, nothing could regress or go missing, so a runner the change itself repaired produced a green comparison that never happened. Verify now refuses such a baseline before running anything.
+- **A test added since the baseline and already failing moved no `Status`.** `OK` was reachable over a red test. `implement:` sends it to the fix loop; `vuln-fixer` and `upgrade-executor` mark each `NEW-FAILURE: ` and both commands finish `clean_finish: false` on it.
+- **`vuln:` took opposite dispositions on the same failed capture, against risk.** A `MODERATE` CVE was abandoned (`BASELINE_FAILED`) while a `HIGH-RISK` one was applied and pushed. One capture now runs at the orchestrator for both paths, and a dead one is put to the operator before anything is branched: supply a command, apply unverified, or cancel. `baseline_tests: run-fresh` and `BASELINE_FAILED` are retired. `upgrade:` asks the same question.
+- **`upgrade:`'s `clean_finish` omitted `TESTS_NOT_RUN`** while `code-repo-handoff.md` §2.9 named it for that command, so a batch nothing verified opened an ordinary pull request.
+- **`implement:` read an unrunnable suite as a pass.** Phase 3.5 branched on regressions only; `RUN_FAILED` and `COMMAND_NOT_FOUND` now stop for a decision, and an accepted unverified run is not a clean finish.
+- **`vuln:`'s gated path had no instruction for a first-call return that is neither `BLOCKED` nor `AWAITING_REVIEW`** (`BUILD_FAILED`), and no resume named `repo:`, which verify takes its root from.
+
+**Git and shell**
+
+- **Git calls ran in the wrong repository or the wrong form.** `code-scanner` and `diff-summarizer` ran bare `git` in the session's directory; `document:` Phase 6.2 and Phase 8.5 did the same; `git switch origin/<name>` exits 128. Every call is `git -C`, and a switch takes the branch name while a read may take the ref (`read-only-repos.md` §3). Vale and its scratch directory run as `builtin cd … && command vale`, `command mktemp`, `command rm`, since the shell carries the user's aliases.
+- **The specs-repo git authorities were a month behind upstream.** `--porcelain -z`, so a path with a space or a non-ASCII byte is staged; a dangling `origin/HEAD`; `<default-ref>`; an unevaluable `@{u}`; an eleven-state `require-on-main` gate; a push-target probe before the consent array; *account for every declared path*; an existing-pull-request probe; the host kept for a non-github.com remote. `phase-handoff.md` gains §4.0's four downstream classes and one consent array per class, presented by all eight producers.
+
+**Claims a run could not keep**
+
+- **A push, a pull request, a merge to wait for.** `vuln:`, `upgrade:`, `implement:` and four docs pages asserted a push and a draft pull request outright; both sit behind §2.4's consent choice, and three sections end with no pull request. §2.4's re-ask trigger is symmetric, and `vuln:`'s *"asked on the first CVE and reused"* now carries it.
+- **Five next-step offers hardcoded "until the pull request above is merged"** on runs that reach a declined, a push-failed and a nothing-to-commit outcome. They carry `<merge-clause>`, resolved from the run's own `Phase handoff:` line; `next-phase-offer.md` owns the table. `create-ard:` also said `specify:` "architects without" an unmerged ARD — it stops.
+
+**`document:` and `docs-profile:`**
+
+- **The profile had two homes.** `docs-profile:` wrote it at the git top level; `document:` looked in the resolved directory. With the site below the top level every run re-profiled and waited for a file written elsewhere. `document:` takes the resolved directory to its top level; the squash base is the commit profiling hands back, never a `git log --diff-filter=A` lookup; the rename names the old branch.
+- **An inline run switched onto a bootstrap branch an earlier run left behind**, and `document:` renamed it into the docs branch. It stops at Phase 0 with `DOCS_PROFILE_BOOTSTRAP_BRANCH_EXISTS`.
+- **A refresh rewrote what its scan could not see.** It now builds from the existing profile, changes only where detection found evidence, and *Keep existing, write nothing* writes nothing.
+- **Direct mode resolved its toolchain against cwd, not the repository it edits**, and ran its style check there. An ambiguous image policy is settled with the user before the writer runs.
+- **A monorepo's site keeps its Vale configuration and lockfile beside itself.** `docs-style-checker` and the toolchain preflight look there first.
+- **Render verification.** A build tool that would not run was offered as a skip before its registered fallback was tested; a content `FAILED` could sit behind a skip; a 404 was a render defect in one list and a route miss in the next; `ci_still_checks` promised a CI check the repository may not run; the smoke check booted a server whose tool was missing and waited out the timeout.
+
+**Model routing**
+
+- **Five `release-notes:` dispatches and two in `document:` direct mode carried no tier**, so each inherited the session model. All are pinned.
+- **`model-routing.md` listed the reviewers, `test-baseliner`, `test-writer` and `impl-maintenance` as receiving a `model_routing` block no dispatch sends**, routed the research agents to `planning_model` where every caller uses `detection_model`, and scoped §9 to two pipelines where §9.4 says it has no scope.
+- **`docs-profile: --inline` re-stripped run flags from a string its caller built**, losing an explicit `--enforce-model`.
+- **Seven reviewers defined `PASS` and `PASS WITH RECOMMENDATIONS` so that a lone MINOR matched both.** `PASS` is now *no findings at all*, as upstream's two newest reviewers already read it; `readiness-reviewer`'s `PARTIAL` needs at least one MAJOR.
+
+**Hooks, grounding**
+
+- **The preload hook told the dispatched agent to read its own file**, and named a strong-tier model list two releases stale (`Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5`). It now points at §2 for the planner and §2.3 for the reviewer and names no model.
+- **`idea:`, `create-vi:` and `update-vi:` showed the docs-grounding line a phase before they resolved it**, after their first agent.
+
+**Smaller**
+
+- `idea:` relocated into `/specifications/` when `$SPECS_PATH` was unset. `session-hygiene.md` excluded `create-vi:` from the session-name aid "for want of a key" it takes as a mandatory argument, and gave `update-vi:` no disposition. `specification-format.md` taught a story-level `### Open questions` the renderer files under the last criterion. `feedback:`'s category list lacked `environment-defect`. getting-started and the environment page listed `design:` among the commands matching repositories by directory name.
+
+**Not ported, by design:** the BRD route, frames, proposals, addressing, the plugin split, the de-brand, the cost subsystem's own fixes, the 2–4-option prompt cap (this edition's `ask_user` has none), the pull-request-vocabulary and Jira-hierarchy retirements, `/docs-init` / `/docs-brand` / `/docs-serve`, the derived readiness phase, and release notes filed in the specs repo. None of those exists in this edition.
+
 ### Fixed — field reports, ported from the Claude edition
 
 These nine shipped in the Claude edition's 2.63.0 and were left out of this edition's port of it. None depends on anything this edition lacks.

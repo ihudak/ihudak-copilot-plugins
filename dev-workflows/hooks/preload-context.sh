@@ -54,10 +54,12 @@ MODEL_ROUTING="${PLUGIN_ROOT}/skills/_shared/model-routing.md"
 # --- helpers -------------------------------------------------------------
 emit_model_routing() {
     echo "Model routing: classify task as SIMPLE / MODERATE / SIGNIFICANT / HIGH-RISK before planning."
-    echo "  SIGNIFICANT / HIGH-RISK -> plan with risk-planner and code-review on the strong tier"
-    echo "  (Opus 5/4.8/4.7/4.6 or GPT-5.6/5.5), BEFORE running tests. Invoke via"
-    echo "  task(agent_type: \"dev-workflows:<name>\", model: <strong-tier id>) and have the"
-    echo "  sub-agent read the plugin-installed agents/<name>.md."
+    echo "  SIGNIFICANT / HIGH-RISK -> plan with risk-planner on the strong tier (section 2) and"
+    echo "  review with code-review on the review tier (section 2.3), BEFORE running tests."
+    echo "  Invoke each by agent_type -- task(agent_type: \"dev-workflows:risk-planner\", model:"
+    echo "  <the section-2 id>) and task(agent_type: \"dev-workflows:code-review\", model: <the"
+    echo "  section-2.3 id>). The agent's own file is its prompt: never have it read"
+    echo "  agents/<name>.md."
     if [ -f "$MODEL_ROUTING" ]; then
         echo "  Full rules: $MODEL_ROUTING"
     fi

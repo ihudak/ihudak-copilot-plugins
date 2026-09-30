@@ -48,7 +48,7 @@ These reads are deliberately **not** gated: `require-on-main` (`~/.copilot/insta
 Use `choices` arrays; the last choice is always `"Other… (describe)"`.
 
 1. **Confirm** the feature folder; the resolved Jira-import base **with its import date**; and the secondary artifacts discovered (specs draft / ARD / spec / transcript).
-   - Show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+   - **Resolve documentation grounding here, then show its line.** Run `resolve-docs-grounding update-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` — its step 3.5 index prompt included — and show the `docs grounding:` line from what it returns, in the form that reference fixes — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). It runs here, before any agent is dispatched, because step 3.5 asks its one-time index question before the run's real work; this is the run's one resolution (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`, *Invariants*), and Phase 2 dispatches on the state it returns without resolving again.
    - Report any discovered `*_ARD.md` or `specification.md` that is not on the specs repo's default branch — per Phase 0 step 5, this grounding is unapproved but advisory-only; it is never a reason to stop the run.
 2. **Scope of the update.** `choices: ["Refresh (incorporate new info / comments / transcript) (Recommended)", "Re-do (substantive re-scope driven by an ARD/spec obstacle)", "Cancel", "Other… (describe)"]`.
 
@@ -81,7 +81,7 @@ The grill + authoring run inline on `current_model` (the §2 Opus chain — inte
 
 Read the Jira-import VI **body + `-comments.md`** (the authoritative base and the signal for *what to change*), then the secondary artifacts (specs draft, ARD, spec, transcript). Do NOT treat the frozen specs draft as authoritative where it disagrees with the Jira import — the import wins; surface a notable divergence to the user. **No code scan; no repos.**
 
-Then run `resolve-docs-grounding update-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the VI goal + the change signal from comments, `jira_key` = `<KEY>`. Carry the digest into the Phase 3 grill with **grill-rank** consumption. When OFF, skip silently.
+Then dispatch on the documentation grounding Phase 1 resolved, resolving nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the VI goal + the change signal from comments, `jira_key` = `<KEY>`. Carry the digest into the Phase 3 grill with **grill-rank** consumption. When OFF, skip silently.
 
 ---
 
@@ -139,7 +139,7 @@ Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER fin
 
 1. **Archive the current canonical VI** (if one exists) to `<feature-folder>/revisions/<KEY>_<slug>_<YYYYMMDD>.md` before overwrite (same-day second revision → suffix `-2`, `-3`, …).
 2. **Write the refreshed VI** to the **canonical** path `<feature-folder>/<KEY>_<slug>.md`. Record `revision_of: <archived snapshot path>` and `built_from_import: <YYYY-MM-DD>` (the Jira-import date the update was built from) in the frontmatter.
-3. **Hand off** (commit-when-asked — never automatic). Present `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's consent choice verbatim: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]`. On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`; `feature_folder` as resolved in Phase 0; `deliverable_paths` = the canonical VI file (step 2) and the archived snapshot file (step 1); `title: <KEY> Update Value Increment`; and `body_facts` = which sections changed, the Jira-import date the update was built from, the open-question count, and the `vi-reviewer` verdict. Emit its §4.1 outcome line in the Final report.
+3. **Hand off** (commit-when-asked — never automatic). Present `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (every §3.4 row naming the VI falls back), after that section's push-target probe: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]`. On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`; `feature_folder` as resolved in Phase 0; `deliverable_paths` = the canonical VI file (step 2) and the archived snapshot file (step 1); `title: <KEY> Update Value Increment`; and `body_facts` = which sections changed, the Jira-import date the update was built from, the open-question count, and the `vi-reviewer` verdict. Emit its §4.1 outcome line in the Final report.
 
 ### Jira round-trip (document to the user — they will otherwise miss it)
 
@@ -155,8 +155,10 @@ Without these steps the update silently diverges from Jira again.
 Offer these — guidance only, never auto-invoke — per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`:
 
 ```
-choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists)", "Re-run epics — epics: <KEY> (PE)", "Re-run the spec — specify: <KEY> (PE, if one exists)", "Stop here", "Other… (describe)"]
+choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists) <merge-clause>", "Re-run epics — epics: <KEY> (PE)", "Re-run the spec — specify: <KEY> (PE, if one exists) <merge-clause>", "Stop here", "Other… (describe)"]
 ```
+
+**Two routes carry `<merge-clause>` and two do not, and which is which is derived, not stylistic.** `create-ard:` and `specify:` both gate this run's VI on the specs repo's default branch (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3.4's rows for them), so both read the *updated* VI only once Phase 5's handoff has landed; `epics:` gates `<VI-dir>/specification.md` and `release-notes:` gates nothing, so neither waits on anything this run wrote. The placeholder is resolved from this run's own `Phase handoff:` outcome line (§4.1) per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` and is never written as an unconditional "once the pull request above is merged". It is a placeholder, not an instruction to reword an option, so the array is still presented verbatim.
 
 **The offer is conditional on Phase 0 step 5a, not flat.** The list above is the shape; what this run actually shows depends on which downstream artifacts exist and whether this update touched anything they assert.
 

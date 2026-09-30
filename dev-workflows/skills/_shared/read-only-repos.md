@@ -29,9 +29,21 @@ Read-only mode is not a failure. It NEVER returns `REFRESH_BLOCKED` on its own; 
 
 In order, stopping at the first that succeeds:
 
-1. `git -C "<repo_path>" symbolic-ref --short refs/remotes/origin/HEAD`
-2. `git -C "<repo_path>" rev-parse --verify origin/main`
-3. `git -C "<repo_path>" rev-parse --verify origin/master`
+1. `git -C "<repo_path>" symbolic-ref --quiet --short refs/remotes/origin/HEAD` — `--quiet` is
+   required, or a clone whose `origin/HEAD` is unset leaks `fatal: ref refs/remotes/origin/HEAD is not
+   a symbolic ref` into the run's output. **It succeeds only where the ref it prints exists:**
+   `git -C "<repo_path>" rev-parse --verify --quiet origin/<name> >/dev/null`, with `origin/<name>`
+   what it printed. Where that probe fails, rung 1 has failed; go on to rung 2. A remote that renames
+   its default branch — `master` to `main` — and a clone that then fetches with `--prune` leave
+   `origin/HEAD` naming a branch the remote deleted: rung 1 still prints `origin/master` and exits 0,
+   while `origin/master` is gone and `origin/main` is what rung 2 finds.
+2. `git -C "<repo_path>" rev-parse --verify --quiet origin/main >/dev/null`
+3. `git -C "<repo_path>" rev-parse --verify --quiet origin/master >/dev/null`
+
+**Rungs 2–3 are existence probes, not name sources.** `rev-parse` prints a 40-character SHA, so a
+caller that takes its stdout records a SHA where §6 defines `scanned_ref` as a ref *name* (`origin/main`).
+Redirect the output and use the literal name you probed — the same rule `code-repo-handoff.md` §2.8
+states for its own ladder.
 
 `git remote set-head origin --auto` is **not** part of this chain — it writes. An exhausted chain is a genuine `REFRESH_BLOCKED` with reason `cannot resolve default branch on a read-only mount`.
 
@@ -40,6 +52,20 @@ Then record three facts, all pure reads:
 - `git -C "<repo_path>" log -1 --format=%cI <ref>` → `ref_committed_at`
 - `git -C "<repo_path>" rev-list --left-right --count <ref>...HEAD` → `behind` then `ahead`, tab-separated
 - `git -C "<repo_path>" rev-parse --abbrev-ref HEAD` → the working-tree branch name
+
+**A switch takes the name; a read may take the ref.** The chain yields a **ref**: rung 1 prints
+`origin/<name>` — `origin/main` — and rungs 2–3 probe `origin/main` and `origin/master`. A caller that
+only **reads** a tree, a file or a log may use that ref as it stands, as §4 does. A caller that
+**switches to** the default branch, or **cuts a branch from** it, uses the branch's **name**: rung 1's
+output with its leading `origin/` removed, or the literal `main` or `master` whose ref rung 2 or 3
+found. The ref will not do in its place: `git switch origin/main` exits 128 (*"fatal: a branch is
+expected, got remote branch 'origin/main'"*), and `git switch -c <new> origin/main` sets `<new>` to
+track `origin/main`, where a branch cut from `main` tracks nothing. Such a caller is on a writable
+clone — read-only mode switches nothing (§2) — so it may go further than this chain: where rung 1
+fails, run `git remote set-head origin --auto` and retry rung 1 before rungs 2–3 — it resets an unset
+`origin/HEAD` and a dangling one alike to the branch the remote names now — or fall back past rung 3
+when the chain is exhausted. Neither is part of the chain, and a caller that does either says so where
+it cites this rule.
 
 ## 4. Reading at the ref
 

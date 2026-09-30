@@ -430,7 +430,7 @@ Cap: one fix cycle + one re-review maximum.
 
 Write the feature folder: `specification.md` (`Published: no`), `idea.md`, `_session.md`, `_glossary.md`, and the rendered `.html`.
 
-Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim:
+Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — stopping** array verbatim (`design:` stops on a `specification.md` that is not on the default branch), after that section's push-target probe:
 ```
 choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]
 ```
@@ -533,7 +533,9 @@ Report: feature-folder path; stage/user-story/AC/TC counts; open-question count;
 
 ### Next step
 
-End the report with a `### Next step` recommendation per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` (guidance only — never auto-invoked): **Epic-level spec** (`<VI> <Epic>`) → hand to Dev → `design: <VI> <Epic>`, which will not start until this spec's pull request above is merged, and the **Epic fan-out** `specify: <VI> <another-Epic>` for a sibling Epic (breadth); **VI-level spec** (`<VI>` only) → `epics: <VI>` (PE), which stops rather than skipping — the spec exists but isn't yet on main — until this pull request above is merged. If the run BLOCKED or left open `- [ ]` items, recommend resolving those first.
+End the report with a `### Next step` recommendation per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` (guidance only — never auto-invoked): **Epic-level spec** (`<VI> <Epic>`) → hand to Dev → `design: <VI> <Epic>` `<merge-clause>`, which will not start until this spec is on the default branch — on every path, since `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3.4's `design:` row is a stop even for a spec that reached no branch — and the **Epic fan-out** `specify: <VI> <another-Epic>` for a sibling Epic (breadth), which waits on nothing this run produced and carries no clause; **VI-level spec** (`<VI>` only) → `epics: <VI>` (PE) `<merge-clause>`, which stops rather than skipping wherever this spec reached a branch (§3.3 rows D/E) and skips exactly as it did before wherever it reached none (§3.4's `epics:` row). If the run BLOCKED or left open `- [ ]` items, recommend resolving those first.
+
+`<merge-clause>` is the placeholder `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` owns, resolved from this run's own `Phase handoff:` outcome line (§4.1) and never written as the unconditional "once the pull request above is merged" — a declined handoff, a failed push and a nothing-to-commit run each leave a different wait, and two of them open no pull request to wait on.
 
 ### Context hygiene
 

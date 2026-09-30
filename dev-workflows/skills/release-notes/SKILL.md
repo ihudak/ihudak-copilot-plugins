@@ -143,7 +143,7 @@ Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak
 
 Invoke `jira-reader`. Use `depth: vi-only` when diff grounding is OFF; `depth: full` when ON (to collect PR URLs from the hierarchy's `## Pull Requests` sections).
 
-→ task(agent_type: "dev-workflows:jira-reader"):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -178,7 +178,7 @@ choices: ["Skip and continue without its PRs", "I'll clone it — wait", "Cancel
 
 ## Phase 5 — Diff summarisation (only if diff grounding is ON)
 
-Spawn `diff-summarizer` in batches of up to 4 concurrent agents per task message, passing each resolved absolute `repo_path` plus `repo_url_slug` and the PRs filtered to that repo. Collect the outputs into a `diff_summaries` array.
+Spawn `diff-summarizer` in batches of up to 4 concurrent agents per task message, each pinned with `model: <detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>` — this agent's handoff declares no `model_routing:` input, so a dispatch without `model:` leaves it with no tier from any source and it inherits the session model, which `_shared/model-routing.md` §2.1 forbids for a mechanical step — passing each resolved absolute `repo_path` plus `repo_url_slug` and the PRs filtered to that repo. Collect the outputs into a `diff_summaries` array.
 
 **Per-repo summarizer status.** Handle each returned status before continuing:
 
@@ -213,7 +213,7 @@ Diff grounding is opt-in and advisory here: a repo the user skips degrades the g
 
 Do not add a question for it.
 
-→ task(agent_type: "dev-workflows:release-notes-writer"):
+→ task(agent_type: "dev-workflows:release-notes-writer", model: `<detection_model — §9.2 delegated writer / §2.1 detection chain; this run is MODERATE (Phase 1.5); under §10, run_flags.enforced_model>`):
   > "Render the release-notes draft for this brief:
   >
   > jira_reader_handoff: [the Phase 3 handoff — scoped to the focus Epic's subtree when focus_key is set]
@@ -289,7 +289,7 @@ Pass `code_repos` (the Phase-4 resolved map) to the writer when diff-grounding i
 
 If the user chose a style check AND the `dt-style-guide` plugin is installed:
 
-→ task(agent_type: "dt-style-guide:dt-style-checker") on the `combined_rendered` draft (write it to the destination first when the destination is a file, or pass it inline). **Never dispatch this bare** — pass `doc_type` and a `known_conventions` block, because the auto-fix path below applies findings mechanically and a wrong MAJOR therefore reaches the draft unchallenged:
+→ task(agent_type: "dt-style-guide:dt-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`) on the `combined_rendered` draft (write it to the destination first when the destination is a file, or pass it inline). **Never dispatch this bare** — pass `doc_type` and a `known_conventions` block, because the auto-fix path below applies findings mechanically and a wrong MAJOR therefore reaches the draft unchallenged:
 
 ```
 > files:    [the rendered draft]
@@ -308,7 +308,7 @@ The two conventions above are not hypotheticals: a bare dispatch on one release 
 
 If violations are returned and the user chose auto-fix:
 
-→ task(agent_type: "dt-style-guide:dt-doc-fixer") to apply safe fixes.
+→ task(agent_type: "dt-style-guide:dt-doc-fixer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`) to apply safe fixes.
 
 If `dt-style-guide` is not installed, skip this phase and note "style check skipped — dt-style-guide not installed" in the report.
 

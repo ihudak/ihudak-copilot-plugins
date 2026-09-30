@@ -77,18 +77,22 @@ Echo the detected mode, then proceed to that mode's phases. The two modes share 
      ```
      "Use cwd anyway" sets `docs_repo_path` = the git root of cwd (or cwd itself if not a git tree) and carries the user's confirmation forward. "Enter the docs repo path" takes a free-text absolute path and validates it exists.
 
+   **Then take it to its top level.** Record the directory the rung answered with as `docs_repo_resolved`, and set `docs_repo_path` to its git work-tree top level — `git -C <docs_repo_resolved> rev-parse --show-toplevel`, or `docs_repo_resolved` itself where it is in no git work tree. That top level is where the profile lives, where every path it records is rooted and where every command it records runs (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/docs-profile-schema.md`, **Where the profile lives**), so every later use of `docs_repo_path` in this command means it. Rungs (a) and (b), and "Use cwd anyway", already answer with a top level; `$DOCS_PATH` at (a.5) and a path entered at (c) can name a site below one — a monorepo's `website/` — whose profile step 4 would otherwise look for in the wrong place, re-profiling on every run and waiting for a file `docs-profile:` writes somewhere else. `docs_repo_resolved` is kept for what the site's own directory decides: step 4(c) hands it to inline profiling, step 6's `.obsidian/` walk starts from it, and step 9's preflight and Phase 6.4's style check look there, before the top level, for the configuration a site keeps beside itself.
+
    **Confirm writeable.** Once `docs_repo_path` is resolved, run `test -w <docs_repo_path>`. If it fails, stop with the named error `REPO_NOT_WRITEABLE: <docs_repo_path> is not writeable.`
 
 3. **Recognize dynatrace-docs.** Set `is_dynatrace_docs` = `true` when the resolved `docs_repo_path` contains **both** `managed/docstack.jsonc` and `dynatrace/_content/` and — when a git remote is available (`git -C <docs_repo_path> remote get-url origin`) — its slug (last path segment, trailing `.git` stripped) is `dynatrace-docs`. Directory name alone is **not** sufficient; the signals decide.
 
 4. **Resolve the profile** (record `profile_source`). The profile steers all later phases' conventions. Resolve in this order:
-   - **(a) In-repo profile →** `in-repo`. If `<docs_repo_path>/.dev-workflows/docs-profile.yml` exists, load it. `profile_source: in-repo`.
+   - **(a) In-repo profile →** `in-repo`. If `<docs_repo_path>/.dev-workflows/docs-profile.yml` exists — the profile's one home, since step 2 took `docs_repo_path` to the top level — load it. `profile_source: in-repo`.
    - **(b) dynatrace-docs built-in default →** `built-in`. Else, if `is_dynatrace_docs`, load `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/docs-profile.default.yml`. `profile_source: built-in`.
-   - **(c) Custom repo, no profile →** `generated`. Else (a custom docs repo with no profile), run **inline on-demand profiling**: invoke the `docs-profile:` flow against `docs_repo_path` (Skill tool, `skill: "dev-workflows:docs-profile"`, with `docs_repo_path --inline` as its arguments — the `--inline` token tells profiling to skip its branch-naming prompt and standalone PR-draft handoff, since this command owns the single branch + PR draft) and wait for it to write `<docs_repo_path>/.dev-workflows/docs-profile.yml`. Then load that file. `profile_source: generated`. If the user cancels profiling (it produces no profile), stop with the named error `PROFILE_REQUIRED: a docs-profile is required to write into a custom docs repo; run docs-profile: or switch to a profiled repo.`
+   - **(c) Custom repo, no profile →** `generated`. Else (a custom docs repo with no profile), run **inline on-demand profiling**: invoke the `docs-profile:` flow against `docs_repo_resolved` (Skill tool, `skill: "dev-workflows:docs-profile"`, with `docs_repo_resolved --inline` as its arguments — the `--inline` token tells profiling to skip its branch-naming prompt and standalone PR-draft handoff, since this command owns the single branch + PR draft) and wait for it to return. Pass the directory step 2's rung answered with, not its top level: profiling tests the directory it is handed for a docs signal, so handed the top level of a monorepo whose site sits in `docs/` it finds none and asks whether to profile a repository this command has just found by its signal. It resolves the same top level (its Phase 0 step 2) and, finding no profile there — (a) has just looked — bootstraps one: it cuts its branch, writes `<docs_repo_path>/.dev-workflows/docs-profile.yml`, commits it, and hands back that branch as `profile_branch` and that commit as `profile_commit` (its Phase 6). Load the file, and record `profile_source: generated` with both values — Phase 6.2 renames `profile_branch` and Phase 8.5 squashes onto `profile_commit`. If the user cancels profiling (it produces no profile), stop with the named error `PROFILE_REQUIRED: a docs-profile is required to write into a custom docs repo; run docs-profile: or switch to a profiled repo.` Where profiling stops on a named error of its own instead — `DOCS_PROFILE_BOOTSTRAP_BRANCH_EXISTS`, which it raises on a bootstrap branch an earlier run left behind — stop with that error as it stands, since it names what to fix.
+
+     **Where profiling hands back no commit** — it made none, as its refresh does when answered "Keep existing, write nothing" — it cut no branch either. (a) and profiling look for the profile in the same place, so profiling starts from none here and that refresh does not arise; should profiling hand back no commit anyway and leave a profile at `<docs_repo_path>/.dev-workflows/docs-profile.yml`, load it and record `profile_source: in-repo`, never `generated`. The in-repo base guard below then tests whether that profile is on the base, and Phase 6.2 takes its normal case: its inline-profiling case renames `profile_branch`, a branch this run did not cut, and Phase 8.5 has no `profile_commit` to squash onto.
 
    Hold the loaded profile for later phases.
 
-   **In-repo-profile-not-on-base guard.** When `profile_source: in-repo`, confirm the profile is committed on the base branch before relying on a docs branch cut from it. Resolve the base (`git -C <docs_repo_path> symbolic-ref --short refs/remotes/origin/HEAD`; fall back to `main`, then `master`) and run `git -C <docs_repo_path> cat-file -e <base>:.dev-workflows/docs-profile.yml`:
+   **In-repo-profile-not-on-base guard.** When `profile_source: in-repo`, confirm the profile is committed on the base branch before relying on a docs branch cut from it. Resolve the base **ref** by `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/read-only-repos.md` §3's chain run against `<docs_repo_path>` — rung 1's `origin/<name>` where that ref exists, else `origin/main`, then `origin/master` — and run `git -C <docs_repo_path> cat-file -e <base>:.dev-workflows/docs-profile.yml`; this is a read, so it takes the ref as it stands (§3, **A switch takes the name**), and it runs before anything pulls the base:
    - **exit 0 (present on base)** → proceed (the common case — the profile was merged earlier).
    - **non-zero (absent on base)** → the profile is only in the working tree / on an unmerged branch, so the docs branch Phase 6.2 cuts from `<base>` will not include it. Warn and ask:
      ```
@@ -106,7 +110,7 @@ Echo the detected mode, then proceed to that mode's phases. The two modes share 
    `$SPECS_PATH/…/<KEY>…/` folder, or the directory they were found in), or
    `none` when `specs` is empty.
 
-6. **Classify write context** for later branch/write decisions — computed against the resolved `docs_repo_path` (not necessarily cwd). Walk up from `docs_repo_path` looking for `.obsidian/`; if found, context = `obsidian`. Else if `git -C <docs_repo_path> rev-parse --show-toplevel` succeeds AND at least one docs signal from step 2 is present, context = `docs_repo`. Else if it succeeds with no docs signals, context = `non_docs_repo` (step 2 has already asked the user; their confirmation promotes this to `docs_repo` behaviour). Else context = `plain_dir`. In a normal run, Phase 0's docs-repo resolution (steps 2–3) yields a real docs repo (`docs_repo`) or a user-confirmed `non_docs_repo`; `obsidian` and `plain_dir` are **defensive guards** (they forbid branch/commit) rather than expected write targets.
+6. **Classify write context** for later branch/write decisions — computed against the resolved `docs_repo_path` (not necessarily cwd). Walk up from `docs_repo_resolved` — the directory step 2's rung answered with, at or below `docs_repo_path` — looking for `.obsidian/`; if found, context = `obsidian`. Else if `git -C <docs_repo_path> rev-parse --show-toplevel` succeeds AND at least one docs signal from step 2 is present, context = `docs_repo`. Else if it succeeds with no docs signals, context = `non_docs_repo` (step 2 has already asked the user; their confirmation promotes this to `docs_repo` behaviour). Else context = `plain_dir`. In a normal run, Phase 0's docs-repo resolution (steps 2–3) yields a real docs repo (`docs_repo`) or a user-confirmed `non_docs_repo`; `obsidian` and `plain_dir` are **defensive guards** (they forbid branch/commit) rather than expected write targets.
 
    Record the resolved context — it drives Phase 6.2 (branch setup) and Phase 6.3 write rules. When `docs_repo_path` differs from cwd, record **both** and note that the writing phases (Increments 2–3) consume `docs_repo_path`, not cwd, for every write.
 
@@ -137,8 +141,9 @@ Echo the detected mode, then proceed to that mode's phases. The two modes share 
    When both the both-space-run rejection and a malformed value apply, resolve the both-space rejection first, then re-validate any value the user keeps.
 
 9. **Toolchain preflight.** Execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` against
-   the resolved `docs_repo_path` and the profile loaded in step 4. Derive the required set from all
-   three sources (profile commands including `commands.per_space`, repo config signals, the repo's
+   the resolved `docs_repo_path` and the profile loaded in step 4 — with `docs_repo_resolved` as the
+   site directory its source 2 also checks, where step 2 resolved one below the top level. Derive
+   the required set from all three sources (profile commands including `commands.per_space`, repo config signals, the repo's
    documented `Prerequisites`), check each, and build the `toolchain` block.
 
    Initialize the run's `gate_ledger` (schema:
@@ -614,7 +619,18 @@ Handle the `status` and `gaps`:
   - `"ask user"` → prompt inline **before** showing the checklist-approval choice. Free-text prompt scoped to the gap; feed the answer back to the planner via a single re-invocation (pass the user's answer as an additional `gap_resolution` field in the brief). If the user declines, fall back to `"mark TODO in draft"`.
   - `"mark TODO in draft"` → surface in the checklist display as a visible TODO; the writer at Phase 6.3 emits `<!-- TODO: … -->` markers. Does not block approval.
   - `"skip with note in final report"` → list in the checklist display; carry forward into the Phase 9 `### Skipped items`. Does not block approval.
-- **`status: PARTIAL`** alone (without user-asked gaps) is presented to the user alongside the checklist so the approval decision is informed.
+- **Ambiguous image policy** — a checklist target whose `image_policy` is `ambiguous` and whose `screenshots:` is non-empty. The planner found no dominant image convention among the target's sibling pages (mixed references, or none), so it planned neither a `dest` nor a `staging` path, and `doc-writer` cannot ask the user: it is a subagent. Resolve each such target here, **before** the checklist-approval choice and so before Phase 6.1 and Phase 6.3 — never leave it to the writer. For each, show the target path and the screenshots planned for it, then ask (no option is safe to recommend without a convention, so no `(Recommended)` marker):
+  ```
+  choices: ["Copy them into the repository beside the page", "Stage for manual upload to the repo's image-management tool", "Leave these screenshots off this page", "Cancel"]
+  ```
+  - **Copy them into the repository beside the page** → record `local` for that target.
+  - **Stage for manual upload to the repo's image-management tool** → record `cdn_upload_required` for that target. Where `<screenshot_staging_dir>` is null — Phase 1's **Not found** branch was skipped — first take an absolute staging directory from the user, rejecting `/tmp` and any path inside the docs repo as that branch does, and record it as `<screenshot_staging_dir>`.
+  - **Leave these screenshots off this page** → once the checklist is final — after the re-invocation below, where there is one — remove that target's `screenshots:` entries from it; the writer places no screenshot on that page, and each screenshot is listed in Phase 9's `### Deferred items` as a user-declined screenshot.
+  - **Cancel** → stop and summarise.
+  - A free-text answer is mapped onto one of the first three, or the question is asked again; it is never written through as a policy of its own.
+
+  Pass every `local` / `cdn_upload_required` answer to the planner as `image_policy_resolution` — `{<target_path>: local | cdn_upload_required}`, with the current `<screenshot_staging_dir>` — in the same single re-invocation that carries any `gap_resolution`, and take the checklist it returns: it plans each named target's `dest` or `staging` path under the chosen policy, exactly as it would have for a detected one. A target left `ambiguous` with no screenshot needs no answer — no screenshot is placed on it, so its policy decides nothing.
+- **`status: PARTIAL`** — returned for a user-asked gap or an ambiguous policy, each resolved by the bullets above — is presented to the user alongside the checklist so the approval decision is informed.
 
 Present the checklist (with any gaps + dispositions, and — when the planner returned a non-empty `repo_authoring_guidance` — the repo-specific authoring rules it extracted from the repo's own guidance files, so the user sees "this repo's CONTRIBUTING.md / copilot-instructions.md requires …" before approving):
 ```
@@ -711,7 +727,7 @@ phase only confirms the per-page **strategy choice** before Phase 6.3 writes.
 
 ## Phase 6.1 — CDN image handoff
 
-Run this phase when, in the Phase 5.7 `doc-planner` return, **any** screenshot has `image_policy: cdn_upload_required` — **or** the user picked "Stage for manual upload" under an `ambiguous` target in Phase 6.3 — **or** any Phase 5.6 `existing_image_decisions[]` entry has `decision: accepted`. (When the only image policy in play is `local` and there is no accepted existing-image replacement, skip this phase: local images are copied into the repo at Phase 6.3 with no handoff needed.)
+Run this phase when, in the checklist Phase 5.7 settled, **any** screenshot has `image_policy: cdn_upload_required` — a target whose ambiguous policy Phase 5.7's **Ambiguous image policy** step resolved to "Stage for manual upload to the repo's image-management tool" included, since the planner's re-invocation returns it as `cdn_upload_required` — **or** any Phase 5.6 `existing_image_decisions[]` entry has `decision: accepted`. (When the only image policy in play is `local` and there is no accepted existing-image replacement, skip this phase: local images are copied into the repo at Phase 6.3 with no handoff needed.)
 
 1. **List each affected image** so the decision is informed — one row per image:
    - target page / anchor it belongs on (from the planner's per-screenshot placement, or — for an existing-image replacement — the `target` / `section` / `gating` recorded in Phase 5.6);
@@ -737,17 +753,17 @@ Run this phase when, in the Phase 5.7 `doc-planner` return, **any** screenshot h
 
 Run this phase only when write context = `docs_repo` (or `non_docs_repo` after user confirmed at Phase 0 step 2) AND the user confirmed branching at plan approval. Never for `obsidian` or `plain_dir`.
 
-1. **Update the base branch.** Resolve the default branch by running `git symbolic-ref --short refs/remotes/origin/HEAD`; this returns the remote's default (`main` or `master`; legacy repos frequently still use `master`). If the command fails (unset `origin/HEAD`), run `git remote set-head origin --auto` and retry; if it still fails, try `main`, then `master`, in that order. If the user picked a `release/*` branch earlier in Phase 1, use that instead. Once the base is resolved: `git fetch origin`. Then update the base working copy **only outside the inline-profiling case**: when `profile_source` is NOT `generated`, `git switch <base> && git pull --ff-only`. **In the inline-profiling case (`profile_source: generated`), do NOT switch** — HEAD must stay on the generated profile branch so step 5's `git branch -m <name>` renames *that* branch (the profile branch was created off the base in Phase 0, so it is already current). When a switch happened and the fast-forward pull fails:
+1. **Update the base branch.** `<base>` is a branch **name**, never an `origin/<name>` ref, which `git switch` refuses — the name the ladder below resolves: whichever branch `origin/HEAD` names, else `main` or `master` where the remote has one, and otherwise a local `main` or `master`, or the branch HEAD is on. Resolve it by `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/read-only-repos.md` §3's chain, run against `<docs_repo_path>`, and its **A switch takes the name** rule: rung 1, `git -C <docs_repo_path> symbolic-ref --quiet --short refs/remotes/origin/HEAD`, prints `origin/<name>`, and `<base>` is what follows `origin/`; where rung 1 fails — `origin/HEAD` unset, or naming a ref that no longer exists (§3 rung 1) — `<base>` is the literal `main` or `master` whose ref rungs 2–3 find. Two steps are this command's own, beside that chain. Where rung 1 fails, run `git -C <docs_repo_path> remote set-head origin --auto` and retry it before rungs 2–3. Where the chain is exhausted — no `origin`, or one holding neither branch — `<base>` is the local `main`, then `master`, whichever `git -C <docs_repo_path> rev-parse --verify --quiet refs/heads/<name> >/dev/null` finds, and the fetch and the pull below are skipped, there being no remote branch to bring it up to; with neither, `<base>` is the branch HEAD is on and nothing is switched. If the user picked a `release/*` branch earlier in Phase 1, use that instead. Once the base is resolved: `git -C <docs_repo_path> fetch origin`. Then update the base working copy **only outside the inline-profiling case**: when `profile_source` is NOT `generated`, `git -C <docs_repo_path> switch <base> && git -C <docs_repo_path> pull --ff-only`. **In the inline-profiling case (`profile_source: generated`), do NOT switch** — HEAD must stay on the generated profile branch so step 5's `git -C <docs_repo_path> branch -m <name>` renames *that* branch (the profile branch was created off the base in Phase 0, so it is already current). When a switch happened and the fast-forward pull fails:
    ```
    choices: ["Stash local changes and continue (Recommended)", "Proceed from current base state", "Cancel"]
    ```
 
-2. **Clean-tree check.** `git status --porcelain`; if non-empty:
+2. **Clean-tree check.** `git -C <docs_repo_path> status --porcelain`; if non-empty:
    ```
    choices: ["Stash changes and continue (Recommended)", "Proceed anyway — pre-existing changes will appear in the diff", "Cancel"]
    ```
 
-3. **Derive branch name from repo conventions.** In priority order, look at repo root for `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`, `DOCUMENTATION-GUIDELINES.md`. Grep each for a branch-naming section (case-insensitive, patterns like "Branch name", "Branch naming", "naming your branch"). If a pattern like `<user>/<JIRA-KEY>-<slug>` or `<prefix>/<name>` is documented, derive the branch name by filling placeholders with known values (Jira key from Phase 0, slug from the feature summary, and any **identity** placeholder (`<user>`, `<your-name-or-initials>`, `<initials>`, …) from the §2 ladder in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` — `$GIT_USER_INITIALS` → `git config user.initials` → inference from existing branches → its §2.5 prompt). Classify the pattern's segments per §1.2 and never add an identity segment it does not ask for. If multiple patterns are documented, offer them all to the user. When no pattern is documented (§1.4), take the whole prefix from the same ladder, whose fallback for this workflow is `docs/`.
+3. **Derive branch name from repo conventions.** In priority order, look at `<docs_repo_path>`'s root for `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`, `DOCUMENTATION-GUIDELINES.md`. Grep each for a branch-naming section (case-insensitive, patterns like "Branch name", "Branch naming", "naming your branch"). If a pattern like `<user>/<JIRA-KEY>-<slug>` or `<prefix>/<name>` is documented, derive the branch name by filling placeholders with known values (Jira key from Phase 0, slug from the feature summary, and any **identity** placeholder (`<user>`, `<your-name-or-initials>`, `<initials>`, …) from the §2 ladder in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` — `$GIT_USER_INITIALS` → `git config user.initials` → inference from existing branches → its §2.5 prompt). Classify the pattern's segments per §1.2 and never add an identity segment it does not ask for. If multiple patterns are documented, offer them all to the user. When no pattern is documented (§1.4), take the whole prefix from the same ladder, whose fallback for this workflow is `docs/`.
 
 4. **Confirm the branch name** — always, even when derived from conventions (initials and slugs are subjective):
    ```
@@ -756,8 +772,10 @@ Run this phase only when write context = `docs_repo` (or `non_docs_repo` after u
    Fallback default when no convention is found: `<prefix>/<jira-key>-<slug>`, where `<prefix>` comes from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` §2 (fallback `docs/`).
 
 5. **Create or adopt the branch, and record handoff anchors.** Record `base_branch` = the base resolved in step 1 (the Phase 8.5 squash uses it).
-   - **Normal case** (`profile_source` is `in-repo` or `built-in`, or a custom repo whose profiling did not create a branch): `git switch -c <name>` from `base_branch`.
-   - **Inline-profiling case** (`profile_source: generated`): Phase 0's `docs-profile:` already ran `git switch -c <profile-branch>` and committed `.dev-workflows/docs-profile.yml`, so HEAD is already on that branch. Do NOT create a new branch — rename it with `git branch -m <name>`. Record `profile_commit` = the commit that introduced the profile config: `git log --diff-filter=A --format=%H -- .dev-workflows/docs-profile.yml | head -1`. Phase 8.5 squashes the docs commits onto `profile_commit`, keeping the profile-config commit as a distinct first commit. (Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finish-and-handoff.md` §1.)
+   - **Normal case** (`profile_source` is `in-repo` or `built-in`, or a custom repo whose profiling did not create a branch): `git -C <docs_repo_path> switch -c <name>` from `base_branch`.
+   - **Inline-profiling case** (`profile_source: generated`): Phase 0's `docs-profile:` already cut `profile_branch` and committed `.dev-workflows/docs-profile.yml` on it, so HEAD is already on that branch. Do NOT create a new branch — rename that one, by name: `git -C <docs_repo_path> branch -m <profile_branch> <name>`. Name the old branch every time: the one-argument `git branch -m <name>` renames whatever branch HEAD is on, `main` included, while the two-argument form fails where `profile_branch` does not exist rather than rename another. `profile_commit` is the commit profiling handed back (Phase 0 step 4(c)) — never a `git log --diff-filter=A` lookup, which names the newest commit that *added* the file, not necessarily the one this run made, and on a repository whose profile predates the run squashes every commit since into the docs commit. Phase 8.5 squashes the docs commits onto `profile_commit`, keeping the profile-config commit as a distinct first commit. (Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finish-and-handoff.md` §1.)
+
+**Every git command in this phase names `<docs_repo_path>`.** Phase 0 resolves the docs repository from `$DOCS_PATH` or a search as readily as from cwd, so the session's directory need not be the docs repository — a bare `git switch` there would move whichever repository the run happens to be standing in, and the docs branch would be cut from the wrong tree.
 
 No external CLI calls; all git operations are local.
 
@@ -784,7 +802,7 @@ The writing is delegated to the **`doc-writer`** subagent (pinned to the §2 Opu
      ```
      On a provided value, rewrite the handoff file and re-dispatch once.
 
-Write context governs branch/commit (Phase 0 step 6); **the orchestrator commits the writer's output** (the writer never commits — still true: `doc-writer` runs no git at all; it only writes files):
+Write context governs branch/commit (Phase 0 step 6); **the orchestrator commits the writer's output in the docs repository** (the writer never commits — still true: `doc-writer` runs no git at all; it only writes files):
 
 | Write context | Branch | Commit |
 |---|---|---|
@@ -809,6 +827,7 @@ Invoke `docs-style-checker` on the files written in Phase 6.3:
   > "Run the style check for this brief:
   >
   > repo_root: [the resolved docs_repo_path (Phase 0)]
+  > site_root: [docs_repo_resolved (Phase 0 step 2), where it differs from docs_repo_path — the site's own Vale configuration, package.json and lint configuration are looked for there first; omit the key otherwise]
   > enforced_model: [run_flags.enforced_model, or omit]   # §10 — passed on its nested dt-style-checker dispatch
   > files:     [absolute paths of every file written or modified in Phase 6.3]
   > spaces:    [one entry per space in profile.spaces that has a profile.commands.per_space entry — {id, content_root, lint}; omit the key entirely when the profile declares no per_space commands]"
@@ -820,9 +839,16 @@ Write the `style_check` ledger row before acting on the return — rewriting the
 - no file was written in Phase 6.3 → `NOT_APPLICABLE`, `precondition_unmet: "no files written"`.
 - a primary rung succeeded → `RAN`, `mechanism: <primary_linter>` (+ `dt-style-checker` when it ran),
   `findings:` = the number of merged violations returned.
-- every primary rung failed but `dt-style-checker` ran → `DEGRADED`, `not_run:` one entry per failed
-  rung from `primary_attempts`, `ci_still_checks: "<the repo's own linter> runs on the PR in CI"`, and
-  `findings:` = the number of merged violations returned.
+- no primary rung produced a result — every detected rung failed, or none was ever detected — but
+  `dt-style-checker` ran → `DEGRADED`, `not_run:` one entry per rung from `primary_attempts`, and
+  `findings:` = the number of merged violations returned. `ci_still_checks:` depends on which of
+  those two happened: where a rung was **detected and failed**, name the linter the repository's CI
+  runs on the pull request — `"<that linter> runs on the PR in CI"` — or say that none runs where
+  the repository's CI runs none, with its reason (`"none runs: the repository has no CI build"`, or
+  `"none runs: the repository's CI runs no linter"`); where **no rung was ever detected** there is
+  no repo linter to name and CI checks nothing here, so write `"no repo-level linter is configured;
+  the complementary semantic pass was the only coverage"`. `gate-ledger.md` §6 makes an empty
+  `ci_still_checks` a BLOCKER and a claim about CI the repository cannot support worse than one.
 - `status: NOT_CONFIGURED` (no primary rung detected AND `dt-style-guide` absent) → `UNAVAILABLE`;
   convert it per `gate-ledger.md` §5 before proceeding.
 - `status: ERROR` → `UNAVAILABLE`; convert it per `gate-ledger.md` §5.
@@ -873,23 +899,25 @@ Resolve the build command per space — `profile.commands.per_space.<space>.buil
   ```
   choices: ["Proceed to smoke-check anyway", "Show remaining and fix manually", "Cancel"]
   ```
-- **Environmental failure** (the build tool will not run — missing toolchain, `command not found`, missing `.docstack` shim) → surface the reason; no `doc-fixer` loop:
-  ```
-  choices: ["Install <the missing tool> and retry this gate", "Proceed without this check — record my decision", "Cancel the run", "Other… (describe)"]
-  ```
-  This is the `gate-ledger.md` §5 conversion for `build_check`, not an orchestrator decision: "Proceed without this check" writes `SKIPPED_BY_USER` with the chosen option quoted verbatim in `user_decision`. Do NOT present this list when the `build_check` row already carries a `user_decision` from Phase 0's preflight naming the same missing tool — the user answered this question before anything was written, and that answer stands. Record the failure reason in the row, keep the existing `user_decision`, and continue to Step 2 without prompting.
+- **Environmental failure** (the build tool will not run — missing toolchain, `command not found`, missing `.docstack` shim) → surface the reason and record the build as not run, with that reason; no `doc-fixer` loop. **Then test the registered fallback before anything is asked.** `build_check`'s fallback is the Step 2 dev-server boot (`gate-ledger.md` §4), and `UNAVAILABLE` means that neither the primary nor a fallback ran (`gate-ledger.md` §2), so a build that will not run does not by itself make the gate `UNAVAILABLE`. The fallback can run for a space's build where the tool of that same space's `profile.dev_servers.servers[<space>].command` is present — a package manager with no installed dependencies counting as missing. Never another space's server: it compiles another space, so its boot proves nothing about this build. A command's tool is the one `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §2 defines — never a leading `cd`, which `command -v` finds on every host — and it is tested as that file's §3 tests it.
+  - **The fallback can run** → ask nothing here and continue to Step 2, whose boot of that space's server is now its build proof; Ledger (final) records `build_check` from what Step 2 does. A `user_decision` Phase 0's preflight left on the row stays on it.
+  - **The fallback cannot run** → neither that build nor its fallback can run, so the gate is `UNAVAILABLE`, and this is its `gate-ledger.md` §5 conversion, not an orchestrator decision:
+    ```
+    choices: ["Install <the missing tool> and retry this gate", "Proceed without this check — record my decision", "Cancel the run", "Other… (describe)"]
+    ```
+    "Proceed without this check" writes `SKIPPED_BY_USER` with the chosen option quoted verbatim in `user_decision` — where another space's build failed on its content, Ledger (final) records the row `FAILED` and keeps this decision on it (`gate-ledger.md` §2). Do NOT present this list when the `build_check` row already carries a `user_decision` from Phase 0's preflight naming the same missing tool — the user answered this question before anything was written, and that answer stands. Record the failure reason in the row, keep the existing `user_decision`, and continue to Step 2 without prompting.
 
 When the profile declares **no** build command at either level, record "no build command in profile; build proof deferred to the dev-server boot (Step 2)" and proceed. Under the built-in dynatrace-docs profile this branch does not apply — `commands.per_space.saas.build` and `commands.per_space.managed.build` are both defined.
 
 ### Step 2 — Dev-server smoke-check (opt-in, best-effort)
 
-Offer it. Present this list **verbatim** — the "Choice lists are presented verbatim" rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` forbids moving `(Recommended)`, reordering the options, or re-wording them. Dev-server flakiness and a correct static conditional are reasons to say something in prose beside the list; they are never reasons to recommend Skip.
+Offer it. Present this list **verbatim** — the "Choice lists are presented verbatim" rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` forbids moving `(Recommended)`, reordering the options, or re-wording them. Dev-server flakiness and a correct static conditional are reasons to say something in prose beside the list; they are never reasons to recommend Skip. Where Step 1 could not run a build — the profile records none, or a build would not run for an environmental reason and the fallback can run — say so beside the list too: the boot of that space's server is then the only proof for what it compiles, so Skip declines the build check with it (Ledger (final)).
 ```
 choices: ["Run smoke-check (Recommended)", "Skip — use the manual table only", "Cancel", "Other… (describe)"]
 ```
 
 When run, boot each space in the **verification set** — `target_spaces` plus, when any affected page's `write_strategy.strategy` is `conditional` or `override-copy`, that strategy's protected space (see `render-verification.md` §2) — **sequentially** (`profile.dev_servers.concurrent: false` forbids overlap). Booting only `target_spaces` can never check the ABSENT half of the §4 invariant. Full mechanics in `render-verification.md`:
-1. **Prerequisites (best-effort, never auto-applied).** Verify `profile.prerequisites`. The `.docstack` shim is a local, gitignored dev-environment workaround — check it, NEVER apply it. Unmet → record "smoke-check skipped for `<space>`: prerequisite `<x>` unmet" and use the manual table for that space.
+1. **The server's tool, then prerequisites (best-effort, never auto-applied).** Before anything is booted for a space, check the tool of its `profile.dev_servers.servers[<space>].command` — the tool `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §2 defines, tested as its §3 tests it, from `docs_repo_path`. A missing tool boots nothing for that space: record "smoke-check skipped for `<space>`: `<tool>` is not installed", send its pages to the manual table, and go on to the next space. Booting it anyway waits out the whole readiness timeout — 120 s by default — for a server that could never start. Then verify `profile.prerequisites`. The `.docstack` shim is a local, gitignored dev-environment workaround — check it, NEVER apply it. Unmet → record "smoke-check skipped for `<space>`: prerequisite `<x>` unmet" and use the manual table for that space.
 2. **Boot** `profile.dev_servers.servers[<space>].command` in the background; record the process id.
 3. **Readiness poll** — GET `http://localhost:<port><base_path>/` until HTTP 200 or `profile.dev_servers.readiness_timeout_seconds` seconds (fall back to **120** when absent). On timeout → stop the process, record "smoke-check skipped for `<space>`: not ready", use the manual table for that space.
 4. For each affected page rendered in `<space>`, GET its derived URL (Step 3 route rule) → assert **HTTP 200**.
@@ -897,7 +925,8 @@ When run, boot each space in the **verification set** — `target_spaces` plus, 
 6. **Stop the server** (kill the recorded process id) before the next space.
 
 Outcomes:
-- **404/500** on an affected page = render defect → treat as a Step 1 content failure (offer `doc-fixer` / surface).
+- **404** on an affected page → ❌ with its URL, and the page stays on the manual table. **Never a content failure by itself, and never a `doc-fixer` dispatch**: the route is best-effort (Step 3), so a 404 cannot tell a wrong route from a missing page, and Step 1's build check owns compile failures. This list used to call a 404 a render defect while Step 3 said a wrong route "simply downgrades that page to the manual table" — one status, two dispositions.
+- **5xx** on an affected page = render defect → treat as a Step 1 content failure (offer `doc-fixer` / surface): a server error is not a routing question.
 - **Invariant violation** (a cross-space delta marker present in the protected space's render, or missing from the target space's render) = **Critical** (the 3a protection failed):
   ```
   choices: ["Fix manually then retry", "Defer to a follow-up (record in Phase 9)", "Cancel"]
@@ -906,25 +935,51 @@ Outcomes:
 
 ### Step 3 — "Pages to visit" table (always)
 
-Emit a table, one row per affected page — URL per space the page renders in (`http://localhost:<port><base_path>/<route>`; blank for a space the page does not render in), the page's `write_strategy.strategy`, and what to verify (cross-space: "confirm `<target_space>` shows the change and the `<protected_space>` render is unchanged"; `plain`: "confirm the page renders as intended"). When the smoke-check ran, annotate each cell ✅ 200 / ⚠️ skipped (reason) / ❌ failed.
+Emit a table, one row per affected page — URL per space the page renders in (`http://localhost:<port><base_path>/<route>`; blank for a space the page does not render in), the page's `write_strategy.strategy`, and what to verify (cross-space: "confirm `<target_space>` shows the change and the `<protected_space>` render is unchanged"; `plain`: "confirm the page renders as intended"). When the smoke-check ran, annotate each cell ✅ 200 / ⚠️ skipped (reason) / ❌ with its status.
 
-**Route derivation (best-effort):** `<route>` = the page path relative to its space's `content_root` with a trailing `index.md`/`.md` removed. Approximate — a wrong route that 404s in Step 2 simply downgrades that page to the manual table.
+**Route derivation (best-effort):** `<route>` = the page path relative to its space's `content_root` with a trailing `index.md`/`.md` removed. Approximate — so a 404 in Step 2, a wrong route or a missing page alike, is ❌ with its URL and leaves that page on the manual table; it is never a content failure by itself (Step 2's Outcomes).
 
 Carry the table and the Step 1/Step 2 outcomes into the Phase 9 `### Render verification` section, and pass a one-paragraph `render_verification` summary to Phase 7.
 
-**Ledger (final).** Rewrite the two rows appended at the top of this phase (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3). A row already written as `NOT_APPLICABLE` is never reached here — this phase did not run:
+**Ledger (final).** Rewrite the two rows appended at the top of this phase (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3). A row already written as `NOT_APPLICABLE` is never reached here — this phase did not run. Where one part of a gate `FAILED` and another only `DEGRADED` — one space's build failed on its content while another's did not run, or one space answered a 5xx while another fell back — the row is `FAILED` and records the degraded part in its `not_run` and `ci_still_checks` (`gate-ledger.md` §2). A content `FAILED` also outranks a decision to proceed without another part — Step 1's §5 conversion, the preflight's decision Step 1 kept, or Step 2's Skip: the row is still `FAILED`, records the declined part the same way, and keeps that decision in `user_decision`, because a content failure is never hidden behind a skip (`gate-ledger.md` §2):
 
-- `build_check` — `RAN` when a build command executed; `DEGRADED` when no build command exists and the
-  Step 2 boot served as the proof, with `ci_still_checks: "the repo's build runs on the PR in CI"`;
-  `FAILED` on a content failure. A row Step 1 already wrote as `SKIPPED_BY_USER` (its §5 conversion,
-  when the build tool would not run and the user chose to proceed) is **final — do not rewrite it**.
-  `UNAVAILABLE` applies only when the build could not be attempted AND Step 1 did not already convert
-  it: no build command exists **and** Step 2 did not run. That is the coverage hole
-  `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §5 predicts — convert per
-  `gate-ledger.md` §5. When the user has just declined the Step 2 smoke-check, fold this conversion into that same decision rather than prompting twice — record `SKIPPED_BY_USER` carrying their Step 2 choice, since declining the only remaining source of build proof is declining the build check.
-- `render_smoke_check` — `RAN` when the smoke-check completed for every space in scope;
+- `build_check` — `RAN` when every build Step 1 resolved executed; `FAILED` on a content failure.
+  `mechanism` names every build Step 1 ran, each by its space with its result — `saas: pass;
+  managed: fail` — so a `FAILED` row names the build that failed.
+  `DEGRADED` when a build did not run — the profile records no build command, or Step 1 met an
+  environmental failure and found the fallback able to run — and, for every build that did not run,
+  the Step 2 boot served as its proof: that same space's server answered its readiness poll with a
+  200. Another space's server answering proves nothing about this one. `not_run:` names each build
+  that did not run and why (`no build command in profile`, or the environmental failure Step 1
+  recorded, such as `<tool> is not installed`), and `ci_still_checks:` names the build CI runs on
+  the pull request, or says that none runs where the repository has no CI build.
+  A `user_decision` Phase 0's preflight left on the row stays on it.
+  A row Step 1 leaves as `SKIPPED_BY_USER` — its §5 conversion, when neither the build nor its
+  fallback could run and the user chose to proceed, or the preflight's decision on that same missing
+  tool, which Step 1 kept — is **final — do not rewrite it**, except where another space's build
+  failed on its content: the row is then `FAILED` (above), with that decision kept in
+  `user_decision` and the build that did not run in `not_run` and `ci_still_checks`.
+  `UNAVAILABLE` applies only when a build did not run, Step 1 did not already convert it, and the
+  Step 2 boot did not serve as its proof. **Where that is because the user chose Skip at Step 2**,
+  their Step 2 choice is the decision this row quotes, in place of any decision Phase 0's preflight
+  left on the row: record `SKIPPED_BY_USER` with it (`FAILED` with it, where another build failed on
+  its content — above), and ask nothing more. Declining the only remaining source of build proof is
+  declining the build check, and it is the decision that removed the proof. **Otherwise** — Step 2
+  ran and that space's server never became ready — this is the coverage hole
+  `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` §5 predicts: convert per
+  `gate-ledger.md` §5, except where the row carries Phase 0's decision on the same missing tool,
+  which stands, as it does in Step 1, and the row records `SKIPPED_BY_USER` with it — in either case
+  `FAILED` with the decision, where another build failed on its content (above).
+- `render_smoke_check` — `RAN` when the smoke-check completed for every space in scope — a 404 does
+  not change that, since the page's server booted and was checked and the 404 is no content failure:
+  `findings:` counts the affected pages annotated ❌, each already surfaced with its URL; `FAILED`
+  when an affected page answered a 5xx — a render defect, handled as a Step 1 content failure and
+  recorded on this row, never on `build_check`'s — or on a cross-space invariant violation;
   `DEGRADED` when at least one space fell back to the manual table, with `not_run:` naming the space
-  and its reason (prerequisite unmet / boot failure / readiness timeout);
+  and its reason (prerequisite unmet / its command's tool not installed / boot failure / readiness
+  timeout), and with a `ci_still_checks:` line naming the build CI runs on the pull request, or
+  saying that none runs where the repository has no CI build — never a claim that CI renders these
+  pages;
   `SKIPPED_BY_USER` with the chosen option quoted verbatim when the user selected Skip.
 
 ---
@@ -947,6 +1002,7 @@ Invoke `doc-reviewer` (Opus — dispatch-pinned to this chain; recorded as `revi
   > code_repos:         [the Phase-4 resolved {slug, path} map; [] if none resolved]
   > counterpart_references: [the confirmed counterpart_references from Phase 5.6.5; [] when none — supplies the screenshots_seen provenance and the grounded counterpart space for the 'Cross-space grounding integrity' dimension]
   > existing_image_decisions: [the Phase 5.6/6.1 stale-image-swap array, one entry per **reviewed occurrence** and each {target, occurrence, old_url, new_url, section, gating, decision}. `[]` when the per-item existing-image review did not run — the existing-image list was empty, or the user chose "Add-list only" / "Nothing to do" at the Phase 5.6 merged prompt. An all-declined review is NOT `[]`: every reviewed occurrence appends an entry, `decision: declined` included. Supplies the swap-completeness evidence for the 'Screenshots' dimension]
+  > cdn_upload_resolutions: [one entry per screenshot the Phase 5.7 checklist placed on a target whose `image_policy` is `cdn_upload_required` — {target, image, resolution, cdn_url}, `image` being the key Phase 6.1 records its `cdn_urls` entry under: `resolution: uploaded` with that `cdn_urls[<image>]` as `cdn_url` where Phase 6.1's `cdn_handoff_decision` was `upload-now`, and `resolution: deferred` with `cdn_url: null` where it was `defer`. `[]` when no screenshot has that policy. Tells the 'Screenshots' dimension which form each such image must take: its real CDN URL, or a TODO placeholder listed for manual upload]
   > profile:            [the resolved docs-profile from Phase 0 — supplies frontmatter.changelog_guidelines and spaces[]]
   > target_spaces:      [the resolved target_spaces from Phase 4.5]"
 
@@ -954,7 +1010,7 @@ Act on the verdict:
 
 **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
 
-- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-doc-claims-XXXXXX.md`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `doc-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `doc-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. If the second verdict is still BLOCK, escalate for each unresolved BLOCKER individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`:
+- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-doc-claims-XXXXXX`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `doc-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `doc-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. If the second verdict is still BLOCK, escalate for each unresolved BLOCKER individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`:
   ```
   choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run"]
   ```
@@ -1081,24 +1137,24 @@ Run this phase only when Phase 6.3 wrote + committed in a git repo (write contex
 
 ### Step 1 — Squash (always)
 
-Fold the run into clean history before handoff:
+Fold the run into clean history before handoff, every git call as `git -C <docs_repo_path>` (Phase 6.2):
 1. Stage the run's uncommitted docs-repo edits — Phase 8 Agent 1 (doc index / cross-links) may have edited without committing; the Phase 6.2 clean-tree check means everything uncommitted is this run's work.
-2. Compute the squash base: if Phase 6.2 recorded `profile_commit` (inline-profiling run), base = `profile_commit` (keeps the profile-config commit as a distinct first commit → two commits); otherwise base = `git merge-base <base_branch> HEAD` (one commit).
-3. `git add` the docs-repo changes → `git reset --soft <squash-base>` → one `git commit`. The message follows `profile.commit_convention` when present (dynatrace-docs: `<JIRA-KEY> <summary>`); for a repo with no such field, infer from recent `git log` / `CONTRIBUTING`, else fall back to `<JIRA_KEY> <summary>`. NEVER put the Jira key in a reader-visible changelog — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1.
+2. Compute the squash base: if Phase 0 recorded `profile_commit` (inline-profiling run), base = `profile_commit` (keeps the profile-config commit as a distinct first commit → two commits); otherwise base = `git -C <docs_repo_path> merge-base <base_branch> HEAD` (one commit).
+3. `git -C <docs_repo_path> add -- <each path under docs_repo_path this run wrote or edited>` → `git -C <docs_repo_path> reset --soft <squash-base>` → one `git -C <docs_repo_path> commit`. Never a path outside the docs repository — the implementation-gaps draft, a staged screenshot, or Phase 8's feedback file under `$SPECS_PATH` — which git refuses along with every other path in the same `add`. The message follows `profile.commit_convention` when present (dynatrace-docs: `<JIRA-KEY> <summary>`); for a repo with no such field, infer from recent `git -C <docs_repo_path> log` / `CONTRIBUTING`, else fall back to `<JIRA_KEY> <summary>`. NEVER put the Jira key in a reader-visible changelog — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1.
 
 ### Step 2 — Offer push
 
 ```
 choices: ["Push <branch> to origin now", "Skip — I'll push later", "Cancel"]
 ```
-- **Push** → `git push -u origin <branch>`; report the result. (`git push` is git-protocol, not a REST API — the zero-external-API invariant is preserved.)
+- **Push** → `git -C <docs_repo_path> push -u origin <branch>`; report the result. (`git push` is git-protocol, not a REST API — the zero-external-API invariant is preserved.)
 - **Skip** → "Branch `<branch>` ready with N commit(s). Push when ready."
 - **Cancel** → stop and summarise.
 
 ### Step 3 — Copy-paste PR draft (always; no API)
 
 Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finish-and-handoff.md` §4–§5:
-1. **Detect the host** from the docs repo's `git remote get-url origin` (Bitbucket Cloud / Bitbucket Server / GitHub / other).
+1. **Detect the host** from the docs repo's `git -C <docs_repo_path> remote get-url origin` (Bitbucket Cloud / Bitbucket Server / GitHub / other).
 2. **Compose the draft**: title (per `commit_convention`); body — what was documented, the output files, the Phase 6.5 render-verification summary, deferred style/review/render items, a link to the Jira VI. When Phase 5.8 recorded any `document-as-spec` / `skip-and-report` decision, prepend a banner: `> ⚠ DO NOT MERGE until <JIRA_KEY>-implementation-gaps.md is resolved.` A qualifying `document-as-code` decision (§7.5) does NOT get this banner even though it also produces a gaps file — the docs correctly describe what shipped, so the PR is mergeable; only the source ticket needs correcting.
 3. **Write + show**: write `<JIRA_KEY>-pr-draft.md` to the vault project folder (`find $VAULT_PATH/Projects -maxdepth 5 -type d -name "<JIRA_KEY>*"`; ask if none) AND print it.
 4. **Host footer**: Bitbucket → "open a PR in the web UI and paste the title + body"; GitHub → additionally offer `gh pr create --title "<title>" --body-file <pr-draft path>` that the user may run; other → "open a PR and paste the title + body". Bitbucket offers no CLI to open one — a host capability limit, not a policy: the plugin does open a pull request on a host with a CLI, but only in the separate GitHub-hosted specs repo (`$SPECS_PATH`), via a different flow — never in this docs repo (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2.6).
@@ -1160,7 +1216,7 @@ SIGNIFICANT — Jira-driven feature documentation has large blast radius if wron
 
 ### Jira hierarchy summary
 - VI: [<KEY>] [summary, 1 line]
-- Linked items: [count by type — e.g. "3 Epics, 7 Stories, 2 Sub-tasks, 1 Research"]
+- Epics: [count of `EPIC-` folders in the resolved VI folder — the tree stops there (Phase 3)]
 - Themes: [2–4 bullet points from jira-reader]
 
 ### Repos analysed
@@ -1181,7 +1237,7 @@ SIGNIFICANT — Jira-driven feature documentation has large blast radius if wron
 ### Verification gates
 | Gate | Outcome | Mechanism | Detail |
 |---|---|---|---|
-[One row per gate in the `gate_ledger`, in registry order (`skills/_shared/gate-ledger.md` §4). "Detail" carries the row's `ci_still_checks` (DEGRADED), `user_decision` (SKIPPED_BY_USER), or `precondition_unmet` (NOT_APPLICABLE) — empty otherwise. When any row is DEGRADED, follow the table with a one-line warning naming what CI will check that this run did not.]
+[One row per gate in the `gate_ledger`, in registry order (`skills/_shared/gate-ledger.md` §4). "Detail" carries the row's `ci_still_checks` (DEGRADED, or FAILED with a degraded or declined part — `gate-ledger.md` §2), `user_decision` (SKIPPED_BY_USER, or FAILED with a declined part), or `precondition_unmet` (NOT_APPLICABLE) — empty otherwise. When any row carries a `ci_still_checks`, follow the table with a one-line warning naming what CI will check that this run did not — or, where a row's `ci_still_checks` says none runs, that nothing will.]
 
 ### Render verification
 - Build: [ran — pass/fail | unverified (reason) | no build command in profile — boot served as the proof (does NOT apply to dynatrace-docs, which defines per-space build commands)]
@@ -1211,7 +1267,7 @@ SIGNIFICANT — Jira-driven feature documentation has large blast radius if wron
 - [top suggestions from impl-maintenance agent, or "no suggestions — routine session"]
 
 ### Screenshots to upload manually
-[Only populated for the **Defer** path of Phase 6.1 — i.e. a target used image_policy: cdn_upload_required (or the user selected "Stage for manual upload" under the ambiguous branch) AND the user chose "Defer — stage with TODO placeholders" at the Phase 6.1 CDN handoff. For each staged screenshot: src (original user-provided path), staging path under <screenshot_staging_dir> (the persistent Obsidian project folder), the target page it belongs on, the proposed alt-text, and the upload_note from the planner. Omit this section entirely when no screenshots were staged — including when the user chose "Upload now" in Phase 6.1 (those images carry real CDN URLs in the markdown and need no manual step).]
+[Only populated for the **Defer** path of Phase 6.1 — i.e. a target used image_policy: cdn_upload_required (a target whose ambiguous policy Phase 5.7's **Ambiguous image policy** step resolved to "Stage for manual upload to the repo's image-management tool" included) AND the user chose "Defer — stage with TODO placeholders" at the Phase 6.1 CDN handoff. For each staged screenshot: src (original user-provided path), staging path under <screenshot_staging_dir> (the persistent Obsidian project folder), the target page it belongs on, the proposed alt-text, and the upload_note from the planner. Omit this section entirely when no screenshots were staged — including when the user chose "Upload now" in Phase 6.1 (those images carry real CDN URLs in the markdown and need no manual step).]
 
 ### Implementation gaps (Jira vs source)
 [Populated when Phase 5.8 produced any `document-as-spec` / `skip-and-report` decision, **or** any qualifying `document-as-code` decision (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §7.5 — the Jira phrasing asserts a specific value that contradicts the source). All three write the same bug-report draft, so all three are listed here; the status line differs by decision:
@@ -1350,8 +1406,15 @@ No model-routing reminder is injected for this command — classification still 
 
 2. **Initialize the ledger.** Create the run's `gate_ledger` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3 — unconditionally, before the git-tree check below. Direct mode registers three gates (`gate-ledger.md` §4); each needs a row even when this run cannot lint anything.
 
-3. **Toolchain preflight.** Resolve `repo_root` = `git rev-parse --show-toplevel` from cwd. Then execute
-   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` against it. Direct mode has no profile, so
+3. **Resolve the edit target, then the toolchain.** Direct mode edits files, and **the repo it edits is not necessarily the one you are standing in**: `document: /workspace/docs` and `document: @/workspace/docs/guides/page.md` both name a tree that may differ from cwd. Resolve the target first — a directory argument is the target; an `@file`'s directory is the target; free-text prose naming no path leaves cwd as the only anchor available, which is legitimate because there is nothing else to resolve. Then
+
+   `repo_root` = `git -C <target> rev-parse --show-toplevel`
+
+   — **never `git rev-parse --show-toplevel` from cwd.** Anchoring on cwd is how a run derives its toolchain and its checklist from one repository while writing into another, which is exactly what it did when invoked as `document: /workspace/docs` from a different clone: the preflight read the repo it was standing in and the style check ran against the repo it was editing.
+
+   **Confirm writeable.** Run `test -w <repo_root>`. If it fails, stop with the named error `REPO_NOT_WRITEABLE: <repo_root> is not writeable.` — the same stop Mode A raises in its own Phase 0, for the same reason. Direct mode writes files, so a read-only mount otherwise surfaces as a raw `EROFS` from the editor in Phase 3, **after** the exploration and the plan have already been paid for, naming a temp file rather than the condition.
+
+   Then execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md` against it. Direct mode has no profile, so
    use **sources 2 and 3 only** (repo config signals and the repo's documented `Prerequisites`); the
    only gate in scope is `style_check`, so `required_by` never names `build_check` or
    `render_smoke_check`.
@@ -1359,14 +1422,14 @@ No model-routing reminder is injected for this command — classification still 
    Append the `toolchain_preflight` row per
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3. Present the §5 prompt verbatim only when a
    required tool is missing; on "Cancel", stop with `TOOLCHAIN_UNAVAILABLE: <missing tools> not
-   available in this environment.` When cwd is not a git tree there is no repo to lint: record `toolchain_preflight` as `RAN` with `mechanism: "no repo to check — cwd is not a git repository"` and `findings: 0` (its precondition is "always", so it is never `NOT_APPLICABLE`), record `style_check` and `repo_checklist` as `NOT_APPLICABLE` with `precondition_unmet: "cwd is not a git repository"`, then skip the rest of this step and the checklist extraction below and proceed — the ledger is complete and Phase 3.5 runs no gates.
+   available in this environment.` When the resolved target is not a git tree there is no repo to lint: record `toolchain_preflight` as `RAN` with `mechanism: "no repo to check — the resolved target is not a git repository"` and `findings: 0` (its precondition is "always", so it is never `NOT_APPLICABLE`), record `style_check` and `repo_checklist` as `NOT_APPLICABLE` with `precondition_unmet: "the resolved target is not a git repository"`, then skip the rest of this step and the checklist extraction below and proceed — the ledger is complete and Phase 3.5 runs no gates.
 
 4. **Extract the repo's pre-PR checklist.** Direct mode has no `doc-planner`, so the orchestrator does
    this itself. In the **same pass** that read the repo's guidance files for step 3's `Prerequisites`,
    follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §2–§4 and build the
    `repo_verification_gates` block. Carry it to Phase 3.5, which checks the edited files against it and
    records the `repo_checklist` ledger row. An empty block is normal — record it and move on. Skip this
-   step entirely when cwd is not a git tree (step 3 already skipped for the same reason).
+   step entirely when the resolved target is not a git tree (step 3 already skipped for the same reason).
 
 **Specs-repo preflight.** Already run — the shared mode-detection dispatch executed `specs-preflight`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
@@ -1477,20 +1540,20 @@ choices: ["Approve & implement now (Recommended)", "Revise plan", "Cancel"]
 
 ## Phase 3.5 — Style check (mandatory)
 
-**Skip this entire phase** when Phase 0 recorded direct mode's gates as `NOT_APPLICABLE` (cwd is not a git repository): do not dispatch `docs-style-checker`, do not check the repo checklist, and write no rows — the ledger is already complete and final. Proceed to Phase 4.
+**Skip this entire phase** when Phase 0 recorded direct mode's gates as `NOT_APPLICABLE` (the resolved target is not a git repository): do not dispatch `docs-style-checker`, do not check the repo checklist, and write no rows — the ledger is already complete and final. Proceed to Phase 4.
 
-After writing the edits and before Phase 4, dispatch `docs-style-checker` on the changed file(s):
+After writing the edits and before Phase 4, dispatch `docs-style-checker` on the changed file(s), against the repository Phase 0 step 3 resolved from the edit target, whichever repository cwd sits in:
 
-→ task(agent_type: "dev-workflows:docs-style-checker"):
-  > repo_root: [cwd's git root]
+→ task(agent_type: "dev-workflows:docs-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
+  > repo_root: [the `repo_root` Phase 0 step 3 resolved]
   > enforced_model: [run_flags.enforced_model, or omit]   # §10 — passed on its nested dt-style-checker dispatch
   > files:     [the files edited in Phase 3]
 
-- `VIOLATIONS_FOUND` → apply safe fixes via `doc-fixer` (one fix cycle), then check the fixer's `Stop condition flag`. On `NEEDS HUMAN` it deferred a blocking violation it could not safely fix: surface each deferred BLOCKER with the fixer's reason and ask the user whether to fix it by hand and re-run, or skip the check — direct mode runs no reviewer, so nothing downstream would catch it. Record the `style_check` row from that answer per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` (`RAN` after a hand fix and re-run, `SKIPPED_BY_USER` with the choice quoted verbatim). Only on `CLEAR` re-run once.
+- `VIOLATIONS_FOUND` → apply safe fixes via `doc-fixer`, dispatched on the `detection_model` (§9 / §2.1 detection chain; under §10, `run_flags.enforced_model`) — never bare, which would inherit the session model (one fix cycle), then check the fixer's `Stop condition flag`. On `NEEDS HUMAN` it deferred a blocking violation it could not safely fix: surface each deferred BLOCKER with the fixer's reason and ask the user whether to fix it by hand and re-run, or skip the check — direct mode runs no reviewer, so nothing downstream would catch it. Record the `style_check` row from that answer per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` (`RAN` after a hand fix and re-run, `SKIPPED_BY_USER` with the choice quoted verbatim). Only on `CLEAR` re-run once.
 - `OK` → proceed to Phase 4.
 - `NOT_CONFIGURED` / `ERROR` → no primary rung and no complementary pass produced a result, so the gate has no coverage. Record `style_check` as `UNAVAILABLE` and convert it per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §5 before proceeding. Direct mode has no reviewer gate, so this prompt is the only place the gap surfaces — never proceed past it silently.
 
-Never skip this phase on your own judgement of which linters are installed. `docs-style-checker` runs the chain internally as a **ladder**: each primary rung is tried in turn (a detected-but-broken rung does not abandon the ones below it), and `dt-style-checker` runs as a complementary semantic pass whenever the `dt-style-guide` plugin is installed — so neither the repo's own linter nor the semantic / cross-page class is silently dropped. Write the `style_check` ledger row here — rewriting the preflight's pre-seeded row if there is one, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3's one-row-per-gate rule (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3), carrying the returned `primary_attempts`: `RAN` when a primary rung succeeded; `DEGRADED` when every rung failed but `dt-style-checker` ran, with `not_run:` one `{mechanism, reason}` entry per failed rung and a `ci_still_checks:` line; `UNAVAILABLE` per the bullets above; `NOT_APPLICABLE` with `precondition_unmet: "no files edited"` when Phase 3 changed nothing.
+Never skip this phase on your own judgement of which linters are installed. `docs-style-checker` runs the chain internally as a **ladder**: each primary rung is tried in turn (a detected-but-broken rung does not abandon the ones below it), and `dt-style-checker` runs as a complementary semantic pass whenever the `dt-style-guide` plugin is installed — so neither the repo's own linter nor the semantic / cross-page class is silently dropped. Write the `style_check` ledger row here — rewriting the preflight's pre-seeded row if there is one, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3's one-row-per-gate rule (schema: `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/gate-ledger.md` §3), carrying the returned `primary_attempts`: `RAN` when a primary rung succeeded; `DEGRADED` when no primary rung produced a result — every detected rung failed, or none was ever detected — but `dt-style-checker` ran, with `not_run:` one `{mechanism, reason}` entry per rung and a `ci_still_checks:` line written as Jira mode's Phase 6.4 writes it (the linter CI runs on the pull request, or that none runs and why, or that no repo-level linter is configured); `UNAVAILABLE` per the bullets above; `NOT_APPLICABLE` with `precondition_unmet: "no files edited"` when Phase 3 changed nothing.
 
 After the style check, hold the edited files against the `repo_verification_gates` block extracted in Phase 0 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §5) and append the `repo_checklist` ledger row: `RAN` with `findings:` = the number of entries that failed, or `NOT_APPLICABLE` with `precondition_unmet: "the repo publishes no pre-PR checklist"` when the block is empty. Report any failed entry to the user with its `source` citation — direct mode has no reviewer gate, so this is where the repo's own rules surface.
 
@@ -1500,7 +1563,7 @@ After the style check, hold the edited files against the `repo_verification_gate
 
 First gather the actual change context:
 
-a. Run `git diff --stat` (or equivalent) and capture the list of changed files with line counts. Note: the user has not committed, so `git diff --stat` will reflect unstaged changes.
+a. Run `git -C <repo_root> diff --stat` (or equivalent) — in the repository Phase 0 step 3 resolved, whichever one cwd sits in — and capture the list of changed files with line counts. Note: the user has not committed, so `git diff --stat` will reflect unstaged changes.
 b. Compose a **change summary block**:
 
 ```
@@ -1563,7 +1626,7 @@ Then spawn all four Phase 4 agents. They are independent and can run in any orde
 > - Workarounds used: [manual steps not automated by the workflow — or 'none']
 > - Review verdict: N/A (no review gate in document: direct mode)
 > - Test result: N/A (no tests in document: direct mode)
-> - Project root: [absolute path]"
+> - Project root: [the `repo_root` Phase 0 step 3 resolved, or the resolved target itself where it is not a git repository]"
 
 Collect all four summaries for the Phase 5 report.
 
@@ -1663,7 +1726,7 @@ Output a structured report — do NOT ask any closing confirmation:
 ### Verification gates
 | Gate | Outcome | Detail |
 |---|---|---|
-[One row per gate in the `gate_ledger` — direct mode registers three (`gate-ledger.md` §4). "Detail" carries the row's `ci_still_checks` (DEGRADED), `user_decision` (SKIPPED_BY_USER), or `precondition_unmet` (NOT_APPLICABLE); empty otherwise. When any row is DEGRADED or SKIPPED_BY_USER, follow the table with a one-line warning naming what CI will check that this run did not.]
+[One row per gate in the `gate_ledger` — direct mode registers three (`gate-ledger.md` §4). "Detail" carries the row's `ci_still_checks` (DEGRADED), `user_decision` (SKIPPED_BY_USER), or `precondition_unmet` (NOT_APPLICABLE); empty otherwise. When any row is DEGRADED or SKIPPED_BY_USER, follow the table with a one-line warning naming what this run did not check. It names a CI check only where a row's `ci_still_checks` records one, says nothing will where that line says none runs, and for a `SKIPPED_BY_USER` row — which records no `ci_still_checks` — names the gate and no CI check in its place: a style check the user skipped in a repository whose CI runs no linter is not one CI will catch.]
 
 ### Assumptions & limitations
 - [list any]
@@ -1672,7 +1735,7 @@ Output a structured report — do NOT ask any closing confirmation:
 - [anything the user asked to defer, OR validation failures the user accepted, OR "none"]
 
 ### Git state
-The working tree has uncommitted changes. `document:` (direct mode) never commits the doc edits — you manage git manually. Run `git status` to review, then commit when ready. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step — see its outcome line at the end of the run.)
+The working tree has uncommitted changes. `document:` (direct mode) never commits the doc edits — you manage git manually. Run `git -C <repo_root> status` to review, then commit when ready. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step — see its outcome line at the end of the run.)
 ```
 
 ---
@@ -1727,7 +1790,7 @@ in full. No `resume.md` is written in this mode
 - ALWAYS run Phase 3.5 (style check) after editing — `docs-style-checker` falls back to `dt-style-checker`; never skip style on tool-absence judgement
 - NEVER create a git branch — this mode never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
 - NEVER run tests (this command has no test phase)
-- NEVER invoke Opus (no planning agent, no review agent — docs edits are always SIMPLE or MODERATE)
+- NEVER invoke Opus (no planning agent, no review agent — docs edits are always SIMPLE or MODERATE), unless `run_flags.enforced_model` names one (§10)
 - NEVER commit the doc edits, or anything else in a docs/code repo, the vault, or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` in the shared `## Mode detection` section, before dispatching to either mode — so it runs for Mode B as well as Mode A — and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - NEVER make assumptions that could have been asked — ask instead

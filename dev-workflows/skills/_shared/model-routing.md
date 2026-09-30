@@ -259,7 +259,9 @@ The orchestrator MUST execute these steps in order:
 ## 4. The `model_routing` handoff block
 
 Every orchestrator MUST record its routing decision and pass it to every
-sub-agent it invokes. Format:
+sub-agent that reads one — the list below. An agent whose handoff file declares
+no `model_routing:` input is not sent one; its tier is pinned by the dispatch's
+own `model:` argument. Format:
 
 ```yaml
 model_routing:
@@ -297,26 +299,34 @@ or set to `current_model`.
 
 Sub-agents that receive a `model_routing` block:
 
-- `upgrade-planner`, `vuln-research`: use the `planning_model` if present
-  (orchestrator should invoke them with the corresponding `task` `model:` arg).
+- `upgrade-planner`, `vuln-research`: record the block in their output; their
+  tier is the `model:` argument on the dispatch, resolved by step nature per §9.
+  Both run on the `detection_model`, because each is invoked before its skill's
+  per-unit classification exists, so there is nothing yet to escalate on. This
+  bullet used to read "use the `planning_model` if present"; no caller does.
 - `upgrade-executor`, `vuln-fixer`: **do not run tests** until the orchestrator
-  has confirmed the strong-tier review has completed (when classification is
+  has confirmed the review-tier review has completed (when classification is
   SIGNIFICANT/HIGH-RISK). The orchestrator achieves this by invoking the
   executor/fixer **without** the build+test phase first (apply changes only),
   then running the review, then invoking the executor/fixer again to run tests.
   Equivalently, the orchestrator may invoke a single combined call with a
   `gate_tests_on_review: true` flag — both styles are acceptable.
-- `risk-planner`, `code-review`, `epic-reviewer`, `doc-reviewer`, `vi-reviewer`,
-  `ard-reviewer`, `spec-reviewer`, `design-reviewer`, `readiness-reviewer`: the
-  orchestrator pins the REVIEWERS among them to the §2.3 review tier and the
-  planner to the §2 work tier, via the `task` tool's `model:`
-  argument. They receive the `model_routing` block for context and reporting.
-- `jira-reader`, `code-scanner`, `diff-summarizer`, `doc-location-finder`,
-  `docs-style-checker`, `doc-fixer`: pinned to the §2.1 detection chain.
-- `doc-planner`, `doc-writer`, `epic-writer`, `release-notes-writer`: strong tier
-  for SIGNIFICANT/judgment authoring; detection chain for MODERATE (see §9).
-- `test-baseliner`, `test-writer`, `impl-maintenance`: receive the block for
-  reporting only; behaviour is unchanged.
+- `release-notes-writer`: receives the block; behaviour is unchanged by it.
+- **A sub-agent whose handoff file declares no `model_routing:` input is sent
+  none, and reads no field of one.** Its tier is fixed by the `model:` argument
+  on the dispatch — the §2.3 review tier for the reviewers (`code-review`,
+  `epic-reviewer`, `doc-reviewer`, `vi-reviewer`, `ard-reviewer`, `spec-reviewer`,
+  `design-reviewer`, `readiness-reviewer`), the §2 work tier for `risk-planner`,
+  the §2.1 detection chain for `jira-reader`, `code-scanner`, `diff-summarizer`,
+  `doc-location-finder`, `docs-style-checker`, `doc-fixer`, `test-baseliner`,
+  `test-writer` and `impl-maintenance`, and by classification for the writers
+  (`doc-planner`, `doc-writer`, `epic-writer` — strong tier for
+  SIGNIFICANT/judgment authoring, detection chain for MODERATE; see §9) — and
+  the orchestrator's own `model_routing` record names the chain it resolved.
+  Under §10 the dispatch carries the enforced model instead. This list used to
+  say the reviewers, `test-baseliner`, `test-writer` and `impl-maintenance`
+  "receive the block for reporting"; no dispatch in the plugin sends one to any
+  of them, nor does any of their bodies read a field of it.
 
 ---
 
@@ -411,8 +421,9 @@ and reason are still required.
 
 When a scanning step must digest more than a single working tree, a single
 explorer subagent on a weak session model comprehends it poorly. This section
-is the shared policy for that case. It is consulted by `implement:` and
-generalizes the pattern `epics:` already uses.
+is the shared policy for that case. It generalizes the pattern `epics:`
+already used; the commands that run §8.2 and those that also adopt §8.5 are
+named in §8.5's *Opt-in* paragraph, which is the one list of them.
 
 ### 8.1 Trigger (input shape, not measured volume)
 
@@ -537,12 +548,14 @@ risks.
 
 ---
 
-## 9. Per-step routing for multi-phase authoring pipelines
+## 9. Per-step routing (every skill)
 
-The Jira-driven authoring pipelines (`document:` and `epics:`) run a long
-sequence of phases — some judgment-heavy, some mechanical. They MUST NOT let
-every step inherit the session model. Apply this policy, resolving each model
-against the §2 (strong) and §2.1 (detection) chains.
+Steps differ in nature — some judgment-heavy, some mechanical — and a skill
+MUST NOT let every step inherit the session model. Apply this policy in every
+skill, resolving each model against the §2 (strong) and §2.1 (detection)
+chains. The Jira-driven authoring pipelines (`document:` and `epics:`) run long
+phase sequences and are the motivating case, not the scope — §9.4 is the
+governing rule.
 
 ### 9.1 Principle
 

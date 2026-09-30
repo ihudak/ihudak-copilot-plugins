@@ -24,16 +24,9 @@ refresh:
   fetch: true   # default true
   pull:  false  # default false — historical PR diffs do not need the current branch tip;
                 # pulling risks moving HEAD away from the merge commit we want to reach.
-model_routing:
-  classification: SIGNIFICANT | MODERATE
-  reason: <from orchestrator>
-  current_model: <model name>
-  planning_model: <model name>
-  review_model: n/a
-  implementation_model: <model name>
-  opus_available: true | false
-  gate_tests_on_review: false
 ```
+
+**No `model_routing:` block is passed.** The caller pins this agent's tier with `model:` on the dispatch, and nothing in the agent reads a field of that block.
 
 Refuse to run without `repo_path` and at least one element in `pr_refs`.
 

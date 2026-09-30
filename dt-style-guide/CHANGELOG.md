@@ -1,11 +1,18 @@
 # Changelog
 
-## 0.3.4
+## 0.3.5
 
 ### Fixed
 
 - **`dt-style-checker` had no way to be told what a caller's format mandates.** New optional `known_conventions` input: conventions the calling skill has chosen because another authority requires them (format-mandated headings, bracketed requirement IDs, a corpus that omits the ® symbol). A finding that contradicts one is not raised. Without it a bare dispatch on one release note returned two MAJOR findings and both were wrong.
 - **`references/terminology.md` stated the ® rule with no product-line exception, and mapped every "interface" to the branded web-UI term.** The ® rule now carries the Managed-corpus exception, the `interface → Dynatrace web UI` mapping is scoped to the Environment UI, and **Cluster Management Console** has its own row as a distinct surface.
+- **`dt-review-pr` and `dt-review-docs` ran Vale through the user's aliases.** Each form now runs `builtin cd` with its output discarded, and `vale`, `mktemp` and `rm` as `command <name>`: the skill's shell carries the user's aliases and shell functions, so a `cd` of theirs could print ahead of Vale's output and a `vale` alias could change its flags.
+- These entries first sat under 0.3.4, which was already published without them, so this is a new version rather than an amended one.
+
+## 0.3.4
+
+### Fixed
+
 - **`dt-review-pr` hardcoded `origin/main` as the base branch.** Now resolves the repository's actual default branch via `git symbolic-ref --quiet --short refs/remotes/origin/HEAD`, falling back to `master` only when that ref is unset and `origin/master` resolves while `origin/main` does not. Matches the ai-workflows `prose-style` 0.4.0 fix for the same defect.
 - **`dt-review-pr` and `dt-review-docs` ran Vale bare and recognized only `.vale.ini`.** Both now detect all five file names Vale reads (`.vale.ini`, `_vale.ini`, `vale.ini`, `.vale`, `_vale`) and run Vale from the directory holding whichever is found, isolating the machine's global Vale configuration so local results match what a clean CI runner would report. `README.md`'s summary and both skills' frontmatter descriptions no longer say `.vale.ini` exclusively.
 

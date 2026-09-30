@@ -56,7 +56,7 @@ log). It is intentionally tiny:
 - **Last completed:** <command> <args> — <phase or 'command complete'> (<ISO datetime>)
 - **Artifact:** <relative path to the deliverable just written/committed, or 'none (read-only)'>
 - **Next step:** <the exact next command from ### Next step, or 'VI fully processed'>
-- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line when no VI-Key exists yet — e.g. create-vi:)
+- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line on a run whose own `### Context hygiene` block carries no `/rename` suggestion — that block is this command's own, so the test is decidable from the command being executed and needs no list to look up; §4 names which commands carry the line and why the rest do not)
 - **Carry-forward decisions:** <0–N one-line decisions the next phase needs that are NOT already in the artifact; 'none' if none>
 ```
 
@@ -95,19 +95,29 @@ own `next-phase-offer` output already carries. The role graph is owned by
 
 ## 4. Session-name aid
 
-The VI-Key is first available at **`release-notes:`** and is present for every PA/PE/Dev
-command (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`,
-`document:`, `release-notes:` — all take `<VI>`). For those, print a suggested
-`/rename <VI-ID>-<slug>-<role>` line so the user can relocate the session in
-`claude --resume` later (e.g. after going home). `<role>` is the just-finished command's
-lane tag (pm / pa / pe / dev). Guidance-only — a command cannot run `/rename` itself.
+**A command prints the aid where its own `### Context hygiene` block carries the line — that block,
+not any argument shape, is what settles it.** Read off those blocks, the set is the PA/PE/Dev ladder —
+`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`, `document:`,
+`release-notes:`. For those, print a suggested `/rename <VI-ID>-<slug>-<role>` line so the user can
+relocate the session later (e.g. after going home). `<role>` is the
+just-finished command's lane tag (pm / pa / pe / dev). Guidance-only — a command cannot run
+`/rename` itself.
 
-**`idea:` and `create-vi:` are excluded** from the rename aid: the PM ideation phase is
-short, and on the common path it runs *before* the paste-into-Jira + re-import round-trip
-that mints the VI, so there is usually no VI-ID to name a session after. Two runs do carry
-one — a `vi`-provenance `idea:` source, and a `vi_disposition: rewrite` run whose key is
-the VI being rewritten — but the phase stays short enough that no label is auto-suggested
-either way; the PM names the session manually if they want one.
+**Do not restate that set as "every command that takes a `<VI>`".** Argument shape does not settle
+it: `implement:`'s key is optional (absent → the run is **direct**) and `document:`'s Mode B takes
+none at all — both of those modes sit in §1's `**Skipped**` list and write no pointer, so the aid
+question never reaches them — while `create-vi:` and `update-vi:` take a mandatory key and carry no
+line. The block a command carries is the whole of the test.
+
+**`idea:`, `create-vi:` and `update-vi:` are excluded** from the rename aid, and the reason is the
+phase rather than the key. `idea:` usually does run before a key exists — it is keyless unless its
+source is a `vi` — but `create-vi:` and `update-vi:` each take a mandatory Jira key as their first
+argument and refuse without one (`CREATE_VI_NEEDS_KEY`, `UPDATE_VI_NEEDS_KEY`), so the key is in
+hand before either writes anything. This section used to give "there is usually no VI-ID to name a
+session after" as the reason for `create-vi:` too, and named no disposition for `update-vi:` at all,
+which writes a resume pointer and so reached §1's template with nothing to decide the line by. The
+exclusion stands because the PM phase is short enough that no label is worth auto-suggesting; the PM
+names the session manually if they want one.
 
 ## 5. Contract (5 rules)
 

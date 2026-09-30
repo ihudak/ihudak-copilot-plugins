@@ -36,7 +36,11 @@ de-duplicate by binary name.
    the prose names a checkable path or binary).
 2. **Repo config signals**, checked at `repo_root`, and, where a lockfile is implied by a leading
    `cd <dir> &&` in a profile command (source 1), also checked in that directory, taken relative to
-   `repo_root` — that is where the command runs its tool:
+   `repo_root` — that is where the command runs its tool. Where the caller resolved the site to a
+   directory below `repo_root`, they are checked in that directory as well: `document:` Jira mode
+   passes `docs_repo_resolved` (its Phase 0 step 2). A monorepo's site keeps its Vale configuration,
+   lockfile and lint configuration beside itself, not at the top level, and a signal found in either
+   directory implies its tool:
 
    | Signal file | Implies |
    |---|---|
@@ -73,12 +77,18 @@ de-duplicate by binary name.
    `StylesPath` (a `StylesPath` key above its first `[section]` header, the one place Vale accepts
    it):
 
-   - **It sets one:** `(cd "<that directory>" && unset VALE_CONFIG_PATH && vale --no-global <arguments>)`.
-   - **It sets none:** `(cd "<that directory>" && unset VALE_CONFIG_PATH && h=$(mktemp -d) && { XDG_CONFIG_HOME="$h" vale <arguments>; s=$?; rm -r "$h"; exit $s; })`,
+   - **It sets one:** `(builtin cd "<that directory>" >/dev/null && unset VALE_CONFIG_PATH && command vale --no-global <arguments>)`.
+   - **It sets none:** `(builtin cd "<that directory>" >/dev/null && unset VALE_CONFIG_PATH && h=$(command mktemp -d) && { XDG_CONFIG_HOME="$h" command vale <arguments>; s=$?; command rm -r -- "$h"; exit $s; })`,
      which hides the user-level file alone — Vale finds it under `XDG_CONFIG_HOME` on Linux and
      macOS — and leaves the default `StylesPath` (from `XDG_DATA_HOME`, or `VALE_STYLES_PATH` where
      set) untouched, so a configuration with no `StylesPath` of its own still finds what `vale sync`
      installed there.
+
+   Both forms run `builtin cd` with its output discarded, and `vale`, `mktemp` and `rm` as `command <name>`.
+   The Bash tool's shell carries the user's aliases and shell functions: a `cd` function that prints —
+   RVM's and many prompt helpers do — puts its output ahead of Vale's, a `vale` alias adding `--no-exit`
+   turns exit 1 into 0, and an `rm -i` alias leaves the temporary directory behind with its prompt in the
+   output. It is `builtin` and not `command cd`, which zsh does not run (exit 127).
 
    The `cd` is there because Vale reads the first configuration it finds in the directory it runs in
    or one above it, never beside the files, and a Bash call starts in the session's directory, which
@@ -92,8 +102,8 @@ de-duplicate by binary name.
    Best-effort: extract named tools and minimum versions where stated. Nothing found ⇒ contribute
    nothing. Never fail the preflight on an unparseable Prerequisites section.
 
-**Direct mode has no profile.** `document:` Mode B resolves `repo_root` as cwd's git root and uses
-sources **2 and 3 only**. Source 1 contributes nothing there. `document:` direct mode reads the same guidance files again in the same pass for `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §2 — do both in one read, not two.
+**Direct mode has no profile.** `document:` Mode B resolves `repo_root` from **the edit target** — the directory it was given, or an `@file`'s directory — falling back to cwd only where the input names no path at all, and uses
+sources **2 and 3 only**. It anchored on cwd unconditionally until a live run showed the consequence: invoked against one repository from inside another, the preflight read the repo it was standing in while the style check ran against the repo it was editing. Source 1 contributes nothing there. `document:` direct mode reads the same guidance files again in the same pass for `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/repo-verification-gates.md` §2 — do both in one read, not two.
 
 ## 3. Checking
 
@@ -143,7 +153,9 @@ A preflight that prompts on a healthy container becomes one more thing to click 
 way the Phase 6.4 gate died.
 
 When one or more required tools are **missing**, print the `toolchain` rows (missing first), then the
-consequence — each affected gate and the outcome it will record — then ask:
+consequence — each affected gate and the outcome it will record: `DEGRADED` where the gate's
+registered fallback (`gate-ledger.md` §4) still runs without the missing tool, and `UNAVAILABLE`
+where neither the primary nor the fallback can (`gate-ledger.md` §2) — then ask:
 
 ```
 choices: ["Cancel — re-run in the docs container (Recommended)", "Continue anyway — record the degraded gates", "Other… (describe)"]
@@ -152,8 +164,18 @@ choices: ["Cancel — re-run in the docs container (Recommended)", "Continue any
 Example consequence line:
 
 > With `vale` and `pnpm` missing, this run would record `style_check` **DEGRADED** (only
-> `dt-style-checker` runs — the repo's own linter, the one CI will run on your PR, would not),
-> `build_check` **UNAVAILABLE**, and `render_smoke_check` **UNAVAILABLE**.
+> `dt-style-checker` runs; the repo's own linter would not),
+> `build_check` **UNAVAILABLE** (its fallback, the dev-server boot, runs `pnpm` too), and
+> `render_smoke_check` **DEGRADED** (no server boots, and every affected page goes to the manual
+> pages-to-visit table, the fallback that needs no tool).
+
+**`build_check`'s fallback is predicted per space, by the test `document:` Phase 6.5 Step 1 makes.**
+A space's build whose own tool is missing keeps its fallback — and predicts `DEGRADED` — where the
+tool of that same space's dev-server command is present, never on the strength of another space's
+server, which compiles another space. A package manager whose `node_modules/` is missing counts as
+missing, for a build and a server alike, so a never-installed dependency tree still predicts
+`UNAVAILABLE`. A prediction made over every server's tool at once says `UNAVAILABLE` for a run that
+then records `DEGRADED`, or the reverse.
 
 - **"Cancel"** → stop the run. Nothing has been written.
 - **"Continue anyway"** → for each gate named in the consequence line, **pre-seed** its ledger row's

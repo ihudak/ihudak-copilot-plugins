@@ -60,7 +60,7 @@ Two different models looking at one artifact catch more than one model looking t
 10. `claude-sonnet-4.5`
 11. `gemini-3.1-pro-preview`
 
-`gemini-3.1-pro-preview` is the floor. If nothing in the list is available, the run stops and asks how to proceed rather than silently downgrading.
+`gemini-3.1-pro-preview` is the floor, except where you enforce one model ([`--enforce-model`](run-flags.md)), which bypasses this list altogether. If nothing in the list is available, the run stops and asks how to proceed rather than silently downgrading.
 
 Separately, a **detection (mid-tier) chain** — `claude-sonnet-5.5` → `claude-sonnet-5` → `claude-sonnet-4.6` → `claude-sonnet-4.5` — pins mechanical steps (repo scanning, format detection, mechanical fixes) so a strong-tier session doesn't burn an expensive model on cheap work; it never inherits the session model. It carries no GPT row: detection is work, and work is Anthropic.
 

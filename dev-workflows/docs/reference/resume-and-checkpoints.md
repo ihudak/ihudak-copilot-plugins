@@ -12,7 +12,7 @@ A long-running skill ends by doing two separate things: it flushes a small point
 - **Last completed:** <skill> <args> — <phase or 'skill complete'> (<ISO datetime>)
 - **Artifact:** <relative path to the deliverable just written/committed, or 'none (read-only)'>
 - **Next step:** <the exact next skill from ### Next step, or 'VI fully processed'>
-- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line when no VI-Key exists yet — e.g. create-vi:)
+- **Suggested session name:** <VI-ID>-<slug>-<role>   (omit this line for a command the rename aid below excludes — e.g. create-vi:, which is excluded for its phase length and not for want of a key: it takes one as a mandatory argument)
 - **Carry-forward decisions:** <0–N one-line decisions the next phase needs that are NOT already in the artifact; 'none' if none>
 ```
 
@@ -39,7 +39,7 @@ A run doesn't have to finish to earn a checkpoint. `implement:`'s own mid-phase 
 
 ## The `/rename` aid
 
-Within this rename-aid set, a VI key is first available at `release-notes:`, and every PA/PE/Dev skill that takes a `<VI>` argument (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`, `document:`, `release-notes:`) prints a suggested `/rename <VI-ID>-<slug>-<role>` line, so you can find this session again later by name instead of by scrolling. `<role>` is the lane tag of the skill that just finished — pm, pa, pe, or dev. `idea:` and `create-vi:` are excluded from this aid: idea refinement is short, it usually runs before the paste-into-Jira-and-reimport round trip that mints the VI key in the first place, so there is often no key yet to name the session after — and on the rarer runs that do carry one already, the phase is still short enough that naming the session isn't worth automatically suggesting.
+The PA/PE/Dev skills (`create-ard:`, `epics:`, `specify:`, `design:`, `ready:`, `implement:`, `document:`, `release-notes:`) each print a suggested `/rename <VI-ID>-<slug>-<role>` line, so you can find this session again later by name instead of by scrolling. `<role>` is the lane tag of the skill that just finished — pm, pa, pe, or dev. `idea:`, `create-vi:` and `update-vi:` are excluded from this aid, and the reason is the phase rather than the key: `idea:` often does run before a key exists, but `create-vi:` and `update-vi:` each take a mandatory Jira key and refuse without one, so those runs always have a key they could name the session after — the PM phase is simply short enough that naming the session isn't worth automatically suggesting.
 
 ## The contract
 

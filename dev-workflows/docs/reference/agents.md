@@ -41,7 +41,7 @@ Read-only discovery and grounding — each returns a structured digest rather th
 | `jira-reader` | per routing | view, glob, grep | Reads a pre-exported Jira markdown hierarchy from the vault and returns a structured handoff — linked items, PR URLs with host classification, capability themes. | `create-ard:`, `document:`, `epics:`, `implement:`, `ready:`, `release-notes:`, `specify:` |
 | `vault-prior-art-finder` | per routing | view, glob, grep | Searches the vault for tracked initiatives that cover, precede, parallel, or are superseded by new work, returning each match classified, status-resolved, and summarised. | `idea:`, `create-vi:` |
 | `vuln-research` | per routing | view, grep, glob, bash, web_fetch | Read-only CVE research phase — NVD lookup, library detection in the repository, current-version discovery, and minimum-safe-version resolution. Has no side effects. | `vuln:` |
-| `test-baseliner` | per routing | bash, view, glob | Runs the full test suite and returns structured results in two modes — capture a baseline, or verify a later run's result against a previously captured one. | `implement:`, `upgrade:`, `vuln:` |
+| `test-baseliner` | per routing | bash, view, glob | Runs every test suite its [detection table](test-suite-detection.md) covers, all of them in a polyglot repo, in two modes — capture a baseline, or verify a later run against one. | `implement:`, `upgrade:`, `vuln:` |
 
 ## Writers
 
@@ -52,7 +52,7 @@ Produce artifact content from a structured handoff. None of these run git.
 | `doc-writer` | strong tier | view, glob, grep, create, edit, bash | Writes product documentation from a structured handoff — the `doc-planner` checklist, approved per-page write strategies, discrepancy decisions, snippets, screenshots, frontmatter, links. | `document:` |
 | `epic-writer` | per routing | view, glob, grep, create, edit | Writes one file per child Epic from a structured handoff, traceable to the `jira-reader` handoff and `code-scanner` evidence; write-only, never commits. | `epics:` |
 | `release-notes-writer` | per routing | view, glob, grep | Renders a release-notes draft — exactly one Summary, shaped by its resolved destination; emits no Jira ID, PR link, or internal-note wrapper. Does not write files. | `release-notes:` |
-| `test-writer` | per routing | view, glob, grep, create, edit | Writes tests for new or changed behaviour based on a diff; does not run them, and reports "not detected" immediately when no test framework is found. | `implement:` |
+| `test-writer` | per routing | view, glob, grep, create, edit | Writes tests for new or changed behaviour from a diff, against every suite the diff touches; does not run them, and reports "not detected" where the baseline names no framework. | `implement:` |
 
 ## Fixers
 
@@ -63,7 +63,7 @@ Apply changes the caller has already decided on, rather than deciding anything t
 | `doc-fixer` | per routing | view, glob, grep, create, edit | Applies targeted fixes for surviving BLOCKER/MAJOR findings from `doc-reviewer` or `epic-reviewer`, or for violations from a style checker; mirrors `review-fixer` for the docs domain. | `document:`, `epics:` |
 | `review-fixer` | per routing | view, glob, grep, create, edit | Applies targeted code fixes for surviving BLOCKER/MAJOR findings from a `code-review` report; returns a structured fix report for the caller to re-review against. | `implement:`, `upgrade:`, `vuln:` |
 | `upgrade-executor` | per routing | view, grep, glob, bash, edit, create, task | Applies one component's approved upgrade plan, runs the build, verifies tests via `test-baseliner`, and auto-fixes test-code breakage caused by the new version's API changes. | `upgrade:` |
-| `vuln-fixer` | per routing | view, grep, glob, bash, edit, create, task | Captures a baseline, creates the fix branch before its first edit, applies the version change `vuln-research` produced, rebuilds, verifies tests — leaving the change on that branch, uncommitted. | `vuln:` |
+| `vuln-fixer` | per routing | view, grep, glob, bash, edit, create, task | Creates the fix branch before its first edit, applies the version change `vuln-research` produced, rebuilds, and verifies against the run's baseline — leaving the change uncommitted on that branch. | `vuln:` |
 
 ## Maintenance
 

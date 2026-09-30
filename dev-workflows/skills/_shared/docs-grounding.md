@@ -30,8 +30,8 @@ write-target discovery hint (see its Phase 0).
    - it contains at least one markdown file
      (`find "$docs_root" -type f -name '*.md' -print -quit` is non-empty).
    On a host where `/workspace/docs` is absent, the gate fails → `OFF` → the run
-   behaves exactly as it does today.
-3.5. **Index state — qmd only.** Skip entirely when `command -v qmd` fails: `retrieval: fallback`, silent, exactly as today. Otherwise probe with `timeout 10s qmd status` and `timeout 10s qmd collection list`. **If either probe fails or times out, treat that exactly as `qmd` absent** — `retrieval: fallback`, silent, no prompt — which mirrors `docs-grounder`'s rung 3 so the command and the agent degrade identically instead of disagreeing about the same broken install. Otherwise take one branch — testing the reconciliation case below **first**, because it is indistinguishable from the "no collection" branch on the evidence that branch reads.
+   behaves exactly as it does without docs grounding.
+3.5. **Index state — qmd only.** Skip entirely when `command -v qmd` fails: `retrieval: fallback`, silent, exactly as it does without this step. Otherwise probe with `timeout 10s qmd status` and `timeout 10s qmd collection list`. **If either probe fails or times out, treat that exactly as `qmd` absent** — `retrieval: fallback`, silent, no prompt — which mirrors `docs-grounder`'s rung 3 so the command and the agent degrade identically instead of disagreeing about the same broken install. Otherwise take one branch — testing the reconciliation case below **first**, because it is indistinguishable from the "no collection" branch on the evidence that branch reads.
 
    **A healthy index unreachable through its registry (check this first)** → `retrieval: fallback`, silent, **no build prompt**. `qmd status` reports `Vectors: <N>`; when `N > 0` but `qmd collection list` shows no collection covering `docs_root`, the index exists and is populated while the `store_collections` registry row that would reach it is missing. That state is **not** "no index has been built yet", and the distinction matters because the other branch's remedy is destructive of time: a build prompt here offers a ~1.3 GB model download plus a re-embed of documents that are already embedded. Degrade exactly as a failed probe does — mirroring `docs-grounder`'s rung 3 — and add the registry clause to the plan-approval line so the user is told the cause rather than steered into a duplicate rebuild. Repairing the registry needs direct SQLite work and is **out of scope for this step**: report it, never attempt it.
 
@@ -104,8 +104,8 @@ default for this retrieval agent):
 ```
 
 Wait for the digest. On `status: ERROR` or any dispatch failure, treat as
-`docs_grounding: OFF` and proceed as today (record one line in the final report).
-On `status: EMPTY`, proceed as today; the digest simply adds nothing.
+`docs_grounding: OFF` and proceed as the run does without docs grounding (record one line in the final report).
+On `status: EMPTY`, proceed the same way; the digest simply adds nothing.
 
 ## Consumption
 

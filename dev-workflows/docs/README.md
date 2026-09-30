@@ -1,6 +1,6 @@
 # dev-workflows documentation
 
-Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev workflow, plus `dynatrace-docs-frontmatter:` for dynatrace-docs page conventions — plus 34 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
+Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev workflow, plus `dynatrace-docs-frontmatter:` for dynatrace-docs page conventions — plus 35 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
 
 ## I want to…
 
@@ -20,6 +20,7 @@ Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev 
 | apply dynatrace-docs changelog/owners frontmatter conventions | [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) |
 | check whether a ticket is really ready | [`ready:`](skills/ready.md) |
 | fix a CVE or upgrade a dependency | [`vuln:`](skills/vuln.md), [`upgrade:`](skills/upgrade.md) |
+| find out whether my test stack is covered | [Test suite detection](reference/test-suite-detection.md) |
 | tell the plugin it got something wrong | [`feedback:`](skills/feedback.md), [`prompt:`](skills/prompt.md), [`prompt-brainstorm:`](skills/prompt-brainstorm.md), [`prompt-grill-me:`](skills/prompt-grill-me.md) |
 | review an API spec or app UI against guidelines | [`api-guideline-reviewer:`](skills/api-guideline-reviewer.md), [`guideline-reviewer:`](skills/guideline-reviewer.md) |
 
@@ -53,7 +54,8 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 
 ## Reference
 
-- [Agents](reference/agents.md) — the subagent inventory: what each of the 34 helper agents does and which skill calls it.
+- [Agents](reference/agents.md) — the subagent inventory: what each of the 35 helper agents does and which skill calls it.
+- [Test suite detection](reference/test-suite-detection.md) — the eleven marker rows `test-baseliner` scans for, what each one runs, what happens to a stack the table does not list, and what adding one takes.
 - [References](reference/references.md) — the reference-doc inventory under `skills/_shared/`, grouped by subtree.
 - [Environment](reference/environment.md) — every environment variable the plugin reads, and what it configures.
 - [Hooks](reference/hooks.md) — the bundled hooks and what each one does.

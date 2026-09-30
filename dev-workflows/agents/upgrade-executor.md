@@ -11,23 +11,12 @@ description: >
 tools: [view, grep, glob, bash, edit, create, task]
 ---
 
+
 # upgrade-executor — Upgrade Execution Agent
 
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/upgrade-executor.md` for the exact input/output document format.
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/upgrade/ecosystems.md` for per-ecosystem update commands.
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md` for the test-baseliner handoff format.
-
-**`command_hint` is carried through to every `test-baseliner` call this agent makes** — the
-`capture` and the `verify` alike, including on a `verify-resume`, where the orchestrator
-re-supplies it beside the baseline. It is an optional input of this agent, passed straight
-through untouched. Two reachable failures come from dropping it, and the second is worse: where
-the hint was the only thing that detected a runner, the verify detects nothing and returns
-`COMMAND_NOT_FOUND`, so the unit finishes `TESTS_NOT_RUN` after the operator supplied a command
-that works; and where it named a working alternative to a broken runner, the verify runs a
-*different* command from the capture, every baseline test falls out as **Missing from run**, and
-the verify reports `REGRESSIONS` — a regression the run manufactured itself. A verify over a
-different set of suites is not a comparison.
-
 
 ## Process
 
@@ -54,20 +43,54 @@ reconstruct it.
 
 2. **Build** — Run the project build (compile only). On failure see "Build failure" below.
 
-3. **Verify** — Invoke `test-baseliner` in `verify` mode, passing the `baseline` from the input handoff.
+3. **Verify** — Invoke `test-baseliner` in `verify` mode, passing the input handoff's `baseline_block` —
+   the whole `## Test Baseline` block, whose `### Suites` rows are what separate a suite that regressed from
+   one that could not run at either end — and a `Project root:` line set to the input handoff's own `repo:` value, which is the
+   root the orchestrator's capture scanned (`commands/upgrade.md` Phase 2 prep step 2 sends that same path).
+   **That root is required here and must be that one**: verify has no working-directory fallback, and
+   `### Suites` records each marker as a path relative to the scan root, so a verify rooted elsewhere makes
+   every marker path disagree with the baseline's
+   (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md`, `repo:`).
+   **Where this request carries `command_hint:`, pass it on this call too, verbatim and in the same order.**
+   The orchestrator captured that baseline with it (`commands/upgrade.md` Phase 2 prep step 2), and a verify
+   over a different set of suites is not a comparison: drop it and a hinted suite the baseline recorded pairs
+   with nothing here, so its every baseline passing test falls out as **Missing from run** and this step
+   reports `REGRESSIONS` against an upgrade that caused none — or, where the hint was all that was detected,
+   nothing is detected at all and the call returns `COMMAND_NOT_FOUND`. Neither is evidence about the upgrade.
    - `status: OK` → all green, proceed to step 4.
-   - `status: REGRESSIONS` → follow "Test regression" below.
-   - `status: RUN_FAILED` or `COMMAND_NOT_FOUND` → **keep the component.** Set
-     `status: TESTS_NOT_RUN` and return, naming in `notes` which of the two it was and the
-     command that failed. **Do NOT revert, and do NOT report `BUILD_FAILED`.** Nothing was
-     compared in either state — an unrunnable suite is a fact about the
-     environment at both ends and says nothing about this upgrade — so reverting discards a
-     completed component on evidence that does not bear on it, and the build has already
-     succeeded at step 2, which is what `BUILD_FAILED` asserts.
-
-   **The two states that still revert are the two that are about the change itself:** a build
-   that could not be made to pass (`BUILD_FAILED`, step 2's own path), and a genuine regression
-   on which the **orchestrator** answered `regression_decision: revert`.
+   - `status: PARTIAL` → proceed to step 4, recording the uncovered suites in `notes`. **Never revert on it:**
+     a suite that could not run at either end is a fact about the environment, not evidence about this upgrade.
+   - `status: REGRESSIONS` → follow "Test regression" below. This is the one verify value that is evidence
+     about the upgrade, and the only one on which anything is reverted.
+   - `status: RUN_FAILED` or `COMMAND_NOT_FOUND` → nothing was compared. **Do not revert**: reverting needs
+     evidence the upgrade is bad, and this is evidence that the suites could not be run. Set
+     `status: TESTS_NOT_RUN` with the report's reason in `notes` and return — the changes stay applied and
+     the orchestrator decides. **`RUN_FAILED` also arrives where the baseline itself covered no suite**,
+     which verify refuses before running anything
+     (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md`); that is the same disposition for the
+     same reason, and it is how a batch the operator chose to upgrade unverified reaches `TESTS_NOT_RUN`
+     without this agent testing for that choice.
+   - **On every one of those values, `OK` included**, copy into `notes` — verbatim, beside whatever else that
+     arm records there — each `### Notes` line the report opens with `CAVEAT: `. That mark is the baseliner's
+     own (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md`), so nothing here decides which note
+     matters, and on a green return it is the report's own account of a comparison that is not what it
+     appears to be — a suite that aborted and lost no baseline test, a `Make` fold's identifiers
+     left unattributed; and where the status is `REGRESSIONS` it can say those identifiers reached **Missing from
+     run** without that being evidence this upgrade removed them. An unmarked
+     note records where a command ran; leave it. `upgrade:` step 7 reads these off `notes` on every status.
+   - **On every one of those values, read `### New failures` beside the `Status`.** A test failing now
+     that was in neither baseline list is a **New failure**, and **no `Status` value carries one**
+     (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/test-baseliner.md`), so `OK` is reachable with a red
+     suite. It needs no exotic state to arrive: on an ordinary `PARTIAL` baseline a suite that aborted at
+     capture contributed no identifiers, so every test of it that fails here lands in this list rather
+     than in `### Regressions`. **Record each entry in `notes`, one per line and prefixed
+     `NEW-FAILURE: `.** The prefix is minted for the same reason `CAVEAT: ` is: `notes` is one free-text
+     field already holding auto-fix prose, uncovered-suite names and a regression diagnosis, so a bare
+     identifier list in it cannot be told from the failing list a `TEST_REGRESSION` return also writes —
+     and the caller tests for this prefix rather than reading the field. **This is disclosure, not a
+     verdict** — the baseline never recorded those tests, so nothing here says the upgrade caused them: do
+     not revert, do not route to "Test regression", and leave the `Status` arm's own return as it stands.
+     Naming them is what stops a component being reported green over a suite that is not.
 
 4. **Output** — Produce the summary record (see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/upgrade-executor.md`).
 
@@ -78,9 +101,8 @@ reconstruct it.
 
 ## Test regression
 
-Sub-agents dispatched via the `task` tool run in a separate context and have no access to
-interactive tools — `ask_user` is unavailable even if granted, so this agent can never ask
-the user directly. The orchestrator owns that decision.
+Subagents have no access to interactive tools — `ask_user` is unavailable even if
+granted, so this agent can never ask the user directly. The orchestrator owns that decision.
 
 1. Determine whether failures are caused by the upgraded component (API rename, removed annotation, changed behaviour).
 2. **Auto-fix** if straightforward: rename imports, update assertion syntax, adjust config. Explain every change in the output, then proceed to step 4 (Output).
@@ -96,7 +118,7 @@ the user directly. The orchestrator owns that decision.
 
 ## Invariants
 
-- Leave all changes **uncommitted** — no git commits, no pushes, no PRs. This is a division of labour, not a policy that the work goes uncommitted: the orchestrator commits this component in `upgrade:` step 6.5 as soon as its gates settle, and pushes the branch once in step 7.5 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.11). Committing here would strand the commit message outside the run's own report and, on a `gate_tests_on_review: true` call, commit work the strong-tier review has not seen. (still true — this binds the code repo this agent upgrades; the orchestrator's terminal `commit-artifacts` step touches only `$SPECS_PATH`'s bookkeeping paths and never this agent's changes.)
+- **Never commit, never push, never open a pull request.** Leave the changes in the working tree and return. This is a division of labour, not a policy that the work goes uncommitted: the orchestrator commits this component in `upgrade:` step 6.5 as soon as its gates settle, and pushes the branch once in step 7.5 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.12). Committing here would strand the commit message outside the run's own report and, on a `gate_tests_on_review: true` call, commit work the review-tier review has not seen.
 - Process one component per invocation.
 - The baseline provided by the orchestrator is authoritative; do not re-run it.
 - NEVER dispatch any subagent other than `test-baseliner`. That one dispatch is your entire `task` authority. Pin that dispatch's model: pass the caller's `enforced_model` where the input handoff carries one (`_shared/model-routing.md` §10), else the §2.1 detection chain — running a test suite is mechanical, so the tier is pinned here rather than inherited from whatever this agent runs on. Pass it in §5's **dispatch form**. **Never dispatch a reviewer of your own.** Review is the caller's to schedule, not yours. Your caller deliberately runs no reviewer on some paths — a SIMPLE / MODERATE run is classified out of the strong-tier `code-review` gate on purpose — so a reviewer you spawn silently overrides the caller's own gate policy. Its verdict has no standing either: the caller never sees it, and you cannot act on it without exceeding your brief.
@@ -118,5 +140,5 @@ If the orchestrator passes a `model_routing` block (see
 
 This agent itself runs under whichever model the orchestrator selected.
 For SIGNIFICANT / HIGH-RISK upgrades the orchestrator may still leave this
-agent on the current model or Sonnet — Opus is reserved for the planner
+agent on the current model or the detection tier — the strong tier is reserved for the planner
 and the post-impl review.

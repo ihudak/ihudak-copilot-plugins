@@ -49,7 +49,12 @@ The two operative consumers — `document:` Phase 6.5 Steps 1 and 2 — restate 
 
 For each space in the verification set, in order:
 
-1. Verify prerequisites (§5) — best-effort, never applied.
+1. Check the tool of `profile.dev_servers.servers[<space>].command` before anything is
+   booted — the tool `toolchain-preflight.md` §2 defines, tested as its §3 tests it. A
+   missing tool boots nothing for this space: record "smoke-check skipped for
+   `<space>`: `<tool>` is not installed" and fall back to the manual table (§6); a
+   server that can never start otherwise waits out the whole readiness timeout. Then
+   verify prerequisites (§5) — best-effort, never applied.
 2. Boot `profile.dev_servers.servers[<space>].command` in the background; record
    the process id.
 3. Readiness poll: GET `http://localhost:<port><base_path>/` until HTTP 200 or

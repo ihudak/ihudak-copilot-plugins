@@ -49,7 +49,7 @@ Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hyb
 Use `choices` arrays; the last choice is always `"Other… (describe)"`.
 
 1. **Confirm** the feature folder, the profile, and the resolved `idea.md` (or "none — grill from scratch").
-   - Show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+   - **Resolve documentation grounding here, then show its line.** Run `resolve-docs-grounding create-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` — its step 3.5 index prompt included — and show the `docs grounding:` line from what it returns, in the form that reference fixes — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). It runs here, before any agent is dispatched, because step 3.5 asks its one-time index question before the run's real work; this is the run's one resolution (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`, *Invariants*), and Phase 2.5 dispatches on the state it returns without resolving again.
    - Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` resolved — `ON <vault-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art create-vi` per that reference to obtain it; it runs exactly once per run.
 2. **Existing-VI handling** (only if Phase 0 step 6 found a VI for `<KEY>`, frontmatter `issue_type: ValueIncrement`):
    - **No `--from-vi`** → `create-vi:` is greenfield-only; **redirect**:
@@ -101,7 +101,7 @@ profile is already `--full`, this nudge does **not** fire.
 
 ## Phase 2 — Read the seed
 
-Read the resolved `idea.md` **directly** (it is the plugin's own format — `idea-reader` is for arbitrary external sources and is not used here). Extract Problem / Who / desired outcome & value / rough scope / signals & evidence / candidate success signal, plus any open `[NEEDS CLARIFICATION]`. Carry the idea's `sources[]` forward to **propagate** into the VI frontmatter (the real provenance — RFE key / an existing VI's key / community-post URL / prompt), and record `derived_from` = the idea's own resolved path — read here from `idea.md`'s own frontmatter, never from a relocation, since `create-vi:` no longer moves it.
+Read the resolved `idea.md` **directly** (it is the plugin's own format — `idea-reader` is for arbitrary external sources and is not used here). Extract Problem / Who / desired outcome & value / rough scope / signals & evidence / candidate success signal, plus any open `[NEEDS CLARIFICATION]`. Carry the idea's `sources[]` forward to **propagate** into the VI frontmatter (the real provenance — each `sources` entry exactly as `idea.md` recorded it, `provenance` and `ref` alike), and record `derived_from` = the idea's own resolved path — read here from `idea.md`'s own frontmatter, never from a relocation, since `create-vi:` no longer moves it.
 
 Optionally ground in the idea's cited sources and any strategy/vision docs the user points to. **No code scan; no repos.**
 
@@ -115,7 +115,7 @@ If there is no idea (Phase 0 ladder exhausted), grill the VI from scratch.
 
 Dispatch both grounding agents **in a single response** so they run in parallel. Each is independent; either being OFF never suppresses the other.
 
-**Docs.** Run `resolve-docs-grounding create-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the idea's problem/goal + VI themes, `jira_key` = `<KEY>`, and `themes` from the idea. When OFF, skip silently.
+**Docs.** Phase 1 resolved documentation grounding and showed its line; this phase resolves nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the idea's problem/goal + VI themes, `jira_key` = `<KEY>`, and `themes` from the idea. When OFF, skip silently.
 
 **Prior art.** Using the `resolve-prior-art create-vi` result from Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` with `feature_summary` = the idea's problem/goal, `themes` from the idea, and `known_refs` = every filesystem path in the idea's `sources[]` as `{path, …}`, every Jira key in `sources[]` as `{jira_key, …}`, and the Jira key of each `## Prior art` bullet as `{jira_key, …}` — all with `has_summary: false`, since this command reads `idea.md` directly and holds no summaries of its own. Take the **key**, not the wikilink, from a `## Prior art` bullet: a wikilink resolves by file name and dangles the moment a vault item is renamed, which is exactly why the bullet carries both. Recorded `sources[]` paths may dangle for the same reason; the finder drops what it cannot resolve. When OFF, skip silently.
 
@@ -222,10 +222,10 @@ Act on the verdict (mirrors `specify:`):
 `update-vi:` Phase 5 step 1 (`-2`, `-3`, … on a same-day second archive). A greenfield run (no prior VI
 found in Phase 0) skips this step — there is nothing to archive.
 
-Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is already there, committed by `idea:`; an out-of-contract idea stays where it is. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim:
+Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is already there, committed by `idea:`; an out-of-contract idea stays where it is. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (every §3.4 row naming the VI falls back — `create-ard:` to the Jira export, `specify:` by skipping a confirmation), after that section's push-target probe:
 
 ```
-choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]
+choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]
 ```
 
 On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`, `feature_folder` as resolved in Phase 0, `deliverable_paths` = the VI file, `title: <KEY> Add Value Increment — <summary>`, and `body_facts` = the resolved profile (`--lean`/`--hybrid`/`--full`), the adapt-in clusters pulled, the user-story and acceptance-criteria counts, any `[NEEDS CLARIFICATION]` markers carried in, and the `vi-reviewer` verdict; emit its §4.1 outcome line in the Final report.
@@ -244,11 +244,11 @@ Without these steps the pipeline cannot read the VI.
 Offer these — clearly labeling the role handoff:
 
 ```
-choices: ["Draft the release note now — release-notes: <KEY> (PM) (Recommended)", "Hand to a Product Architect — create-ard: <KEY> (PA, optional)", "Hand to a Product Engineer — epics: <KEY> (PE)", "Stop here", "Other… (describe)"]
+choices: ["Draft the release note now — release-notes: <KEY> (PM) (Recommended)", "Hand to a Product Architect — create-ard: <KEY> (PA, optional) <merge-clause>", "Hand to a Product Engineer — epics: <KEY> (PE)", "Stop here", "Other… (describe)"]
 ```
 
 - **`release-notes: <KEY>`** (PM) — draft the customer-facing release note now.
-- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document; it won't start reading this VI until the pull request above is merged to the specs repo's main.
+- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document; it gates this VI on the specs repo's default branch (its own Phase 0), so it stops where this VI reached a branch and falls back to the Jira export — reported, never silently — where it reached none. `<merge-clause>` is the placeholder `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` owns, resolved from this run's own `Phase handoff:` outcome line (§4.1) and never written as the unconditional "once the pull request above is merged": a declined handoff, a failed push and a nothing-to-commit run each leave a different wait, and two of them open no pull request to wait on. It is a placeholder, not an instruction to reword an option, so the array is still presented verbatim per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`.
 - **`epics: <KEY>`** (PE) — hand to a Product Engineer to split the VI into Epics (or author a VI-level spec → `specify: <KEY>`).
 
 Guidance only — never auto-invokes another command. Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`.
@@ -256,8 +256,10 @@ Guidance only — never auto-invokes another command. Per `~/.copilot/installed-
 ### Context hygiene
 
 The resume pointer is written in the terminal maintenance phase (Phase 7), per
-`session-hygiene.md` §1 — the VI-Key is minted by the Jira round-trip, so it **omits
-the session-name line**; name the session manually if useful. Then:
+`session-hygiene.md` §1 — and `create-vi:` is outside that reference's §4 rename-aid
+set, so it **omits the session-name line**. Not for want of a key: Phase 0 refuses this
+run without one. The PM phase is simply short enough that no label is auto-suggested;
+name the session manually if useful. Then:
 
 - **Continuing as PM (`release-notes: <VI>` after the round-trip)?** → run **`/compact`**.
 - **Handing to PA (`create-ard: <VI>`) or PE (`epics: <VI>`), even yourself?** → run **`/clear`** for a clean slate.
@@ -278,7 +280,8 @@ Terminal phase — runs after Phase 6, NEVER interrupts an earlier phase.
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints
 the guidance only),
 then a span suggestion (PM continue → `/compact`; PA/PE handoff → `/clear`). No `/rename`
-label yet (no VI-Key). Guidance only, never auto-run.
+label — not for want of a key, since Phase 0 refuses this run without one, but because the
+PM phase is short (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §4). Guidance only, never auto-run.
 
 1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) with a compact handoff: command `create-vi:`; what was authored (VI + profile); key events (source-ladder friction, unresolved clarifications, BLOCK reviews — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
 
