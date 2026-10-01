@@ -41,13 +41,18 @@ loop: a **run-start** flush and branch disposition (`specs-preflight`, §3) and 
 
 ### 2.1 Paths
 
-Exactly three shapes: two directories derived from the emission ladders, and one file
-`release-notes:` writes for the operator. Nothing outside this set is ever staged.
+Exactly seven shapes: two directories derived from the emission ladders, the Jira import and the
+Epic drafts a feature folder holds, and three files skills write for the operator. Nothing outside
+this set is ever staged.
 
 ```
 <specs-root>/{specs|specifications|vis}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
 <specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
 <specs-root>/{specs|specifications|vis}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
+<specs-root>/{specs|specifications|vis}/**/jira-import/**            # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
+<specs-root>/{specs|specifications|vis}/**/epic-drafts/**            # epics: drafts
+<specs-root>/{specs|specifications|vis}/**/<KEY>-implementation-gaps.md  # source-truth.md §7.5 draft
+<specs-root>/{specs|specifications|vis}/**/<KEY>-pr-draft.md         # finish-and-handoff.md pull-request draft
 ```
 
 **The release-notes shape names a file, never its folder, and that distinction is the safety
@@ -60,8 +65,10 @@ classifies it OTHER, step 3 never stages it, and it sits dirty for ever — firi
 every later preflight of every caller. Anything a run writes into the feature folder and
 expects committed needs a shape here first.
 
+**`jira-import/` and `epic-drafts/` are directory shapes, and that is safe for the reason the release-notes shape is a file.** Neither directory ever holds a phase deliverable: `jira-import/` is written only by `jira-workitem-import` and regenerated on every re-import, and `epic-drafts/` only by `epics:`. A fresh import is therefore committed by the next run's `specs-preflight` flush, prompt-free — the import is shared team state, not one machine's cache.
+
 Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §4 (the
-shared per-VI area), `session-hygiene.md` §1 (resume tier 1). This edition has
+shared per-VI area), `session-hygiene.md` §1 (resume tier 1), `jira-input-resolution.md` (the import), `epics:` (drafts), `source-truth.md` §7.5 (gaps draft), `finish-and-handoff.md` §5 (pull-request draft). This edition has
 **no cost subsystem** — there is no `cost-emission.md`, no `emit-cost`, and no
 `dev-workflows-cost/` path shape.
 
@@ -88,7 +95,11 @@ fragile to express and to review. The procedure is:
    space is still quoted.
 2. Classify each reported path: **ARTIFACT** if it matches
    `^(specs|specifications|vis)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
-   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$`; **OTHER**
+   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$` or
+   `^(specs|specifications|vis)/.+/jira-import/` or
+   `^(specs|specifications|vis)/.+/epic-drafts/` or
+   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-(implementation-gaps|pr-draft)\.md$`
+   — exactly the seven §2.1 shapes, and a phase deliverable never matches; **OTHER**
    otherwise.
 3. Stage the literal ARTIFACT paths only:
    `git -C "$SPECS_PATH" add -A -- <path> [<path>…]`.
