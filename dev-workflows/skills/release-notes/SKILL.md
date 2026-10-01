@@ -14,8 +14,9 @@ It optionally grounds the prose in merged PR diffs, renders the dynatrace-docs a
 release-notes body — a `{{#context}}` label + `### title` + prose for the `feature-updates` /
 `breaking-changes` destinations, or one bare past-tense sentence for `fixes` — with **no
 `{{#internal-note}}`, no Jira IDs, no PR links** (the docs automation adds the metadata
-wrapper), runs a light style gate, and writes the draft to a persistent destination for the
-user to paste into Jira's release-notes field.
+wrapper), runs a light style gate, and writes the draft into the VI's folder in the specs repo
+(the vault project folder where no VI folder exists) for the user to paste into Jira's
+release-notes field.
 
 For full feature documentation use `document:`; for Epic drafting use `epics:`.
 
@@ -80,17 +81,27 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
   ```
 
 - **Output destination.** Always write to a **file** (console-pasted markdown
-  loses formatting in Jira). Resolve the default by `$VAULT_PATH`:
-  - **`$VAULT_PATH` set** → resolve the ticket's persistent Obsidian project
-    folder (the durable home — NOT `jira-products/`, regenerated on every
-    import):
-    ```bash
-    find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*" 2>/dev/null | head -1
-    ```
-    Default = `<project-dir>/<jira_key>-release-notes.md`. If no project folder
-    is found (e.g. a non-`PRODUCT-` ticket), use the derived default below.
-  - **`$VAULT_PATH` unset** (directory input) → default
-    `<parent-of-jira_export_root>/<jira_key>-release-notes.md`.
+  loses formatting in Jira). The default is the **VI's feature folder in the specs repo**,
+  because the VI is known by the time a release note is drafted and the folder is where every
+  later phase looks for what was produced from it — `update-vi:` Phase 0 step 5a globs exactly
+  this path for drafts an update may invalidate. Resolve, first match wins:
+  1. **`$SPECS_PATH` set and the VI folder resolves** — the folder matching `jira_key` on its
+     key-number, tolerating a `-`/`_` separator and a trailing slug, under the `specs`,
+     `specifications` or `vis` root (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`
+     *Specs resolution*, the VI-flat form; a focus Epic does not change it, since the draft is the
+     VI's) → default `<VI-dir>/<jira_key>-release-notes.md`. More than one matching folder is
+     ambiguous: list them and ask which, never pick one. The terminal `commit-artifacts` step
+     commits this file (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+  2. **No VI folder under `$SPECS_PATH`** (unset, or the VI was never authored there — a
+     non-`PRODUCT-` ticket, say) → the ticket's persistent vault project folder, as before:
+     ```bash
+     find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*" 2>/dev/null | head -1
+     ```
+     Default = `<project-dir>/<jira_key>-release-notes.md` (the durable home — NOT
+     `jira-products/`, regenerated on every import). State in the plan why the specs folder was
+     not used. **Never create a VI folder here**: one this command named would carry a guessed
+     slug and fork the VI's real folder the day `create-vi:` writes it.
+  3. **Neither** (`$VAULT_PATH` unset, directory input) → `<parent-of-jira_export_root>/<jira_key>-release-notes.md`.
   Then ask (the Recommended choice is always the resolved file):
   ```
   choices: ["Write to <default file> (Recommended)", "Write to a different absolute path (you'll be prompted)", "Print to screen only", "Skip writing", "Other… (describe)"]
@@ -98,14 +109,17 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
   Print-to-screen and Skip remain available but are **never** the default. The
   default is persistent (host-mounted; survives container restart, unlike
   `/tmp`). NEVER offer or accept a path inside a docs repo or under
-  `jira-products/`.
+  `jira-products/`. A different path the user chooses is written and **never committed** by this
+  run; one inside `$SPECS_PATH` but outside §2.1's shapes is the user's to commit, and the
+  next run's `specs-preflight` reports it as a file it does not own — say so when the path
+  is chosen.
 
 - **Style check** (default ON when the `dt-style-guide` plugin is installed):
   ```
   choices: ["Run dt-style-checker then apply safe fixes (Recommended)", "Run dt-style-checker, report only (no auto-fix)", "Skip style check", "Other… (describe)"]
   ```
 
-Also display: resolved `jira_export_root`, `jira_key` (plus `$VAULT_PATH` when set), `$REPOS_PATH` (or "N/A — Jira-only"), and the resolved destination.
+Also display: resolved `jira_export_root`, `jira_key` (plus `$VAULT_PATH` when set), `$REPOS_PATH` (or "N/A — Jira-only"), and the resolved destination — naming which rung of the ladder above chose it, and why rung 1 did not when it did not.
 
 ---
 
@@ -279,7 +293,7 @@ choices: ["Use the acceptance criteria (Recommended)", "Enter corrected wording"
 
 On the first choice, correct the claim to match the cited criterion. On the second, ask for the wording and check it against that criterion; if it still contradicts the criterion, surface the remaining contradiction and re-ask rather than publishing it as Jira intent. On the third, remove the claim. Re-render `release_notes_block.prose` and `combined_rendered` together in the selected destination's shape. Record the disposition in the run report; **do not write `<KEY>-implementation-gaps.md` for this gap**, because it establishes an authoring discrepancy and says nothing about the code. A free-text answer is resolved to one of these actions or clarified, never treated as permission to relabel the draft as Jira intent.
 
-**Code discrepancies second.** For `kind: source-truth` gaps carrying `jira_phrasing`, `source_phrasing` and a verified code `source_location`, present the discrepancy table and per-claim prompt as in `document:` (Jira mode) Phase 5.8. If the criteria handler omitted the same claim, exclude it from this table and record the omission plus its code evidence in the run report; do not restore it, ask about it again, or treat that earlier omission as a `skip-and-report` decision. Apply the following steps to the remaining code gaps only; with none, skip this prompt and report-writing step:
+**Code discrepancies second.** For `kind: source-truth` gaps carrying `jira_phrasing`, `source_phrasing` and a verified code `source_location`, present the discrepancy table and per-claim prompt as in `document:` (Jira mode) Phase 5.8. If the criteria handler omitted a claim — a `kind: source-truth` gap whose `claim_id` equals that of an `acceptance-criteria` gap resolved "Omit this claim" — exclude it from this table and record the omission plus its code evidence in the run report; do not restore it, ask about it again, or treat that earlier omission as a `skip-and-report` decision. Apply the following steps to the remaining code gaps only; with none, skip this prompt and report-writing step:
 
 1. Show the analysis table (claim, Jira phrasing, source phrasing, location).
 2. Ask:
@@ -287,7 +301,7 @@ On the first choice, correct the claim to match the cited criterion. On the seco
    choices: ["Decide per discrepancy (Recommended)", "Document ALL as actual (code)", "Document ALL as intended (Jira)", "Skip ALL and report (drafts a bug report)", "Cancel", "Other… (describe)"]
    ```
 3. Apply the decision to the draft prose and re-render `combined_rendered`: `document-as-code` → use source phrasing; `document-as-spec` → use Jira phrasing supported by the Jira content (no marker in release notes prose — the gap is recorded only in the gaps file); `skip-and-report` → omit the claim.
-4. For `document-as-spec` or `skip-and-report`: resolve `bug_report_destination` the same way as the release-notes destination — `$VAULT_PATH` set → the `find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*"` project folder; `$VAULT_PATH` unset → `<parent-of-jira_export_root>/`. Write/append `<bug_report_destination>/<jira_key>-implementation-gaps.md` using the §7.5 format from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md`, setting `Spec phrasing:` to `(no spec)` (this flow has no spec).
+4. For `document-as-spec` or `skip-and-report`: resolve `bug_report_destination` to the ticket's vault project folder, exactly as `document:` does — it is not the release-notes destination, which may be the specs folder — `$VAULT_PATH` set → the `find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*"` project folder; `$VAULT_PATH` unset → `<parent-of-jira_export_root>/`. Write/append `<bug_report_destination>/<jira_key>-implementation-gaps.md` using the §7.5 format from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md`, setting `Spec phrasing:` to `(no spec)` (this flow has no spec).
 
 Pass `code_repos` (the Phase-4 resolved map) to the writer when diff-grounding is on.
 
@@ -325,14 +339,28 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 ## Phase 8 — Write + report
 
 1. **Write** the `combined_rendered` draft to the resolved destination:
-   - `file:<path>` → write it. If the file exists, **archive it first, then ask**: copy the
-     existing file to `<path>.<YYYYMMDD-HHMMSS>.bak` before offering
-     `["Overwrite (the current draft is archived first)", "Write to <path>.new", "Print to screen instead", "Skip"]`.
+   - `file:<path>` → write it. If the file exists, **archive it first, then ask**. Where the
+     archive lives depends on where the draft does:
+     - **In the specs VI folder (rung 1).** When the existing file is tracked and unmodified —
+       `git -C "$SPECS_PATH" ls-files --error-unmatch -- <rel>` (`<rel>` being the draft's path
+       relative to `$SPECS_PATH`) succeeds and
+       `git -C "$SPECS_PATH" status --porcelain -- <rel>` prints nothing — its last commit
+       *is* the archive: record `git -C "$SPECS_PATH" log -1 --format=%h -- <rel>` and write no
+       copy. Otherwise (untracked, modified, or `$SPECS_PATH` is not a git work tree), copy it to
+       `<VI-dir>/dev-workflows/release-notes/<jira_key>-release-notes.<YYYYMMDD-HHMMSS>.md` —
+       under `dev-workflows/`, so the terminal step commits it with the run's other artifacts
+       instead of leaving a stray file the next preflight reports. Then offer
+       `["Overwrite (the current draft is kept — in git history or the archive copy)", "Print to screen instead", "Skip", "Other… (describe)"]`;
+       there is no `.new` sibling here, because a second file in the feature folder would be
+       one no shape commits.
+     - **Anywhere else (rungs 2–3, or a path you chose).** Copy the existing file to
+       `<path>.<YYYYMMDD-HHMMSS>.bak` before offering
+       `["Overwrite (the current draft is archived first)", "Write to <path>.new", "Print to screen instead", "Skip"]`.
      The archive is unconditional and silent — it happens before the prompt, so "Overwrite"
      cannot be the choice that loses a draft. **Why this matters here specifically:** the
      destination is one persistent file per VI, and the draft it holds may be the one already
      pasted into Jira, so the prior text is the record of what was published. Name the archive
-     path in the Phase 8 report.
+     path, or the commit that holds the prior text, in the Phase 8 report.
 
      **This is deliberately not the upstream append-per-section design.** `ai-workflows`
      solved its own version of this by making Phase 8 append a section per version and never
@@ -348,7 +376,7 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 2. **Report:**
    ```
    ## Release-notes draft — <jira_key>
-   - Destination: <path | stdout | skipped>
+   - Destination: <path | stdout | skipped>  (<specs VI folder — committed by the terminal step | vault project folder: <why the specs folder was not used> | chosen path — not committed>)
    - Shaped as: <Feature update | Breaking change | Fix> → <destination file>  (source: <imported | inferred>)
    - Context label: <the {{#context}} value | none — omitted from the draft>
    - Deprecation: <EOL <date> (end-of-support <date | —>) | none>
@@ -447,17 +475,21 @@ Silent; the printed `### Context hygiene` guidance already appeared in the Phase
 and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (release-notes:)`, and pushes
-per §4 step 5. It NEVER writes into a docs repo — the release-note draft is
-untouched — NEVER touches a code repo, the vault, or the
+per §4 step 5. **The draft is one of those paths when Phase 8 wrote it to the VI folder** —
+`<VI-dir>/<jira_key>-release-notes.md`, with any archive copy under
+`<VI-dir>/dev-workflows/release-notes/` — so it is committed in the specs repo with the run's
+other artifacts; a draft written to the vault or a chosen path is not. It NEVER writes into a
+docs repo, NEVER touches a code repo, the vault, or the
 current working directory; NEVER force-pushes; NEVER fails the run; and skips
 entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
 notice. Because the Phase 8 report was composed before this phase, **print its
 §6 outcome line here**, as the run's last output — prefixed `Specs repo:`, with
 any guard notice repeated in full.
 
-ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (the
-release-notes draft is a plain file for manual paste into Jira; the terminal
-step above commits only the bounded session-artifact paths in `$SPECS_PATH`),
+ADDITIVE — this phase NEVER fails the run, opens no branch or pull request for
+the draft (it is a file for manual paste into Jira; the terminal step above
+commits only the bounded artifact paths in `$SPECS_PATH`, the draft among them
+when it was written there),
 NEVER makes an external API call, and NEVER writes into a docs repo or the
 current working directory.
 
@@ -472,9 +504,9 @@ current working directory.
 - The draft is EXACTLY one Summary, shaped by its destination per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/release-note-types.md` §1/§3 — a `{{#context}}` label + `### title` + prose for `breaking-changes` / `feature-updates`, or ONE bare past-tense sentence for `fixes`. It carries NO `Change type:` line, NO `Release-notes category:` line, and no title or prose that names the release version. When the change deprecates something the Summary carries a deprecation note (end-of-life date required, end-of-support optional).
 - The `{{#context}}` label IS the imported `release_notes_category`, used verbatim; when the import carries none the line is OMITTED. Change Type is sourced `imported_change_type` → infer, and is confirmed with the user ONLY when it was inferred with low confidence — by shape and destination, never by enum label. Neither field is ever asked for as a Jira dropdown value.
 - The run is GATED on the imported `relevant_for_release_notes`: an explicit `false` stops with `RELEASE_NOTES_NOT_RELEVANT` (overridable); absent proceeds silently.
-- NEVER write into a docs repo; the default destination is persistent (never `/tmp`).
+- NEVER write into a docs repo; the default destination is the VI folder under `$SPECS_PATH`, falling back to the vault project folder — always persistent (never `/tmp`) — and NEVER create a VI folder to hold a draft.
 - ALWAYS use `choices` arrays; the last choice is always `"Other… (describe)"`.
-- Light gate only — no review-tier review, no tests, no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none), and no commit of the draft or of anything in a docs/code repo, the vault, or the current working directory. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- Light gate only — no review-tier review, no tests, no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none), and no commit of anything in a docs/code repo, the vault, or the current working directory. The draft is committed only where Phase 8 wrote it into the VI folder, by the terminal step, and never through a branch or a pull request. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - ALWAYS end the Phase 8 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked; the pipeline leaf (adaptive: continue any pending PA/PE phase, else the VI is fully processed).
 - ALWAYS end the Phase 8 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal maintenance phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a leaf-aware suggestion (done → nothing; pending role → `/clear`) + `/rename <VI-ID>-<slug>-pm`; guidance only, never auto-run.

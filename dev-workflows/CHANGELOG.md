@@ -4,14 +4,25 @@ All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
-## [2.32.0] — 2026-09-30
+## [2.32.0] — 2026-10-01
+
+### Changed — `release-notes:` writes its draft into the VI's specs folder
+
+- **The default destination is `<VI-dir>/<KEY>-release-notes.md` under `$SPECS_PATH`**, ported from the Claude edition 2.63.0: the VI folder first, the vault project folder where none exists (with the plan saying why), then the path beside the Jira export; never a newly created VI folder. The terminal `commit-artifacts` step commits it — `skills/_shared/specs-repo-git.md` §2.1 gains the single-file shape `<KEY>-release-notes.md` — and never through a branch or pull request. An existing draft there is archived by its last commit, or by a copy under `<VI-dir>/dev-workflows/release-notes/` that is committed too. The implementation-gaps draft stays in the vault.
+
+### Fixed — found reviewing this release
+
+- **Acceptance-criteria and code gaps about the same claim had nothing to match on.** Each discrepancy gap now carries a `claim_id`, the same in both kinds for the same claim, and the skill matches on it.
+- **Two `model_routing` examples used the Claude edition's dashed ids** (`claude-opus-5-5`, `claude-sonnet-5-5`) beside this edition's own dotted rule; now `claude-opus-5.5` and `claude-sonnet-5.5`.
+- **`implement:` called `code-review` an "Opus gate … never overridden"**, three lines below a routing block that puts it on the §2.3 review tier and lets §10 enforce a model. Now says both.
+- The family map in `.github/instructions/dev-workflows-skill-map.instructions.md` names `vuln:`'s and `upgrade:`'s post-review `verify-resume` call; `hooks/test-notify.sh`'s Maven comment warns about hand-written fixtures; `.gitignore` ignores Python bytecode.
 
 ### Fixed — workflow contracts and diagrams
 
 - `test-baseliner` accepts matching hinted and declared suite rows at verify, without requiring a detected marker-based suite. The moved-marker heuristic stays detected-only; unusable baselines still stop before execution.
 - Release-note criteria contradictions carry draft-versus-criterion evidence and are resolved before code discrepancies. They no longer masquerade as Jira-versus-code gaps or create implementation-gap reports, and an omitted claim is not restored by the code handler.
 - `update-vi:` filters its next-step routes before rendering and skips an empty picker while retaining terminal housekeeping. Nonempty menus keep every applicable route and Copilot's native stop/free-text choices, without importing Claude's four-option cap.
-- qmd root coverage is independent of global vector counts. An uncovered docs root retains its consented build offer; missing tools, failed probes and local-index shadowing keep distinct fallback reasons.
+- qmd root coverage is independent of global vector counts. An uncovered docs root retains its consented build offer; missing tools, failed probes and local-index shadowing keep distinct fallback reasons. The one exception is an index with documents and **no collections at all**, where the offer stays but *Skip* is recommended and the build option warns it may re-embed what is already indexed (below).
 - Workflow diagrams show conditional update routes, optional VI-specification input to Epics, tests written before review, post-review verification, model-gate override/enforcement paths, and specification choices that stop rather than continue the run. Keyword triggers and work/review model routing are preserved; no BRD or documentation-audit workflows are introduced.
 
 ### Added — six more test stacks, and the repository's own test command where none is detected
@@ -132,9 +143,9 @@ Every fix commit upstream made since 2026-08-20 was given a disposition against 
 These nine shipped in the Claude edition's 2.63.0 and were left out of this edition's port of it. None depends on anything this edition lacks.
 
 - **`release-notes:` could destroy the draft that had already been pasted into Jira.** The destination is one persistent file per VI, and from the second run onward Phase 8 offered "Overwrite" against a file whose contents were the record of what was published. The existing file is now archived to `<path>.<timestamp>.bak` **before** the prompt is shown, unconditionally, and the report names the archive.
-- **`docs-grounding.md` step 3.5 distinguishes an uncovered root from global index statistics.** Positive global vectors may belong to other documentation roots and do not establish registry corruption. The resolver offers the consented build for an uncovered root regardless of global vector count; a shadowed index falls back without build or refresh. The approval line reports the observed condition rather than a corruption diagnosis.
+- **`docs-grounding.md` step 3.5 distinguishes an uncovered root from global index statistics.** Positive global vectors may belong to other documentation roots and do not establish registry corruption. The resolver offers the consented build for an uncovered root regardless of global vector count; a shadowed index falls back without build or refresh. The approval line reports the observed condition rather than a corruption diagnosis. **One narrower state is distinguished**: `qmd collection list` reporting no collections at all while `qmd status` reports indexed documents — the field incident's — where *Skip* is recommended and the build option warns it may re-embed what is already indexed.
 - **The `qmd-vector` rung was selected on a boolean test over a proportional fact.** A partly embedded collection passes "has embeddings", so the plan reported full semantic retrieval while vector search returned noise. Partial coverage keeps the rung and names both numbers.
-- **`docs-grounder`'s rung 3 now reports the observed retrieval precondition.** The agent and the orchestrator distinguish a missing binary, a failed probe, index shadowing, an uncovered root, and a covering collection without embeddings. Neither infers registry corruption from global vector counts.
+- **`docs-grounder`'s rung 3 now reports the observed retrieval precondition.** The agent and the orchestrator distinguish a missing binary, a failed probe, index shadowing, an uncovered root, an index holding documents but no collections, and a covering collection without embeddings. Neither infers registry corruption from global vector counts.
 - **`release-notes-writer`'s source-truth check was gated on `code_repos`**, so a Jira-content-only run had no automated check over any claim. Split into 8a (against the acceptance criteria, always) and 8b (against the code, when repos are given).
 - **`release-notes:` resolved contradictory Jira fields silently.** `relevant_for_release_notes: "Yes"` with `change_type: "Not applicable"` now produces a Phase 8 report line naming both values — a report, never a gate.
 - **`dt-style-checker` was dispatched bare and its findings applied mechanically.** `release-notes:`, `create-vi:`, `update-vi:` and `epics:` now pass a `known_conventions` block naming what the artifact's own format mandates, so the checker stops raising findings that cannot be applied without failing the plugin's own lint — or, in one measured case, without putting a factual error about a product surface into a customer-facing note.

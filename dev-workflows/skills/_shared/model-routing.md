@@ -268,13 +268,13 @@ model_routing:
   classification: SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK
   reason: <one-line justification citing the §1 trigger that applied>
   current_model: <e.g. claude-opus-5 or gpt-6-astra>   # the model the orchestrator is running
-  planning_model: <e.g. claude-opus-5-5>     # §2 WORK tier; only set for SIGNIFICANT/HIGH-RISK
+  planning_model: <e.g. claude-opus-5.5>     # §2 WORK tier; only set for SIGNIFICANT/HIGH-RISK
   review_model:   <e.g. gpt-6-astra>         # §2.3 REVIEW tier -- the gates that JUDGE, never §2.
                                              # Falls back to the whole of §2 (row 4) where no
                                              # version-6 GPT is reachable; that is a documented
                                              # branch, not a degradation. Only set for
                                              # SIGNIFICANT/HIGH-RISK.
-  implementation_model: <e.g. claude-sonnet-5-5 or current_model>
+  implementation_model: <e.g. claude-sonnet-5.5 or current_model>
   detection_model: <e.g. claude-sonnet-5.5>  # mid-tier steps (§2.1); never the session model
   defect_model:   <e.g. claude-haiku-4.5>    # §2.2 cheap chain; set only under --skip-feedback
   fixes_model:    <same as implementation_model>

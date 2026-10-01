@@ -16,3 +16,7 @@ Thumbs.db
 *.pcapng
 *.pid
 *.log
+
+# Python bytecode (validate-catalog.py writes it on import)
+__pycache__/
+*.py[cod]

@@ -41,13 +41,24 @@ loop: a **run-start** flush and branch disposition (`specs-preflight`, §3) and 
 
 ### 2.1 Paths
 
-Exactly two shapes, derived from the emission ladders. Nothing outside this
-set is ever staged.
+Exactly three shapes: two directories derived from the emission ladders, and one file
+`release-notes:` writes for the operator. Nothing outside this set is ever staged.
 
 ```
-<specs-root>/{specs|specifications|vis}/**/dev-workflows/**   # tier 1: feedback, follow-ups, resume.md
-<specs-root>/dev-workflows-feedback/**                        # feedback-emission.md §2 tier 2 (keyless runs)
+<specs-root>/{specs|specifications|vis}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
+<specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
+<specs-root>/{specs|specifications|vis}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
 ```
+
+**The release-notes shape names a file, never its folder, and that distinction is the safety
+property.** The draft sits in the VI's feature folder, beside the phase deliverables (the VI,
+the ARD, `specification.md`, `design.md`, `idea.md`, `_readiness.md`), which are
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md`'s to commit behind its own consent choice. A shape widened to
+the folder would sweep them into a prompt-free bookkeeping commit and take that choice away.
+The file had to become a shape the day the draft moved into the folder: otherwise step 2
+classifies it OTHER, step 3 never stages it, and it sits dirty for ever — firing §3.3's G1 on
+every later preflight of every caller. Anything a run writes into the feature folder and
+expects committed needs a shape here first.
 
 Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §4 (the
 shared per-VI area), `session-hygiene.md` §1 (resume tier 1). This edition has
@@ -76,8 +87,9 @@ fragile to express and to review. The procedure is:
    is not a substitute: it suppresses only the octal escaping, and a path with a
    space is still quoted.
 2. Classify each reported path: **ARTIFACT** if it matches
-   `^(specs|specifications|vis)/.+/dev-workflows/` or
-   `^dev-workflows-feedback/`; **OTHER** otherwise.
+   `^(specs|specifications|vis)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
+   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$`; **OTHER**
+   otherwise.
 3. Stage the literal ARTIFACT paths only:
    `git -C "$SPECS_PATH" add -A -- <path> [<path>…]`.
 
