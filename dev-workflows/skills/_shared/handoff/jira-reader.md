@@ -3,16 +3,9 @@
 ## Input
 
 ```yaml
-# Form 1 — preferred (from the jira-input-resolution front-end): explicit export root.
-jira_export_root: <absolute path to the ticket export dir, e.g. .../jira-products/PRODUCT-14902>
+jira_export_root: <absolute path to the ticket export dir, e.g. $SPECS_PATH/specifications/PRODUCT-1234-slug/jira-import>
 jira_key:         <e.g. JIRA-12345>
 depth:            full | vi-plus-epics | vi-only
-
-# Form 2 — legacy (epics:, release-notes:): vault path + key
-# (export root is derived as <vault_path>/jira-products/<jira_key>).
-vault_path: <absolute path, e.g. /home/user/obsidian-vault>
-jira_key:   <e.g. JIRA-12345>
-depth:      full | vi-plus-epics | vi-only
 
 model_routing:
   classification: SIGNIFICANT | MODERATE
@@ -25,8 +18,7 @@ model_routing:
   gate_tests_on_review: false
 ```
 
-Refuse to run without `depth`, `jira_key`, and at least one of
-`{jira_export_root, vault_path}`.
+Refuse to run without `depth`, `jira_key` and `jira_export_root`.
 
 ## Output
 
@@ -93,4 +85,4 @@ notes: |
 |------------|-------------------------------------------------------------------------|
 | `OK`       | Successfully read; `linked_items` and `pull_requests` populated.        |
 | `EMPTY`    | Directory found but index file is missing or empty.                     |
-| `NOT_FOUND`| The resolved export root does not exist — `<vault_path>/jira-products/<jira_key>/` (Form 2), or the caller-supplied `jira_export_root` (Form 1). |
+| `NOT_FOUND`| The caller-supplied `jira_export_root` does not exist. |

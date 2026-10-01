@@ -12,15 +12,18 @@ this file governs *which artifact holds the current VI text*, not code truth. Do
 ## Procedure — `resolve-existing-vi <KEY>`
 
 1. **Validate** `<KEY>` against `^[A-Z][A-Z0-9_]*-\d+$`. Malformed → stop and report.
-2. **Jira import first.** Look for `$VAULT_PATH/jira-products/<KEY>/**/<KEY>.md` and its sibling
-   `<KEY>-comments.md`. Confirm the frontmatter is `issue_type: ValueIncrement`. This import (body +
-   comments) is the **authoritative base**.
+2. **Jira import first.** Look for `<feature folder>/jira-import/<KEY>/<KEY>.md` (the feature folder
+   resolved as `jira-input-resolution.md` § JiraID token step 2 does). Confirm the frontmatter is
+   `issue_type: ValueIncrement`. This import — the page body **and its inlined `## Comments` section** —
+   is the **authoritative base**. (An import made before the flat layout may still carry a sibling
+   `<KEY>-comments.md`; read it when present.)
 3. **Not imported →** STOP. Ask the user to import it, then re-run:
    `choices: ["Import <KEY> now with the workitem-importer, then I'll re-run (Recommended)", "Cancel", "Other… (describe)"]`.
-   Cite the importer: `https://github.com/ivan-gudak/jira-workitem-import`. Never fall back to the frozen
+   Cite the importer and its SPECS-mode command: `https://github.com/ivan-gudak/jira-workitem-import`,
+   `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` (its stock `runme.sh` unsets `SPECS_PATH`). Never fall back to the frozen
    specs draft as the base.
 4. **Imported but stale →** if the import file's mtime is older than **3 days**
-   (`find "$VAULT_PATH/jira-products/<KEY>" -name "<KEY>.md" -mtime +3`), show the import date and offer:
+   (`find "<feature folder>/jira-import/<KEY>" -name "<KEY>.md" -mtime +3`), show the import date and offer:
    `choices: ["Re-import <KEY> now — I'll wait (Recommended)", "Proceed with the current import", "Cancel", "Other… (describe)"]`.
 5. **Secondary grounding (read-only; never the base):** the frozen `$SPECS_PATH` specs draft (glob
    `<KEY>_*.md`, `issue_type: ValueIncrement`), any `*_ARD.md`, `specification.md`, and — for

@@ -16,7 +16,7 @@ companion degrades the feature, never breaks the run.
 
 | Tool | Role |
 |------|------|
-| [`jira-workitem-import`](https://github.com/ivan-gudak/jira-workitem-import) | Jira WorkItem Reporter — imports Jira tickets to `$VAULT_PATH/jira-products/` in the exact structure `jira-reader` (and every Jira-driven command) expects. The upstream producer of the pre-exported markdown tree the plugin consumes. |
+| [`jira-workitem-import`](https://github.com/ivan-gudak/jira-workitem-import) | Jira WorkItem Reporter — imports Jira tickets into the specs repo — `$SPECS_PATH/specifications/<KEY>[-<slug>]/jira-import/`, its SPECS mode — in the exact structure `jira-reader` (and every Jira-driven command) expects. The upstream producer of the pre-exported markdown tree the plugin consumes. Run it as `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>`; the stock `runme.sh` unsets `SPECS_PATH`. |
 
 ## Marketplace siblings (independent plugins, same marketplace)
 

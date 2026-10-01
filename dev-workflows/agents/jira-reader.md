@@ -1,44 +1,34 @@
 ---
 name: jira-reader
-description: "Reads a pre-exported Jira markdown hierarchy (Value Increment, Epics, Stories, Sub-tasks, Research, Request for Assistance) from the user's Obsidian vault and returns a structured handoff — linked items, PR URLs with host classification, and capability themes. Read-only; never modifies vault files. Model tier assigned by the caller per the model-routing policy (no fixed pin)."
+description: "Reads a pre-exported Jira markdown hierarchy (Value Increment, Epics, Stories, Sub-tasks, Research, Request for Assistance) from a feature folder's `jira-import/` (or any imported-Jira directory) and returns a structured handoff — linked items, PR URLs with host classification, and capability themes. Read-only; never modifies the imported files. Model tier assigned by the caller per the model-routing policy (no fixed pin)."
 tools: [view, glob, grep]
 ---
 
 Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/jira-reader.md` for the exact input/output document format.
 
-Read the pre-exported Jira markdown hierarchy from the vault and return a structured handoff. Read-only — never modify vault files.
+Read a pre-exported Jira import from `jira_export_root` (a feature folder's `jira-import/`, or any imported-Jira directory) and return a structured handoff. Read-only — never modify the imported files.
 
 Invoked from `document:` (Phase 3, `depth: full`), `epics:` (Phase 3, `depth: vi-plus-epics`), `specify:` (Phase 2, `depth: vi-plus-epics then full`), `create-ard:` (Phase 2, `depth: vi-only` VI-level / `full` Epic-level), and `ready:` (Phase 2, `depth: vi-plus-epics`). The caller decides which depth based on whether downstream agents need PR URLs + the full linked-item tree (docs skill, specify skill) or the VI plus its child Epics for code-scanning (epics skill).
 
 ## Inputs
 
-The caller passes **either** an explicit export root (preferred — used by
-`document:` and `implement:` via the shared
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` front-end) **or** a
-vault path + key (used by `epics:` and `release-notes:`):
+The caller passes an explicit export root, resolved by the shared
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` front-end:
 
 ```yaml
-# Form 1 — explicit export root:
-jira_export_root: <absolute path to the ticket export dir, e.g. .../jira-products/PRODUCT-14902>
+jira_export_root: <absolute path to the ticket export dir, e.g. $SPECS_PATH/specifications/PRODUCT-1234-slug/jira-import>
 jira_key:         <e.g. JIRA-12345>
 depth:            full | vi-plus-epics | vi-only
-
-# Form 2 — vault + key (export root is derived as <vault_path>/jira-products/<jira_key>):
-vault_path: <absolute path, e.g. /home/user/obsidian-vault>
-jira_key:   <e.g. JIRA-12345>
-depth:      full | vi-plus-epics | vi-only
 ```
 
-Resolve the **export root** once: `EXPORT_ROOT = jira_export_root` when provided,
-else `<vault_path>/jira-products/<jira_key>`. All reads below use `EXPORT_ROOT`.
-Refuse to run without `depth`, `jira_key`, and at least one of
-`{jira_export_root, vault_path}`.
+`EXPORT_ROOT = jira_export_root`. All reads below use `EXPORT_ROOT`. Refuse to run without
+`depth`, `jira_key` and `jira_export_root`.
 
 ## Process
 
 **Phase 0 — Validate `jira_key`.** Accept only `^[A-Z][A-Z0-9_]*-\d+$` (uppercase letters / digits / underscores, a dash, digits). On mismatch return `status: NOT_FOUND` with a clear message naming the invalid key. The caller surfaces the `Jira key dir not found` choices from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` to the user.
 
-1. **Read the index.** Open `<EXPORT_ROOT>/<jira_key>-index.md`. The first data table in the file must have header row `| Key | Type | Status | Summary | Role |` exactly. If the header differs (e.g. the Jira-to-Obsidian exporter changed its output format), return `status: EMPTY` with a message naming the mismatched columns — do NOT try to parse rows with an unknown schema.
+1. **Read the index.** Open `<EXPORT_ROOT>/<jira_key>-index.md`. The first data table in the file must have header row `| Key | Type | Status | Summary | Role |` exactly. If the header differs (e.g. the Jira importer (`jira-workitem-import`) changed its output format), return `status: EMPTY` with a message naming the mismatched columns — do NOT try to parse rows with an unknown schema.
 
 2. **Depth-scoped file reads.**
 
@@ -49,7 +39,7 @@ Refuse to run without `depth`, `jira_key`, and at least one of
    - `team` — verbatim from the Epic frontmatter `team:` key; fall back to the `**Team:**` line in the `## Metadata` section; `""` when neither is present. Keep the value verbatim (e.g. `[DTT] Team Storage`) — do not strip the bracketed org-unit prefix.
    - `refinement_candidate` — `true` when the Epic body carries no substantive free-text beyond its summary and the importer's structured boilerplate (`## Metadata`, a `## Details` field-dump of counts, `## Comments`): i.e. no populated `## Description`/scope/acceptance content, or such content merely restates the summary. `false` when the Epic already has real scope/acceptance prose. Heuristic only — it *proposes* refinement targets; the `epics:` Phase 3.5 gate lets the PE confirm/adjust the set.
    - `scope_hint` — the Epic's dedicated description/scope free-text when present, else its `summary`.
-   - **`depth: vi-only`** — read only the VI's own file at `<EXPORT_ROOT>/<jira_key>/<jira_key>.md` plus the index. Every linked item is nested under the root export directory; never look for `<EXPORT_ROOT>/<LINKED_KEY>/<LINKED_KEY>.md` (that path does not exist).
+   - **`depth: vi-only`** — read only the VI's own file at `<EXPORT_ROOT>/<jira_key>/<jira_key>.md` plus the index. Every linked item is nested under the root export directory; never look for `<EXPORT_ROOT>/<LINKED_KEY>/<LINKED_KEY>.md` (that path is not read at this depth).
 
 3. **Extract capability themes.** Collect 2–4 short bullets summarising recurring topics across the items read. Themes may be sparse for `depth: vi-only`; callers that need richer themes should request `vi-plus-epics` or `full`.
 
@@ -73,7 +63,7 @@ Refuse to run without `depth`, `jira_key`, and at least one of
    `{id: R1.., type: derived, text: <one requirement per line>}`. Never fabricate
    requirements not grounded in the VI text.
 
-**Ignored by default:** sibling `<KEY>-comments.md` files and `attachments/` sub-directory **content** (case-insensitive — real exports use both lowercase `attachments/` and capitalised `Attachments/` depending on when the Jira item was created). Rationale: comments and image attachments are occasionally useful for decision-history context but are noisy, rarely authoritative for user-facing docs, and easy to revisit manually when needed. Keeping their content out of the default read path also keeps this agent fast on large VIs. No user-facing toggle is provided.
+**Ignored by default:** sibling `<KEY>-comments.md` files — and, in a flat import that inlines them, everything from a ticket page's `## Comments` heading to the end of the file (it is always the last section, and a comment body can contain its own `##`) — and `attachments/` sub-directory **content** (case-insensitive — real exports use both lowercase `attachments/` and capitalised `Attachments/` depending on when the Jira item was created). Rationale: comments and image attachments are occasionally useful for decision-history context but are noisy, rarely authoritative for user-facing docs, and easy to revisit manually when needed. Keeping their content out of the default read path also keeps this agent fast on large VIs. No user-facing toggle is provided.
 
 **Image enumeration (attachments only):** For each linked item read at the current depth, enumerate image files (extensions `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, case-insensitive) under that item's `attachments/` or `Attachments/` directory using directory listing — do NOT read file content. Collect the results into the `attachments[]` output field. If no `attachments/` directory exists or no image files are present, the field is an empty list. This enumeration is filename-listing only and does not slow the agent.
 
@@ -98,7 +88,7 @@ Also parse the `Branch:` line and the status marker (`**MERGED**` / `**OPEN**` /
 
 ### `## Pull Requests` section markdown format
 
-The Jira-to-Obsidian exporter emits each PR as a **two-line bulleted item** — a top-level bullet followed by an indented child bullet for the branch:
+The Jira importer (`jira-workitem-import`) emits each PR as a **two-line bulleted item** — a top-level bullet followed by an indented child bullet for the branch:
 
 ```markdown
 ## Pull Requests
@@ -166,9 +156,9 @@ attachments:            # image files found under the VI's attachments/ dirs (pa
 
 ## Hard rules
 
-- NEVER modify files under `<vault_path>`. This agent is read-only.
+- NEVER modify files under `jira_export_root`. This agent is read-only.
 - NEVER fabricate items not present in the index or in the linked `.md` files. If the index table is empty, return `status: EMPTY`. The same rule applies to `requirements[]` — extract only IDs/text present in the VI body; the `derived` fallback decomposes the VI's own goal/themes, never invents scope.
-- NEVER read sibling `<KEY>-comments.md` files or the **content** of files under `attachments/`. Enumerating image filenames under `attachments/` (for the `attachments[]` output field) is permitted and required — listing paths is not reading content.
-- NEVER attempt to reach out over HTTPS to Jira or any git host. This agent operates purely on pre-exported markdown in the vault.
+- NEVER read sibling `<KEY>-comments.md` files **or a page's inlined `## Comments` section (from its heading to the end of the file)** or the **content** of files under `attachments/`. Enumerating image filenames under `attachments/` (for the `attachments[]` output field) is permitted and required — listing paths is not reading content.
+- NEVER attempt to reach out over HTTPS to Jira or any git host. This agent operates purely on the pre-exported markdown under `jira_export_root`.
 - If the index header schema doesn't match the expected 5-column form, return `status: EMPTY` with a schema-mismatch message; do NOT try to parse rows with a guessed column layout.
-- For `depth: vi-only`, NEVER look for `<EXPORT_ROOT>/<LINKED_KEY>/<LINKED_KEY>.md` — that path does not exist. Linked items live under the VI's own export directory.
+- For `depth: vi-only`, NEVER look for `<EXPORT_ROOT>/<LINKED_KEY>/<LINKED_KEY>.md` — that path is not read at this depth.
