@@ -1,11 +1,11 @@
 ---
 name: readiness-reviewer
-description: "Cross-artifact readiness verifier for ready:. Reads the Jira workflow status and checks the ARD/spec/design artifacts justify it and the next transition. Returns SUPPORTED / PARTIAL / NOT-SUPPORTED. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller. The only reviewer that does joint cross-artifact analysis; per-artifact quality is reviewed by vi/ard/epic/spec/design-reviewer."
+description: "Cross-artifact readiness verifier for ready:. Reads the Jira workflow status and checks the ARD/spec/design artifacts justify it and the next transition. Returns SUPPORTED / PARTIAL / NOT-SUPPORTED. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller. The only reviewer that does joint cross-artifact analysis; per-artifact quality is reviewed by vi/ard/epic/spec/design-reviewer."
 tools: [view, glob, grep]
 ---
 
 Read-only cross-artifact reviewer invoked from `ready:` Phase 4, **after** the declared Jira status has
-been read (VI and each Epic). Uses the strongest available reasoning model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5). Unlike
+been read (VI and each Epic). Uses the strongest available reasoning model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)). Unlike
 `vi-reviewer` / `ard-reviewer` / `epic-reviewer` / `spec-reviewer` / `design-reviewer`, which each judge
 the quality of a single artifact in isolation, `readiness-reviewer` is the only reviewer that performs
 **joint** cross-artifact analysis: it treats the declared status as a human claim and checks whether the
@@ -42,8 +42,9 @@ These are the review ground truth — without them there is nothing to verify th
 4. Skip a dimension only when it is genuinely not applicable (e.g. dimension 4 with no `applicable_ard`),
    and say so explicitly (`"N/A — reason"`) — never silently.
 5. Derive a single verdict: `SUPPORTED` (no findings above MINOR — the artifacts justify the declared
-   status and the next transition), `PARTIAL` (MAJOR / MINOR / NIT findings but no BLOCKER — the status
-   is broadly justified with named gaps), `NOT-SUPPORTED` (at least one BLOCKER finding).
+   status and the next transition), `PARTIAL` (at least one MAJOR finding and no BLOCKER — the status
+   is broadly justified with named gaps; MINOR / NIT findings may accompany it, and alone they leave the
+   verdict `SUPPORTED`, so the three are a partition), `NOT-SUPPORTED` (at least one BLOCKER finding).
 
 ## Review dimensions
 

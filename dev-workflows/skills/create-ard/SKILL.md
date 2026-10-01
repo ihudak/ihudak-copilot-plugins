@@ -24,6 +24,8 @@ this stage). Zero Jira API.
 ---
 
 ## Phase 0 — Resolve input
+
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 1. **Resolve the Jira input** via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `create-ard:` trigger), after stripping every recognised flag first — `--no-docs` and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never mistaken for `<VI-KEY>`/`<Epic-KEY>` → `jira_key` (the VI), `focus_key` (the Epic, or `null`), `jira_export_root`, `source`. Define `<VI>` = `jira_key`, `<EPIC>` = `focus_key`.
 2. **`$SPECS_PATH` (required).** If unset, stop naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
 3. **Feature folder.** VI-level → `specifications/<VI>-<vslug>/`; Epic-level → `specifications/<VI>-<vslug>/<EPIC>-<eslug>/`. Honor an existing dir matched by key-number (tolerate `-`/`_` drift). Auto-created on first write.
@@ -57,8 +59,10 @@ model_routing:
   classification: MODERATE | SIGNIFICANT | HIGH-RISK   # architecture; SIGNIFICANT common for cross-repo VIs
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # jira-reader, code-scanner, impl-maintenance
-  review_model:    <§2 Opus chain>     # ard-reviewer (caller-pinned; recorded)
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, impl-maintenance
+  review_model:    <§2.3 review tier>     # ard-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + ARD authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -71,7 +75,7 @@ model_routing:
 ## Phase 2 — Read the VI (+ Epic, + inherited ARD)
 Read the VI from `$SPECS_PATH/specifications/<VI>-<vslug>/` — glob `<VI>_*.md` and use the file whose frontmatter is `issue_type: ValueIncrement` (canonical `<VI>_<slug>.md`) when present (authored source); else dispatch `jira-reader` to read it from the export:
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -91,7 +95,7 @@ There are no PRs at ARD time, so repos are **architect-driven**, not PR-derived:
 3. **Missing repo → consolidated mount-or-descope gate:** `choices: ["Mount now & re-scan", "Ground only the confirmed-mounted set (record the rest as open questions)", "Specify an absolute path for this repo", "Cancel", "Other… (describe)"]`.
 4. **Ground the confirmed set.** Spawn `code-scanner` in batches of up to 4 concurrent agents per task message on the confirmed repos (wait for each batch), scoped by the themes:
 
-   → task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+   → task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
      > "repo_path: <resolved absolute path>
      >  repo_url_slug: <slug>
      >  capability_themes: [themes]
@@ -137,7 +141,7 @@ proceed to Phase 5 once findings are surfaced. `ard-reviewer` remains the gate.
 ## Phase 5 — Review gate
 Dispatch `ard-reviewer` (Opus, caller-pinned; recorded as `review_model`):
 
-→ task(agent_type: "dev-workflows:ard-reviewer", model: `<review_model — §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:ard-reviewer", model: `<review_model — §2.3 review tier; under §10, run_flags.enforced_model>`):
   > "Review the ARD:
   >
   > ARD path: [absolute path to the *_ARD.md]
@@ -145,16 +149,20 @@ Dispatch `ard-reviewer` (Opus, caller-pinned; recorded as `review_model`):
 
 On `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the ARD — no delegated writer) and re-review **once**; if still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. `PASS` / `PASS WITH RECOMMENDATIONS` → proceed. Cap: one fix cycle + one re-review. (For a per-area split, review each area ARD.)
 
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
+
 ---
 
 ## Phase 6 — Handoff
-Write the ARD file(s) into the feature folder. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]`. On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: ard`; `feature_folder` as resolved in Phase 0 (the VI dir for a VI-level ARD, the Epic subfolder for an Epic-level ARD — §2.2 derives `ard/<VI>-<vslug>` or `ard/<EPIC>-<eslug>` from it, matching today's branch names); `deliverable_paths` = the ARD file(s); `title: <VI|EPIC> Add architecture requirements document`; and `body_facts` = the ARD scope (VI/Epic, any per-area split), the grounded/descoped repos, the `AD#N` count, the open-question count, and the `ard-reviewer` verdict. Emit its §4.1 outcome line in the Final report.
+Write the ARD file(s) into the feature folder. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (every consumer of the ARD resolves `status: none` and applies the no-regression rule), after that section's push-target probe: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]`. On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: ard`; `feature_folder` as resolved in Phase 0 (the VI dir for a VI-level ARD, the Epic subfolder for an Epic-level ARD — §2.2 derives `ard/<VI>-<vslug>` or `ard/<EPIC>-<eslug>` from it, matching today's branch names); `deliverable_paths` = the ARD file(s); `title: <VI|EPIC> Add architecture requirements document`; and `body_facts` = the ARD scope (VI/Epic, any per-area split), the grounded/descoped repos, the `AD#N` count, the open-question count, and the `ard-reviewer` verdict. Emit its §4.1 outcome line in the Final report.
 
 ---
 
 ## Phase 7 — Next-step offer (adaptive)
-- **VI-level ARD:** if the VI has 0 Epics → `choices: ["Hand to a Product Engineer — epics: <VI> (then create them in Jira + re-import) (PE) (Recommended)", "Author a VI-level spec — specify: <VI> (PE)", "Stop here", "Other… (describe)"]`; else offer `specify: <VI>` (PE). *(No `design:` — no Epics yet.)* Either way, `specify:` won't treat this ARD as available until the pull request above is merged — until then it architects without it, same as if none existed.
-- **Epic-level ARD:** `choices: ["Author the spec — specify: <VI> <Epic> (PE) (Recommended)", "Hand to Dev — design: <VI> <Epic> (Dev)", "Stop here", "Other… (describe)"]`. **Epic fan-out** — repeat this ARD for a sibling Epic: `create-ard: <VI> <another-Epic>`. Both `specify:` and `design:` wait the same way — this ARD is invisible to them until its pull request above is merged.
+- **VI-level ARD:** if the VI has 0 Epics → `choices: ["Hand to a Product Engineer — epics: <VI> (then create them in Jira + re-import) (PE) (Recommended) <merge-clause>", "Author a VI-level spec — specify: <VI> (PE) <merge-clause>", "Stop here", "Other… (describe)"]`; else offer `specify: <VI>` (PE) carrying the same `<merge-clause>`. *(No `design:` — no Epics yet.)*
+- **Epic-level ARD:** `choices: ["Author the spec — specify: <VI> <Epic> (PE) (Recommended) <merge-clause>", "Hand to Dev — design: <VI> <Epic> (Dev) <merge-clause>", "Stop here", "Other… (describe)"]`. **Epic fan-out** — repeat this ARD for a sibling Epic: `create-ard: <VI> <another-Epic>`; that run inherits the VI-level ARD, not this Epic-level one, so it waits on nothing this run produced and carries no clause.
+
+**Every merge clause above is the `<merge-clause>` placeholder**, resolved from this run's own `Phase handoff:` outcome line per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`, and never the unconditional "once the pull request above is merged": a declined handoff, a failed push and a nothing-to-commit run each leave a different wait, and two of them open no pull request to wait on. It is a placeholder, not an instruction to reword an option, so the arrays are still presented verbatim per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. **The wait it names is real for every command named above, and it is a stop, not a silent degradation**: `epics:`, `specify:` and `design:` each read this ARD through `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/ard-resolution.md` and each stops on `status: unmerged`, naming the branch and any open pull request. This phase used to say the opposite — that `specify:` "architects without it" and that the ARD is "invisible" while its pull request is open. Only a handoff that reached no branch at all resolves `status: none`, where that reference's no-regression rule has the run proceed exactly as it would with no ARD.
 
 Guidance only — never auto-invokes another command. Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`.
 
@@ -183,7 +191,9 @@ Terminal phase — runs after Phase 7, NEVER interrupts an earlier phase.
 the guidance only), then a
 PA→PE/Dev handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-pa`. Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`) with a compact handoff: command `create-ard:`; what was authored (ARD scope + grounded repos); key events (grounding gaps/descopes, BLOCK reviews — or 'none'); workarounds; the `ard-reviewer` verdict; test result N/A; project root = the feature folder.
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) with a compact handoff: command `create-ard:`; what was authored (ARD scope + grounded repos); key events (grounding gaps/descopes, BLOCK reviews — or 'none'); workarounds; the `ard-reviewer` verdict; test result N/A; project root = the feature folder.
+
+   **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 2. **Persist plugin feedback (automatic).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6) with the report, `command: create-ard:`, the run's `jira_key`, `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). Surface the persisted path (or "no plugin-facing signal — nothing persisted").
 3. **Write the resume pointer.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the feedback entry above, so the pointer reflects the completed run, and before the commit step below, so it is included in it. Redact per §1. Silent; the printed `### Context hygiene` guidance already appeared in the report.
 4. **Commit session artifacts (terminal).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (create-ard:)` with no `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the current working directory; NEVER force-pushes; NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome line for the Final report.
@@ -193,4 +203,4 @@ ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (git 
 ---
 
 ## Final report
-Report: the ARD path(s) + scope (VI/Epic, any per-area split); the grounded repos + any descoped/ungrounded ones; `AD#N` count; open-question count; the `ard-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); resolved model routing (+ any Opus gate/degradation); the feedback path; the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and the adaptive next-step recommendation.
+Report: the ARD path(s) + scope (VI/Epic, any per-area split); the grounded repos + any descoped/ungrounded ones; `AD#N` count; open-question count; the `ard-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); resolved model routing (+ any review gate/degradation); the feedback path; the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and the adaptive next-step recommendation.

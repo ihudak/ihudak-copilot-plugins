@@ -10,6 +10,8 @@ Logs a manual note about the dev-workflows plugin itself — friction you hit, o
 
     feedback: [<note>]
 
+[Run flags](../reference/run-flags.md): none applies — this skill *is* the feedback surface and dispatches no subagent, so it does not parse run flags, and an exported `$WORKFLOWS_*` default changes nothing here.
+
 The argument (everything after the `feedback:` trigger) is the note text — the friction you hit and the improvement you want, in your own words. Leave it empty and Phase 1 asks for it directly; it never guesses at content you didn't express.
 
 ## What it needs

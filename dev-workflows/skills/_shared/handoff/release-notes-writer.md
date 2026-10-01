@@ -5,7 +5,7 @@
 ```yaml
 jira_reader_handoff: <full YAML from jira-reader; see ~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/jira-reader.md output schema>
 diff_summaries:      <optional array of diff-summarizer outputs; one entry per repo; omit when diff-grounding is off>
-code_repos:          <optional array of {slug, path}; provided when diff-grounding is on — enables the writer's Source-truth check>
+code_repos:          <optional array of {slug, path}; provided when diff-grounding is on — enables the code half of the writer's Source-truth check (8b); the acceptance-criteria half (8a) runs without it>
 imported_change_type:            <change_type from the imported VI frontmatter (jira-reader handoff); null otherwise>
 imported_release_notes_category: <release_notes_category from the imported VI frontmatter; null otherwise — used verbatim as the {{#context}} label>
 run_phase:                       <"pm" | "dev" — inferred by the skill from whether specification.md / design.md exist under the VI's specs dir; gates the release-note-types.md §4 documentation-link rule only>
@@ -48,14 +48,21 @@ release_notes_block:
 
 gaps:
   - field:              <feature_title | prose | change_type | deprecation_eol>
+    kind:               <acceptance-criteria | source-truth; required for discrepancy gaps, omitted for other gaps>
+    claim_id:           <discrepancy gaps only — `C<n>`, the draft claim the gap is about, numbered in draft order. One claim checked by both 8a and 8b carries the SAME id in both gaps; that id is how the command recognises "the same claim">
     reason:             <why this is low-confidence or missing. For change_type: the destination was inferred and the source supports two destinations roughly equally; the proposed value is still set on release_notes_block. For deprecation_eol: a deprecation was detected but the required end-of-life date is not derivable from the source.>
     recommended_action: "ask user" | "mark TODO in draft" | "note in report"
-    jira_phrasing:      <only for source-truth discrepancies — the draft's current (Jira-derived) phrasing>
+    draft_phrasing:     <acceptance-criteria only — the draft's contradictory claim>
+    criteria_phrasing:  <acceptance-criteria only — the cited criterion's actual requirement>
+    criteria_location:  <acceptance-criteria only — criterion ID/heading in the handoff, or file:line>
+    jira_phrasing:      <source-truth only — intent supported by the Jira content, never a draft's criteria contradiction>
     source_phrasing:    <only for source-truth discrepancies — what the source code actually shows>
     source_location:    <only for source-truth discrepancies — file:line the source_phrasing was verified against>
 ```
 
 `status: PARTIAL` when at least one gap has `recommended_action: "ask user"`.
+
+The two discrepancy kinds carry disjoint evidence fields and share one key, `claim_id`, so a claim both checks contradict is identified by equality, never by comparing prose. Resolve `acceptance-criteria` gaps first, without implementation-gap reports; only `source-truth` gaps with verified code evidence enter the intended-versus-actual decision flow.
 
 ## Status codes
 

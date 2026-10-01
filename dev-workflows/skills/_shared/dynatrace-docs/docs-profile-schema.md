@@ -1,7 +1,8 @@
 # docs-profile schema
 
-`docs-profile:` writes this file to **`.dev-workflows/docs-profile.yml`** in
-the target docs repo. `document:` reads it. `changelog` and `owners` are
+`docs-profile:` writes this file to **`.dev-workflows/docs-profile.yml`** at
+the target docs repo's git work-tree top level (**Where the profile lives**,
+below). `document:` reads it. `changelog` and `owners` are
 intentionally absent — they are owned by the `dynatrace-docs-frontmatter` skill.
 
 ```yaml
@@ -78,6 +79,15 @@ images:
 prerequisites:
   - "a dev server may need a working .docstack toolchain (e.g. an axios>=1.16 shim) before `*:start` boots"
 ```
+
+## Where the profile lives
+
+**One home: the git work-tree top level of the resolved docs repository.** Whatever directory `document:`'s Phase 0 ladder or `docs-profile:`'s argument resolved, its profile is `<top>/.dev-workflows/docs-profile.yml`, where `<top>` is what `git -C <resolved> rev-parse --show-toplevel` prints, or the resolved directory itself where it is in no git work tree. The resolved directory can sit below that top level — a Docusaurus `website/` in a monorepo, a `site/` beside the code — and the profile still lives at the top level, never beside the site: one repository has one profile however many content roots it publishes, as the two-space example above does. It is where `docs-profile:` has always written the file, so no existing profile moves.
+
+- **Every path the profile records is relative to that top level** — `spaces[].content_root` and `snippet_root`, `announcement_pages[].path`. A site under `site/` records `content_root: site/docs`, never `docs`.
+- **Every command it records runs from that top level** — every `commands.*` and `commands.per_space.*` value and every `dev_servers.servers[].command` — so a site below it names its config from there: `mkdocs serve -f site/mkdocs.yml`.
+
+A command resolves `<top>` once, from the directory it resolved, and reads the profile and runs its commands there — never in a directory below it.
 
 ## Field rules
 - `spaces[]` is required and non-empty. A single-space repo has one entry and omits `cross_space_override`.

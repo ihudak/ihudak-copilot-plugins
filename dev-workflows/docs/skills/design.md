@@ -8,7 +8,9 @@ Takes over a merged `specification.md`, grounds strictly in the fully-mounted im
 
 ## Synopsis
 
-    design: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--design-twice]
+    design: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--design-twice] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `design:` is jira-driven only — a `mode: direct` prompt stops with `DESIGN_NEEDS_JIRA`, since it uses the shared front-end only to parse the grammar and classify the key, never to read Jira content: the requirements source of truth is the merged `specification.md` in the specs repo, not a fresh Jira read. Given `<VI>` alone, Phase 0 step 4 (Granularity) resolves what to design from what already exists in the specs repo: a flat `specification.md` at the VI dir (a stand-alone Epic, or a broad VI-level spec) needs no picker; Epic subfolders render a **progress-aware picker** — one row per **spec'd** Epic (○ not started / ◐ in progress, resuming from `_design-session.md` / ● done, offering *revise*), plus an excluded-count note for any Epic whose `specification.md` doesn't exist yet or isn't merged to the default branch. An explicit `<VI> <Epic>` (or `<dir> <Epic>`) skips the picker entirely. `--design-twice` forces Phase 5's three-way interface fan-out on the run's load-bearing interface even when no contested-interface signal fired.
 
@@ -18,10 +20,18 @@ Takes over a merged `specification.md`, grounds strictly in the fully-mounted im
 flowchart TD
     p0["Phase 0 — Resolve input"] --> p1["Phase 1 — Configure"]
     p1 --> p15["Phase 1.5 — Classify + tiered model gate"]
-    p15 --> p2["Phase 2 — Read the spec"]
+    p15 --> enforced{"Model enforcement active?"}
+    enforced -->|Yes: bypass tiered gate| p2["Phase 2 — Read the spec"]
+    enforced -->|No| risky{"SIGNIFICANT/HIGH-RISK on a non-Opus session?"}
+    risky -->|Yes| choice{"Override, relaunch if Opus available, or cancel?"}
+    choice -->|Explicit logged override| p2
+    choice -->|Relaunch or cancel| stop["Stop current run"]
+    risky -->|No: soft advisory if non-Opus| p2
     p2 --> p25["Phase 2.5 — Resolve applicable ARD (optional)"]
     p25 --> p3["Phase 3 — Derive repos + STRICT gate"]
-    p3 --> p4["Phase 4 — Code scan"]
+    p3 --> mounted{"Every confirmed repo mounted?"}
+    mounted -->|No| remount["Stop — remount or descope"]
+    mounted -->|Yes| p4["Phase 4 — Code scan"]
     p4 --> p5["Phase 5 — Grill: challenge + design"]
     p5 --> p55["Phase 5.5 — Structural pre-lint"]
     p55 --> p6["Phase 6 — Review gate"]
@@ -36,7 +46,7 @@ flowchart TD
 - **A Jira VI or Epic** via the shared front-end — a `mode: direct` prompt is rejected outright (`DESIGN_NEEDS_JIRA`); `design:` has no direct-prompt behavior.
 - **`$SPECS_PATH`** (required) — `design:` reads `specification.md` and writes `design.md` under `$SPECS_PATH/specifications/`; unset stops the run naming `SPECS_PATH`.
 - **The `specification.md` on the specs repo's default branch** — `design:` is the one hard exception to the pipeline's "absent falls back" rule: an unmerged spec is a hard stop naming the branch and any open pull request, and an **absent** spec is *also* a hard stop (`no specification.md exists yet — run specify: for it and merge it to the specs repo main first`), never a silent fallback.
-- **A tiered model gate** (Phase 1.5) — stricter than [`implement:`](implement.md)'s, because the critical synthesis here is inline rather than delegated to an Opus subagent: on SIGNIFICANT/HIGH-RISK work, a non-Opus session is a **hard gate** requiring either an Opus-tier session or an explicit, logged override to proceed on the current model (resumable from `_design-session.md`) — it offers to relaunch on Opus only when one is reachable (`opus_available: true`); on SIMPLE/MODERATE it's a soft advisory only.
+- **A tiered model gate** (Phase 1.5) — unless model enforcement is active, SIGNIFICANT/HIGH-RISK work on a non-Opus session requires an explicit choice: relaunch on Opus when one is reachable, proceed on the current model with a logged override, or cancel. On SIMPLE/MODERATE it is a soft advisory only. Under `--enforce-model`, [`model-routing.md` §10](../../skills/_shared/model-routing.md#10-enforced-model) suppresses both branches; dispatched agents use the enforced model while the inline grill stays on the session model.
 - **An optional ARD** for this item (Phase 2.5), resolved via [`skills/_shared/ard-resolution.md`](../../skills/_shared/ard-resolution.md). `status: none` skips silently; `status: unmerged` stops, naming the branch and any pull request; `status: found` carries the invariants forward as guardrails the design is authored within — a necessary deviation is recorded in `design.md`'s own `## ARD deviations` section rather than editing the ARD — and passed to `design-reviewer` as `applicable_ard`.
 - **Mounted repos under `$REPOS_PATH`** — Phase 3's gate is **STRICT**: any confirmed repo that isn't mounted hard-stops the whole run (unlike [`specify:`](specify.md)'s soft gate), because a design cannot ground implementation decisions in code it cannot read.
 - **A prior `_design-session.md`** (optional) — if one exists in the resolved feature folder, Phase 1 offers resume-vs-fresh.
@@ -47,7 +57,7 @@ flowchart TD
 
 ## Gates
 
-Phase 6 dispatches `design-reviewer`. Like every other Opus reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It checks architecture/interface/seam/test-strategy soundness, coverage of every in-scope requirement, and decision-completeness — treating **any unresolved `design.md` open question as a BLOCKER by policy**. `BLOCK` fixes the BLOCKER findings inline (the orchestrator/grill edits `design.md` directly — no delegated writer) and re-reviews once; an unresolved BLOCKER after that cycle is escalated individually. `PASS` / `PASS WITH RECOMMENDATIONS` proceeds, with MAJOR/MINOR/NIT findings deferred to the final report. Cap: one fix cycle plus one re-review.
+Phase 6 dispatches `design-reviewer`. Like every other review-tier reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It checks architecture/interface/seam/test-strategy soundness, coverage of every in-scope requirement, and decision-completeness — treating **any unresolved `design.md` open question as a BLOCKER by policy**. `BLOCK` fixes the BLOCKER findings inline (the orchestrator/grill edits `design.md` directly — no delegated writer) and re-reviews once; an unresolved BLOCKER after that cycle is escalated individually. `PASS` / `PASS WITH RECOMMENDATIONS` proceeds, with MAJOR/MINOR/NIT findings deferred to the final report. Cap: one fix cycle plus one re-review.
 
 Ahead of the review, Phase 5.5 runs a structural pre-lint ([`skills/_shared/pre-lint.md`](../../skills/_shared/pre-lint.md)) — advisory only — checking the Universal checks plus the design block (core headings present; a MODERATE+ design carries `## Seams` or a stated `_N/A — why_`; the `## Open questions` `- [ ]` count).
 

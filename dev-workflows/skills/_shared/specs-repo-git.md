@@ -41,13 +41,24 @@ loop: a **run-start** flush and branch disposition (`specs-preflight`, §3) and 
 
 ### 2.1 Paths
 
-Exactly two shapes, derived from the emission ladders. Nothing outside this
-set is ever staged.
+Exactly three shapes: two directories derived from the emission ladders, and one file
+`release-notes:` writes for the operator. Nothing outside this set is ever staged.
 
 ```
-<specs-root>/{specs|specifications|vis}/**/dev-workflows/**   # tier 1: feedback, follow-ups, resume.md
-<specs-root>/dev-workflows-feedback/**                        # feedback-emission.md §2 tier 2 (keyless runs)
+<specs-root>/{specs|specifications|vis}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
+<specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
+<specs-root>/{specs|specifications|vis}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
 ```
+
+**The release-notes shape names a file, never its folder, and that distinction is the safety
+property.** The draft sits in the VI's feature folder, beside the phase deliverables (the VI,
+the ARD, `specification.md`, `design.md`, `idea.md`, `_readiness.md`), which are
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md`'s to commit behind its own consent choice. A shape widened to
+the folder would sweep them into a prompt-free bookkeeping commit and take that choice away.
+The file had to become a shape the day the draft moved into the folder: otherwise step 2
+classifies it OTHER, step 3 never stages it, and it sits dirty for ever — firing §3.3's G1 on
+every later preflight of every caller. Anything a run writes into the feature folder and
+expects committed needs a shape here first.
 
 Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §4 (the
 shared per-VI area), `session-hygiene.md` §1 (resume tier 1). This edition has
@@ -57,13 +68,28 @@ shared per-VI area), `session-hygiene.md` §1 (resume tier 1). This edition has
 **Staging is by enumeration, not by glob.** Pathspec glob magic (`:(glob)`) is
 fragile to express and to review. The procedure is:
 
-1. `git -C "$SPECS_PATH" status --porcelain --untracked-files=all`
+1. `git -C "$SPECS_PATH" status --porcelain -z --untracked-files=all`
    `--untracked-files=all` is **required** — the default collapses an untracked
    directory to a single `?? dir/` line, which would hide which files are being
-   staged.
+   staged. `-z` is **required** too: without it git wraps any path carrying a
+   space, a `"`, a `\` or a non-ASCII byte in double quotes and octal-escapes the
+   non-ASCII bytes, and step 2's regexes are anchored at `^`, so the leading `"`
+   alone puts such a path in OTHER. It is not a hypothetical shape: a feature
+   folder is `<KEY>-<slug>` and `<slug>` is a kebab of a title, so a
+   non-English title gives `specifications/PRODUCT-1234-zahlungsauslösung/`, under
+   which every bookkeeping file this section owns was classified OTHER, never
+   staged, and left permanently dirty — firing §3.3's G1 on every later preflight
+   of every caller. Under `-z` each record is terminated by a NUL and the path is
+   emitted raw: strip the two status bytes and the space and the remainder is the
+   path. A **rename or copy** record carries a second NUL-terminated field, the
+   original path, straight after it (`R  <new>\0<old>\0`) — consume it with the
+   record it belongs to, never as a record of its own. `-c core.quotepath=false`
+   is not a substitute: it suppresses only the octal escaping, and a path with a
+   space is still quoted.
 2. Classify each reported path: **ARTIFACT** if it matches
-   `^(specs|specifications|vis)/.+/dev-workflows/` or
-   `^dev-workflows-feedback/`; **OTHER** otherwise.
+   `^(specs|specifications|vis)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
+   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$`; **OTHER**
+   otherwise.
 3. Stage the literal ARTIFACT paths only:
    `git -C "$SPECS_PATH" add -A -- <path> [<path>…]`.
 
@@ -101,19 +127,31 @@ directory is **writable**. Test `.git` specifically, not just the worktree —
 `commit` and `fetch` both write there, and a read-only specs mount is a normal
 state in this container setup.
 
-Gate fails → **silent no-op**. The artifacts are going to a vault or
-report-only tier the plugin does not manage.
+**A failed gate is not one disposition but two, and conflating them is what made a misconfiguration indistinguishable from a supported state.**
+
+- **`$SPECS_PATH` is unset, or `.git` resolves but is not writable → silent no-op**, exactly as before. The artifacts are going to a vault or report-only tier the plugin does not manage, and a read-only specs mount is a normal state in this container setup. Saying nothing is correct here: there is nothing for the operator to fix.
+- **`$SPECS_PATH` is set to a path that is not a directory, or `rev-parse --git-dir` fails there → emit a one-line notice** naming the variable and the path, then continue. This is **never** a supported state: a set-but-not-a-repository `$SPECS_PATH` is a typo, a missing mount, or a path that was right in another container. Under the old blanket silence it looked identical to the read-only case, so a run would write its deliverables, commit nothing, open no pull request, and end on a terminal gate-failed line that named none of it — the operator's first clue being an empty specs tree some time later.
+
+Still **never fatal** (§1): the notice reports and the run continues. What changes is that the condition is now *said*.
 
 ### 3.2 Resolution inputs
 
 **Default branch:** `git -C "$SPECS_PATH" symbolic-ref --quiet refs/remotes/origin/HEAD`,
-then strip the `refs/remotes/origin/` prefix. If unset, fall back to `main`,
+then strip the `refs/remotes/origin/` prefix. It counts only where
+`git -C "$SPECS_PATH" rev-parse --verify --quiet origin/<name> >/dev/null` succeeds for the name it
+yields: a remote that renamed its default branch, fetched with `--prune`, leaves `origin/HEAD`
+naming a branch the remote deleted, and every test below would then name a ref that does not
+exist. If unset, or naming a ref that does not exist, fall back to `main`,
 then `master`, then the current branch — in which case no branch switching
 occurs at all.
 
+**Default ref — which ref *represents* that branch.** The name above is a branch name; every ancestry and presence test needs a ref. Probe `git -C "$SPECS_PATH" remote get-url origin`: exit 0 with a non-empty URL → `<default-ref>` is `origin/<default>`; anything else → `<default-ref>` is the local `refs/heads/<default>`.
+
+**The two cases are not one weakened into the other.** With a remote configured, its tracking ref is the only trustworthy record of what merged — the local branch can be stale or ahead, so testing against it would assert something the shared history does not support. With **no remote at all** there is no remote state to be uncertain about: the local default branch *is* the default branch, and testing against it is the correct application of the check rather than a relaxation of it. The producer side works the same way — `phase-handoff.md` §2.1's push-target probe runs before the consent choice and is never gated on, and a repository with no `origin` is deliberately not a gate failure there — and this makes the consumer side agree. **Every test below, and `phase-handoff.md` §3's, uses `<default-ref>`; none names `origin/<default>` literally.**
+
 **Freshness:** best-effort `git -C "$SPECS_PATH" fetch origin <default>` before
-the ancestry test. On failure (offline, auth), use the existing local
-`origin/<default>` ref and note `offline — ancestry checked against the
+the ancestry test, skipped entirely when there is no remote. On failure (offline, auth), use the existing local
+`<default-ref>` and note `offline — ancestry checked against the
 last-fetched ref`. Never fatal.
 
 **Run key set:** every Jira key the run is scoped to, taking each key already
@@ -152,8 +190,18 @@ Always runs when stage 1 matched nothing.
 - **Dirty ARTIFACT paths exist** → commit them **onto the current branch** (they
   belong to the run that wrote them) and push, per §4 steps 2–6.
 - **No dirty ARTIFACT path** → check whether the current branch is **ahead of
-  its upstream** and every ahead-commit touches only §2.1 artifact paths. If so,
-  **retry the push**. Without this, a push that failed in a previous run leaves
+  the branch it would push to** and every ahead-commit touches only §2.1 artifact
+  paths. If so, **retry the push**.
+
+  **Do not phrase that test as `@{u}`.** A failed `push -u` sets no upstream, so
+  `git rev-parse --abbrev-ref '@{u}'` and `git rev-list --count '@{u}..HEAD'` both
+  exit 128 with `fatal: no upstream configured` — the condition is not false but
+  *unevaluable*, and precisely in the state the retry exists for. Resolve the
+  comparison base instead: the upstream where one is configured, else
+  `refs/remotes/origin/<branch>` where that ref exists, else — a local-only branch
+  a failed `push -u` leaves behind — treat the branch as **entirely ahead** and
+  retry the push, which is the case that strands an artifact commit with nothing
+  to retry it. Without this, a push that failed in a previous run leaves
   a local commit that nothing ever retries — the original defect, re-created one
   layer up.
 
@@ -166,7 +214,7 @@ First matching row applies.
 | # | State | Action |
 |---|---|---|
 | B1 | On the default branch | Nothing further. |
-| B2 | Plugin branch, and `git -C "$SPECS_PATH" merge-base --is-ancestor HEAD origin/<default>` succeeds (already merged upstream) | Switch to default, `git -C "$SPECS_PATH" pull --ff-only`, `git -C "$SPECS_PATH" branch -d <branch>`. If `-d` fails, report and skip — **never `-D`**. If `pull --ff-only` fails (the local default branch has diverged), report and continue on default **without** pulling — never merge, rebase, or reset. |
+| B2 | Plugin branch, and `git -C "$SPECS_PATH" merge-base --is-ancestor HEAD <default-ref>` succeeds (already merged upstream) | Switch to default, `git -C "$SPECS_PATH" pull --ff-only`, `git -C "$SPECS_PATH" branch -d <branch>`. If `-d` fails, report and skip — **never `-D`**. If `pull --ff-only` fails (the local default branch has diverged), report and continue on default **without** pulling — never merge, rebase, or reset. |
 | B3 | Plugin branch, unmerged, branch key matches **any** key in the run key set (§3.2) | **Stay on it.** See §3.6. |
 | B4 | Plugin branch, unmerged, branch key matches **no** key in the set, or the set is empty (keyless run) | Switch to default, `git -C "$SPECS_PATH" pull --ff-only`. **Leave the branch and its pull request alone.** Report the branch name. |
 
@@ -234,6 +282,44 @@ was meant to persist are stranded uncommitted — the exact loss this reference
 exists to prevent. The exception is deliberately narrow. It applies where control
 genuinely leaves the command, never as a convenience to commit early, and it
 never licenses splitting the step across more than one invocation.
+
+**A run that refuses before it has written anything still runs this tail, and
+each member settles for itself what it does there.** A Phase 0 refusal — an
+unresolvable key, a missing argument, an input the skill cannot use —
+ordinarily ends the run before it has a deliverable, a branch or a handoff (the
+exception is named below), and nothing above said whether feedback, follow-ups
+and `resume.md` still fire. The answer is each member's own rather than a new
+condition here:
+
+- **Feedback writes nothing.** `feedback-emission.md`'s `emit-auto` is called
+  by a skill's maintenance phase, which a refused run never reaches, and
+  `emit-block` fires at the halt rather than here and excludes an environment
+  or operator halt by its own predicate — which every Phase 0 refusal is.
+
+- **Follow-ups are a no-op.** No signal qualifies, so that phase resolves no
+  target, writes nothing and ends silently (`followup-emission.md` §6).
+
+- **`resume.md` is NOT written.** `session-hygiene.md` §1 defines it as the
+  last *completed* position — the phase just finished and the exact next
+  skill from the run's own `### Next step` — and a Phase 0 refusal completed
+  no phase and printed no such block. It is overwritten rather than appended,
+  so writing one here would replace a live pointer to a real position with a
+  run that did nothing, and what it replaced cannot be recovered.
+
+- **This step runs, and ordinarily finds nothing new to stage.** This edition
+  has no cost entry, so no member above writes on a refusal. Where the refusal
+  came before `$SPECS_PATH` was resolved, step 1's gate no-ops it silently;
+  where nothing is dirty, step 3's `nothing to commit` line stands; and where
+  an earlier run left artifacts behind, it commits them exactly as any run
+  would.
+
+**It is scoped to a refusal taken before the run has a deliverable, a branch or
+a handoff**, which is what most Phase 0 stops are, never all: a Phase 0 stop
+taken after the run cut a branch is outside it — `document:` in Jira mode is
+one, its Phase 0 having cut a docs-repository branch and committed the generated
+profile on it wherever it profiled that repository inline, before its later
+Phase 0 stops. Such a run, like one that stops in a later phase, has written
+something, and what its tail does is that skill's to state.
 
 1. **Gate.** All of §3.1's environment conditions, **plus** the run must not
    carry `specs_git: blocked` from §3.3 G0.
@@ -339,7 +425,10 @@ Not done: the preflight did not commit, switch branches, or push. Those files
 Fix:      git -C "<SPECS_PATH>" status
           git -C "<SPECS_PATH>" add <path list> && git -C "<SPECS_PATH>" commit
 If ignored: nothing is lost — your files stay uncommitted, and this run's
-          artifacts are committed alongside them.
+          artifacts are committed alongside them. But the preflight ends here
+          on EVERY later run too, so the leftover flush and the branch
+          settle (stages 2-3) stay skipped until these paths are committed
+          or removed.
 ```
 
 **G2 — advisory:**

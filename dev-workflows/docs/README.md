@@ -1,6 +1,6 @@
 # dev-workflows documentation
 
-Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev workflow, plus `dynatrace-docs-frontmatter:` for dynatrace-docs page conventions — plus 34 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
+Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev workflow, plus `dynatrace-docs-frontmatter:` for dynatrace-docs page conventions — plus 35 sub-agents, 4 hooks, and the shared reference docs under `skills/_shared/`. This tree documents all of it — start here.
 
 ## I want to…
 
@@ -20,6 +20,7 @@ Twenty-one keyword-triggered skills — twenty for the PM → PA → PE → Dev 
 | apply dynatrace-docs changelog/owners frontmatter conventions | [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) |
 | check whether a ticket is really ready | [`ready:`](skills/ready.md) |
 | fix a CVE or upgrade a dependency | [`vuln:`](skills/vuln.md), [`upgrade:`](skills/upgrade.md) |
+| find out whether my test stack is covered | [Test suite detection](reference/test-suite-detection.md) |
 | tell the plugin it got something wrong | [`feedback:`](skills/feedback.md), [`prompt:`](skills/prompt.md), [`prompt-brainstorm:`](skills/prompt-brainstorm.md), [`prompt-grill-me:`](skills/prompt-grill-me.md) |
 | review an API spec or app UI against guidelines | [`api-guideline-reviewer:`](skills/api-guideline-reviewer.md), [`guideline-reviewer:`](skills/guideline-reviewer.md) |
 
@@ -34,9 +35,9 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 - [`create-vi:`](skills/create-vi.md) — turn a refined `idea.md` plus a user-supplied Jira key into a reviewed Value Increment.
 - [`design:`](skills/design.md) — take over a merged `specification.md` and author a reviewed engineering `design.md`, grounded strictly in the mounted implementation code.
 - [`docs-profile:`](skills/docs-profile.md) — scan a documentation repository and write or refresh the machine-readable profile `document:` consumes.
-- [`document:`](skills/document.md) — read a Jira Value Increment hierarchy, resolve PR diffs, and synthesise product documentation, gated on style-check and Opus review.
+- [`document:`](skills/document.md) — read a Jira Value Increment hierarchy, resolve PR diffs, and synthesise product documentation, gated on style-check and review-tier review.
 - [`dynatrace-docs-frontmatter:`](skills/dynatrace-docs-frontmatter.md) — apply dynatrace-docs changelog-entry, managed-owners, and metadata frontmatter conventions when creating or editing a `dynatrace/_content/**` or `managed/_content/**` page.
-- [`epics:`](skills/epics.md) — draft child Epic definitions from a Value Increment, optionally scanning code repos, gated on dt-style-checker and Opus review.
+- [`epics:`](skills/epics.md) — draft child Epic definitions from a Value Increment, optionally scanning code repos, gated on dt-style-checker and review-tier review.
 - [`feedback:`](skills/feedback.md) — log a manual note about the plugin itself, for the maintainer to aggregate. Tied to no skill; run any time.
 - [`guideline-reviewer:`](skills/guideline-reviewer.md) — review Dynatrace app code and UI against the bundled Experience Standards (GUIDElines).
 - [`idea:`](skills/idea.md) — refine one source into a lean `idea.md` through a bounded one-question-at-a-time grill, seeding the future `create-vi:`.
@@ -53,10 +54,12 @@ Three pages orient you before you touch a skill: [Getting started](getting-start
 
 ## Reference
 
-- [Agents](reference/agents.md) — the subagent inventory: what each of the 34 helper agents does and which skill calls it.
+- [Agents](reference/agents.md) — the subagent inventory: what each of the 35 helper agents does and which skill calls it.
+- [Test suite detection](reference/test-suite-detection.md) — the seventeen marker rows `test-baseliner` scans for, what each one runs, the repository-declared test command it falls back to for a stack the table does not list, and what adding one takes.
 - [References](reference/references.md) — the reference-doc inventory under `skills/_shared/`, grouped by subtree.
 - [Environment](reference/environment.md) — every environment variable the plugin reads, and what it configures.
 - [Hooks](reference/hooks.md) — the bundled hooks and what each one does.
+- [Run flags](reference/run-flags.md) — the two flags that change how a run behaves rather than what it produces: `--skip-feedback`, `--enforce-model`, and their environment defaults. (`--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem.)
 - [Model routing](reference/model-routing.md) — the task-complexity classification and model fallback chain skills apply before acting.
 - [Session feedback](reference/session-feedback.md) — two different signals about the plugin itself: `feedback:` logs what you tell it, while `prompt:` / `prompt-brainstorm:` / `prompt-grill-me:` capture a bad result, your correction, and the good result that came out of it.
 - [Follow-ups](reference/follow-ups.md) — how a skill emits follow-up tasks into your vault.

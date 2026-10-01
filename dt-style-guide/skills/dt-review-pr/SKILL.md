@@ -145,11 +145,13 @@ above its first `[section]` header):
 
 ```bash
 # it sets one:
-(cd "<the directory holding the configuration>" && unset VALE_CONFIG_PATH && vale --no-global --output=line <file1> <file2> ... 2>&1)
+(builtin cd "<the directory holding the configuration>" >/dev/null && unset VALE_CONFIG_PATH && command vale --no-global --output=line <file1> <file2> ... 2>&1)
 
 # it sets none:
-(cd "<the directory holding the configuration>" && unset VALE_CONFIG_PATH && h=$(mktemp -d) && { XDG_CONFIG_HOME="$h" vale --output=line <file1> <file2> ... 2>&1; s=$?; rm -r "$h"; exit $s; })
+(builtin cd "<the directory holding the configuration>" >/dev/null && unset VALE_CONFIG_PATH && h=$(command mktemp -d) && { XDG_CONFIG_HOME="$h" command vale --output=line <file1> <file2> ... 2>&1; s=$?; command rm -r -- "$h"; exit $s; })
 ```
+
+Each form runs `builtin cd` with its output discarded, and `vale`, `mktemp` and `rm` as `command <name>`: this command's shell carries the user's aliases and shell functions, so a `cd` of theirs can print ahead of Vale's output, a `vale` alias can change its exit code, and an `rm -i` alias leaves the temporary directory behind. (`builtin`, not `command cd`, which zsh does not run.)
 
 `--no-global` alone is not enough: it drops Vale's default `StylesPath` along with the global
 configuration file, so a repository configuration that sets no `StylesPath` of its own — and

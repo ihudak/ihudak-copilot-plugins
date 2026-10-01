@@ -20,6 +20,8 @@ Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hyb
 
 ## Phase 0 — Resolve inputs
 
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
+
 1. **`JIRA-KEY` (mandatory).** Strip every recognised flag first — `--from-vi <value>`, `--lean`/`--hybrid`/`--full`, `--no-docs`, `--docs <path>` (consumes the token after it), and `--no-prior-art` — so an unstripped flag or its value is never mistaken for the key or the `@idea.md` token. Parse the first remaining non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, **stop gracefully**: `CREATE_VI_NEEDS_KEY: create-vi: needs a Jira key — create an empty Jira workitem first to get the ID, then re-run 'create-vi: <KEY> @<idea.md>'.` (Format only — zero Jira API, so existence is not verified.)
 2. **Profile.** `--lean | --hybrid | --full`; default `--hybrid`.
 2a. **`--from-vi <VI-KEY|path>` (optional seed).** When present, this run authors a **new** VI (the positional `<JIRA-KEY>`) seeded read-only by another VI. Resolve the seed via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi` — Jira-import-first, 3-day freshness) for a key, or read the given path directly. The seed is **grounding, not content** (Phase 3 adapts it; it is never copied wholesale).
@@ -47,7 +49,7 @@ Usage: `create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hyb
 Use `choices` arrays; the last choice is always `"Other… (describe)"`.
 
 1. **Confirm** the feature folder, the profile, and the resolved `idea.md` (or "none — grill from scratch").
-   - Show the `docs grounding:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` resolved — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs).
+   - **Resolve documentation grounding here, then show its line.** Run `resolve-docs-grounding create-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` — its step 3.5 index prompt included — and show the `docs grounding:` line from what it returns, in the form that reference fixes — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). It runs here, before any agent is dispatched, because step 3.5 asks its one-time index question before the run's real work; this is the run's one resolution (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`, *Invariants*), and Phase 2.5 dispatches on the state it returns without resolving again.
    - Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` resolved — `ON <vault-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art create-vi` per that reference to obtain it; it runs exactly once per run.
 2. **Existing-VI handling** (only if Phase 0 step 6 found a VI for `<KEY>`, frontmatter `issue_type: ValueIncrement`):
    - **No `--from-vi`** → `create-vi:` is greenfield-only; **redirect**:
@@ -72,8 +74,10 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT for large/cross-cutting VIs
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # impl-maintenance
-  review_model:    <§2 Opus chain>     # vi-reviewer (caller-pinned via `task(model:)`; recorded)
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # impl-maintenance
+  review_model:    <§2.3 review tier>     # vi-reviewer (caller-pinned via `task(model:)`; recorded)
   authoring_model: <= current_model>   # the interactive grill + VI authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -97,7 +101,7 @@ profile is already `--full`, this nudge does **not** fire.
 
 ## Phase 2 — Read the seed
 
-Read the resolved `idea.md` **directly** (it is the plugin's own format — `idea-reader` is for arbitrary external sources and is not used here). Extract Problem / Who / desired outcome & value / rough scope / signals & evidence / candidate success signal, plus any open `[NEEDS CLARIFICATION]`. Carry the idea's `sources[]` forward to **propagate** into the VI frontmatter (the real provenance — RFE key / an existing VI's key / community-post URL / prompt), and record `derived_from` = the idea's own resolved path — read here from `idea.md`'s own frontmatter, never from a relocation, since `create-vi:` no longer moves it.
+Read the resolved `idea.md` **directly** (it is the plugin's own format — `idea-reader` is for arbitrary external sources and is not used here). Extract Problem / Who / desired outcome & value / rough scope / signals & evidence / candidate success signal, plus any open `[NEEDS CLARIFICATION]`. Carry the idea's `sources[]` forward to **propagate** into the VI frontmatter (the real provenance — each `sources` entry exactly as `idea.md` recorded it, `provenance` and `ref` alike), and record `derived_from` = the idea's own resolved path — read here from `idea.md`'s own frontmatter, never from a relocation, since `create-vi:` no longer moves it.
 
 Optionally ground in the idea's cited sources and any strategy/vision docs the user points to. **No code scan; no repos.**
 
@@ -111,7 +115,7 @@ If there is no idea (Phase 0 ladder exhausted), grill the VI from scratch.
 
 Dispatch both grounding agents **in a single response** so they run in parallel. Each is independent; either being OFF never suppresses the other.
 
-**Docs.** Run `resolve-docs-grounding create-vi` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`. When `docs_grounding: ON`, `dispatch-docs-grounder` with `feature_summary` = the idea's problem/goal + VI themes, `jira_key` = `<KEY>`, and `themes` from the idea. When OFF, skip silently.
+**Docs.** Phase 1 resolved documentation grounding and showed its line; this phase resolves nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the idea's problem/goal + VI themes, `jira_key` = `<KEY>`, and `themes` from the idea. When OFF, skip silently.
 
 **Prior art.** Using the `resolve-prior-art create-vi` result from Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` with `feature_summary` = the idea's problem/goal, `themes` from the idea, and `known_refs` = every filesystem path in the idea's `sources[]` as `{path, …}`, every Jira key in `sources[]` as `{jira_key, …}`, and the Jira key of each `## Prior art` bullet as `{jira_key, …}` — all with `has_summary: false`, since this command reads `idea.md` directly and holds no summaries of its own. Take the **key**, not the wikilink, from a `## Prior art` bullet: a wikilink resolves by file name and dangles the moment a vault item is renamed, which is exactly why the bullet carries both. Recorded `sources[]` paths may dangle for the same reason; the finder drops what it cannot resolve. When OFF, skip silently.
 
@@ -134,7 +138,9 @@ Author `<KEY>_<slug>.md` live against `~/.copilot/installed-plugins/ihudak-copil
 7. **Scope** (In / Out)
 8. **Success Metrics** (`[SM#N]`)
 
-Then author the profile's **adapt-in clusters**, each **pulled only when the idea warrants it** (never an empty section). **For a complex VI (`classification` SIGNIFICANT), actively author the `[FR#N]` (full) and `[UC#N]` (hybrid/full) clusters** within the chosen profile — lower the bar for pulling them in, because ID'd functional requirements and use cases feed a finer downstream `epics:` `_coverage.md` (traceability to `[FR#N]`/`[UC#N]`, not only `US`/`AC`/`SM`); still never an empty section. Fold the idea's open `[NEEDS CLARIFICATION]` into the grill; resolve to zero where possible, leaving genuinely-unresolvable ones under `## Assumptions & open questions` (hybrid/full). Keep the VI **product-level** — no implementation detail. **Self-consistency check:** before writing each section, check it against the already-settled sections — a new `[AC#N]` must not deliver an Out-of-scope behaviour, the `## Goal` must not assert a scope the `## Scope` contradicts, and `[US#N]`s must not conflict. Resolve any contradiction inline with the user, or record it under `## Assumptions & open questions` — never leave it implicit (the Opus `vi-reviewer` flags a silently-baked contradiction).
+Then author the profile's **adapt-in clusters**, each **pulled only when the idea warrants it** (never an empty section). **For a complex VI (`classification` SIGNIFICANT), actively author the `[FR#N]` (full) and `[UC#N]` (hybrid/full) clusters** within the chosen profile — lower the bar for pulling them in, because ID'd functional requirements and use cases feed a finer downstream `epics:` `_coverage.md` (traceability to `[FR#N]`/`[UC#N]`, not only `US`/`AC`/`SM`); still never an empty section. Fold the idea's open `[NEEDS CLARIFICATION]` into the grill; resolve to zero where possible, leaving genuinely-unresolvable ones under `## Assumptions & open questions` (hybrid/full). Keep the VI **product-level** — no implementation detail. **Self-consistency check:** before writing each section, check it against the already-settled sections — a new `[AC#N]` must not deliver an Out-of-scope behaviour, the `## Goal` must not assert a scope the `## Scope` contradicts, and `[US#N]`s must not conflict. **Test every criterion against the `## Goal` too, not only against `## Scope` and its siblings** — an `[AC#N]` can be perfectly consistent with every other criterion and still defeat the outcome the VI was written to deliver, which no sibling comparison catches.
+
+**Docs grounding is evidence about the status quo, never a requirement.** Where a criterion is derived from a `docs_challenges` entry or any other grounding digest, the documented behaviour describes **what the product does today**. A VI that exists to *change* that behaviour must state explicitly, per imported constraint, whether it is being **inherited or overridden** — importing one unexamined inverts the feature's own value. The measured case: a VI whose entire purpose was to let customers override default update behaviour transcribed the platform's documented version-pruning rule straight into an acceptance criterion, which then contradicted the Goal, a use case, and another criterion — the document retained a build it then refused to offer. Treat a documented rule as an input to the grill, and ask which side of it this VI is on. Resolve any contradiction inline with the user, or record it under `## Assumptions & open questions` — never leave it implicit (the `vi-reviewer` gate flags a silently-baked contradiction).
 
 ---
 
@@ -145,12 +151,25 @@ is a **quality enhancement, not a gate** — it never blocks the handoff.
 `vi-reviewer` (Phase 4) judges content; style / terminology is checked here
 (mirrors `epics:` Phase 6.2).
 
-→ task(agent_type: "dt-style-guide:dt-style-checker", model: <detection_model — §2.1 detection chain>):
+→ task(agent_type: "dt-style-guide:dt-style-checker", model: <detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>):
   > "Run the style check for this brief:
   >
   > files:    [absolute path to <KEY>_<slug>.md]
   > doc_type: prd
-  > emphasis: terminology and customer-facing captions, labels, messages, and text"
+  > emphasis: terminology and customer-facing captions, labels, messages, and text
+  >
+  > known_conventions:
+  >   - the section headings mandated verbatim by `_shared/vi-format.md` and matched
+  >     literally by `pre-lint.md`'s required-heading grep — sentence-casing them fails the
+  >     plugin's own lint
+  >   - the `&` in `## Use cases & user journey` and `## Assumptions & open questions`,
+  >     mandated verbatim by `vi-format.md`'s adapt-in table and parsed literally by
+  >     `jira-reader.md` on Jira re-import — expanding it to "and" breaks the round-trip
+  >   - spaced em dashes, the house convention in every plugin-authored artifact in the
+  >     specs repo
+  >   - bracketed requirement IDs (`[AC#1]`, `[US#1]`, `[SM#1]`, `[UC#1]`, `[FR#1]`)
+  >   - wikilinked tracker keys
+  >   - this is an internal planning document, exempt from the trademark/(R) rule"
 
 Act on the return:
 - **`OK`** — proceed to Phase 4.
@@ -180,7 +199,7 @@ proceed to Phase 4 once findings are surfaced. `vi-reviewer` remains the gate.
 
 Dispatch `vi-reviewer` (Opus, caller-pinned via `task(model:)`; recorded as `review_model`):
 
-→ task(agent_type: "dev-workflows:vi-reviewer", model: <review_model — §2 Opus chain>):
+→ task(agent_type: "dev-workflows:vi-reviewer", model: <review_model — §2.3 review tier; under §10, run_flags.enforced_model>):
   > "Review the Value Increment:
   >
   > VI path: [absolute path to <KEY>_<slug>.md]
@@ -190,6 +209,8 @@ Act on the verdict (mirrors `specify:`):
 - **`BLOCK`** — fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER (`choices: ["Provide manual fix notes", "Defer to a follow-up issue", "Override and accept", "Cancel", "Other… (describe)"]`).
 - **`MAJOR` / `MINOR` / `NIT`** (surfaced under `PASS WITH RECOMMENDATIONS`) — defer to the final report; no mandatory fix cycle.
 - **`PASS` / `PASS WITH RECOMMENDATIONS`** — proceed. Cap: one fix cycle + one re-review.
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 
@@ -201,10 +222,10 @@ Act on the verdict (mirrors `specify:`):
 `update-vi:` Phase 5 step 1 (`-2`, `-3`, … on a same-day second archive). A greenfield run (no prior VI
 found in Phase 0) skips this step — there is nothing to archive.
 
-Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is already there, committed by `idea:`; an out-of-contract idea stays where it is. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim:
+Write the feature folder: `<KEY>_<slug>.md`. The in-contract `idea.md` is already there, committed by `idea:`; an out-of-contract idea stays where it is. Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (every §3.4 row naming the VI falls back — `create-ard:` to the Jira export, `specify:` by skipping a confirmation), after that section's push-target probe:
 
 ```
-choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]
+choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]
 ```
 
 On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: vi`, `feature_folder` as resolved in Phase 0, `deliverable_paths` = the VI file, `title: <KEY> Add Value Increment — <summary>`, and `body_facts` = the resolved profile (`--lean`/`--hybrid`/`--full`), the adapt-in clusters pulled, the user-story and acceptance-criteria counts, any `[NEEDS CLARIFICATION]` markers carried in, and the `vi-reviewer` verdict; emit its §4.1 outcome line in the Final report.
@@ -223,11 +244,11 @@ Without these steps the pipeline cannot read the VI.
 Offer these — clearly labeling the role handoff:
 
 ```
-choices: ["Draft the release note now — release-notes: <KEY> (PM) (Recommended)", "Hand to a Product Architect — create-ard: <KEY> (PA, optional)", "Hand to a Product Engineer — epics: <KEY> (PE)", "Stop here", "Other… (describe)"]
+choices: ["Draft the release note now — release-notes: <KEY> (PM) (Recommended)", "Hand to a Product Architect — create-ard: <KEY> (PA, optional) <merge-clause>", "Hand to a Product Engineer — epics: <KEY> (PE)", "Stop here", "Other… (describe)"]
 ```
 
 - **`release-notes: <KEY>`** (PM) — draft the customer-facing release note now.
-- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document; it won't start reading this VI until the pull request above is merged to the specs repo's main.
+- **`create-ard: <KEY>`** (PA, **optional**) — hand to a Product Architect to author the grounded architecture document; it gates this VI on the specs repo's default branch (its own Phase 0), so it stops where this VI reached a branch and falls back to the Jira export — reported, never silently — where it reached none. `<merge-clause>` is the placeholder `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` owns, resolved from this run's own `Phase handoff:` outcome line (§4.1) and never written as the unconditional "once the pull request above is merged": a declined handoff, a failed push and a nothing-to-commit run each leave a different wait, and two of them open no pull request to wait on. It is a placeholder, not an instruction to reword an option, so the array is still presented verbatim per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`.
 - **`epics: <KEY>`** (PE) — hand to a Product Engineer to split the VI into Epics (or author a VI-level spec → `specify: <KEY>`).
 
 Guidance only — never auto-invokes another command. Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`.
@@ -235,8 +256,10 @@ Guidance only — never auto-invokes another command. Per `~/.copilot/installed-
 ### Context hygiene
 
 The resume pointer is written in the terminal maintenance phase (Phase 7), per
-`session-hygiene.md` §1 — the VI-Key is minted by the Jira round-trip, so it **omits
-the session-name line**; name the session manually if useful. Then:
+`session-hygiene.md` §1 — and `create-vi:` is outside that reference's §4 rename-aid
+set, so it **omits the session-name line**. Not for want of a key: Phase 0 refuses this
+run without one. The PM phase is simply short enough that no label is auto-suggested;
+name the session manually if useful. Then:
 
 - **Continuing as PM (`release-notes: <VI>` after the round-trip)?** → run **`/compact`**.
 - **Handing to PA (`create-ard: <VI>`) or PE (`epics: <VI>`), even yourself?** → run **`/clear`** for a clean slate.
@@ -257,9 +280,12 @@ Terminal phase — runs after Phase 6, NEVER interrupts an earlier phase.
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints
 the guidance only),
 then a span suggestion (PM continue → `/compact`; PA/PE handoff → `/clear`). No `/rename`
-label yet (no VI-Key). Guidance only, never auto-run.
+label — not for want of a key, since Phase 0 refuses this run without one, but because the
+PM phase is short (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §4). Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`) with a compact handoff: command `create-vi:`; what was authored (VI + profile); key events (source-ladder friction, unresolved clarifications, BLOCK reviews — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) with a compact handoff: command `create-vi:`; what was authored (VI + profile); key events (source-ladder friction, unresolved clarifications, BLOCK reviews — or 'none'); workarounds; the `vi-reviewer` verdict; test result N/A; project root = the feature folder.
+
+   **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 2. **Persist plugin feedback (automatic).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6) with the Lessons Learned report, `command: create-vi:`, the run's `jira_key`, `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). Surface the persisted path (or "no plugin-facing signal — nothing persisted").
 3. **Write the resume pointer.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 and write/overwrite `<VI-dir>/dev-workflows/resume.md` now — after the feedback entry above, so the pointer reflects the completed run, and before the commit step below, so it is included in it. Redact per §1. Silent; the printed `### Context hygiene` guidance already appeared in the report.
 4. **Commit session artifacts (terminal).** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (create-vi:)` — or `NOISSUE …` when the Jira round-trip has not yet minted a key — with no `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the current working directory; NEVER force-pushes; NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome line for the Final report.

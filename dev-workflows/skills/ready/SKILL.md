@@ -28,6 +28,8 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
 
 ## Phase 0 — Resolve input
 
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
+
 1. **Resolve the Jira input via the shared front-end.** Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `ready:` trigger). `ready:` is
    **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
@@ -86,7 +88,7 @@ MUST be `"Other… (describe)"`.
    - **VI-level** (`focus_key` null) — locate `<VI-dir>/<VI>_ARD.md` (resolved via Phase 2.5, not here) and `<VI-dir>/specification.md` (a VI-level spec is optional per `workflow-states.md`); then enumerate **every** Epic subdirectory under `<VI-dir>` that matches a key-number pattern, and for each locate `{<EPIC>_ARD.md, specification.md, design.md}` — this is per-Epic and plural, because a VI's "Ready for Implementation" status requires **every in-scope Epic** to carry spec + design (`workflow-states.md`'s VI row).
    - **Epic-level** (`focus_key` set) — locate the VI-level `<VI-dir>/<VI>_ARD.md` (inherited invariants) plus the single focus Epic's `{<EPIC>_ARD.md, specification.md, design.md}` under `<VI-dir>/<EPIC>-<eslug>/`.
 
-   For each `specification.md` and `design.md` path located above (the `_ARD.md` files are handled by Phase 2.5's `ard-resolution.md`, not here), execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against its repo-relative path and map its §3.7 return value by `stopped` first, never by `on_main` alone — never a stop, per this command's defining trait: `stopped: false` with `on_main: pass`/`pass_amending` → **present** (with its absolute path); `stopped: false` with `on_main: absent` → **missing**, exactly as before this feature (§3.4's `ready:` row — this is row F only, never rows D/E, which also read `absent` on `origin/<default>` but return `stopped: true`); `stopped: false` with `on_main: unmanaged` → fall back to a raw filesystem presence check, exactly as before this feature (row H's own silent-skip contract); `stopped: true` → still never a stop for `ready:` — map the row to exactly one of three ⚠ reasons, never conflating them, because they are three different repository states, not one: rows D/E → ⚠ **authored only on `<branch>`, not merged** (naming the branch and any open PR); rows C′/C after a failed retry → ⚠ **on `<default>` but your local checkout is stale or dirty, so it could not be confirmed**; rows G/I (including the run's own `specs_git: blocked`) → ⚠ **could not be verified against any ref** (naming the returned `degraded` clause where present). Each is recorded verbatim as a readiness finding — `ready:` itself never asks a further question, retries, or stops on top of what came back: row C's own prompt-once-and-re-test-once (`phase-handoff.md` §3.3 row C, `:139-143`) and row C′'s own immediate stop naming the blocking files are `require-on-main`'s contract, already executed synchronously inside this very step; `ready:` only records whichever `stopped`/`degraded` state the call returned. Record each ARD as present (with its absolute path) or absent — its on-main state is Phase 2.5's job. Do not open/read file contents yet beyond what's needed for these checks — full reads happen in Phase 4 via the reviewer.
+   For each `specification.md` and `design.md` path located above (the `_ARD.md` files are handled by Phase 2.5's `ard-resolution.md`, not here), execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against its repo-relative path and map its §3.7 return value by `stopped` first, never by `on_main` alone — never a stop, per this command's defining trait: `stopped: false` with `on_main: pass`/`pass_amending` → **present** (with its absolute path); `stopped: false` with `on_main: absent` → **missing**, exactly as before this feature (§3.4's `ready:` row — this is row F only, never rows D/E, which also read not-on-ref against `<default-ref>` (`phase-handoff.md` §3.2) but return `stopped: true`); `stopped: false` with `on_main: unmanaged` → fall back to a raw filesystem presence check, exactly as before this feature (row H's own silent-skip contract); `stopped: true` → still never a stop for `ready:` — map the row to exactly one of three ⚠ reasons, never conflating them, because they are three different repository states, not one: rows D/E → ⚠ **authored only on `<branch>`, not merged** (naming the branch and any open PR); rows C′/C″/C — C after a failed retry — → ⚠ **on `<default>` but your local checkout is stale or dirty, so it could not be confirmed** (C″ belongs here and not with G/I: it is a local divergence on the default branch — an uncommitted edit or a committed-but-unpushed one — and the artifact is on `<default>`); rows G/I (including the run's own `specs_git: blocked`) → ⚠ **could not be verified against any ref** (naming the returned `degraded` clause where present). Each is recorded verbatim as a readiness finding — `ready:` itself never asks a further question, retries, or stops on top of what came back: row C's own prompt-once-and-re-test-once (`phase-handoff.md` §3.3 row C, `:139-143`) and row C′'s own immediate stop naming the blocking files are `require-on-main`'s contract, already executed synchronously inside this very step; `ready:` only records whichever `stopped`/`degraded` state the call returned. Record each ARD as present (with its absolute path) or absent — its on-main state is Phase 2.5's job. Do not open/read file contents yet beyond what's needed for these checks — full reads happen in Phase 4 via the reviewer.
 
 3. **Quick Jira status peek (display only — not the ground truth).** Read
    `<jira_export_root>/<jira_key>-index.md`'s `| Key | Type | Status | Summary | Role |` table directly
@@ -119,8 +121,10 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT possible for a large multi-Epic VI
   reason: <one-line>
   current_model: <the model this orchestrator is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # jira-reader (Phase 2); the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
-  review_model:    <§2 Opus chain>     # readiness-reviewer (caller-pinned; recorded)
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader (Phase 2); the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
+  review_model:    <§2.3 review tier>     # readiness-reviewer (caller-pinned; recorded)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
 ```
@@ -136,7 +140,7 @@ falls to the Sonnet floor — record the degradation in `notes` and the final re
 Invoke `jira-reader` with `depth: vi-plus-epics` — this is the authoritative status/requirement source
 the reviewer verifies the declared status against (never Phase 1's status peek).
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -185,7 +189,7 @@ across the in-scope Epic `.md` file(s) and any `specification.md`(s)/`design.md`
 — that is every artifact except the one ⚠ reason where no local copy exists at all: **authored only on
 `<branch>`, not merged** (rows D/E), which has no local path on the checked-out `<default>` to grep and is
 excluded from this grep pass, not silently treated as absent; its own ⚠ finding already carries in Phase
-3(b). The other two ⚠ reasons (rows C′/C's stale-or-dirty local checkout; rows G/I's unverifiable-against-
+3(b). The other two ⚠ reasons (rows C′/C″/C's stale-or-dirty local checkout; rows G/I's unverifiable-against-
 any-ref) still have a local file on disk and are grepped exactly like a ✅ artifact — their ⚠ is about
 handoff verification, not about content availability. Record, per requirement: which Epic(s) mention it,
 whether a `specification.md` mentions it, whether a `design.md` mentions it, or "not found by ID in any
@@ -230,7 +234,7 @@ artifact paths from Phase 1 (the reviewer reads each end-to-end itself — it ca
 `grep`), the Phase 2 declared statuses, `applicable_ard` (omit entirely when Phase 2.5 was `none`),
 and a pointer to the rubric.
 
-→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2 Opus chain>`):
+→ task(agent_type: "dev-workflows:readiness-reviewer", model: `<review_model — §2.3 review tier; under §10, run_flags.enforced_model>`):
   > "Review readiness for this brief:
   >
   > Task description: [one paragraph: <VI> [+ <EPIC>], the declared status(es), what is being verified]
@@ -293,8 +297,8 @@ plugin-gap halt (see Invariants).
    ```
 
 3. **Hand off** `_readiness.md` (commit-when-asked — never automatic). Present
-   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's consent choice verbatim:
-   `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]`.
+   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **advisory** array verbatim (no §3.4 row gates `_readiness.md`; `implement:` Phase 0.5 reads it as advice and never blocks), after that section's push-target probe:
+   `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (no command stops on this; what reads it reads your working copy)", "Cancel"]`.
    On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2)
    with `prefix: ready`; `feature_folder` = the VI dir or Epic subdir step 2 wrote into;
    `deliverable_paths` = `_readiness.md`; `title: <VI|EPIC> Update readiness snapshot`; and `body_facts` =
@@ -448,6 +452,8 @@ concurrently.
 > Return: what was changed and why, OR 'no update required'."
 
 **Agent 4 — Session maintenance** (dev-workflows:impl-maintenance):
+
+**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 > "Analyse this session and return a Lessons Learned report.
 >
 > Session handoff:
@@ -569,7 +575,7 @@ ADDITIVE — this phase itself NEVER fails the run and touches neither `_readine
 - ALWAYS pass the Phase 2 declared status to `readiness-reviewer` exactly as read — never inferred,
   never re-derived
 - ALWAYS resolve the `model_routing` block at Phase 1.5 and pin `jira-reader` to the §2.1 detection chain;
-  `readiness-reviewer` is pinned by the caller to the §2 Opus chain; coordination + the Phase 3
+  `readiness-reviewer` is pinned by the caller to the §2.3 review tier; coordination + the Phase 3
   deterministic skeleton run on `current_model`
 - ALWAYS invoke `readiness-reviewer` before Phase 5 — no verdict is written or reported without it
 - ALWAYS pass `Change type: docs` in the Phase 6 change summary block

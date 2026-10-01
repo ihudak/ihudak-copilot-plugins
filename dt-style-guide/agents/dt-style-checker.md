@@ -20,9 +20,29 @@ docs-style-checker finding schema.
 ```yaml
 files:     [<absolute paths of files to check>]
 doc_type:  epic | prd | ard | product-docs | general
+known_conventions:        # optional; a list of deliberate, non-negotiable conventions
+  - <one convention per entry, in the caller's own words>
 ```
 
 `doc_type` affects severity calibration (see below). Default: `general`.
+
+**`known_conventions` — deliberate conventions you must NOT report.** An optional list of
+things the calling skill has *chosen*, usually because another authority mandates them: a
+format's literal section headings, a house punctuation convention, a bracketed requirement-ID
+form, a wikilinked tracker key, an internal-document exemption from the trademark rule.
+**Treat every entry as correct and out of scope** — do not raise it at any severity, and do
+not raise a near-variant of it either. Where a style rule and a listed convention genuinely
+collide, the convention wins and the rule is simply not applied to that construct.
+
+This field is **contractual, not advisory.** It exists because callers were already passing
+conventions as free-text prose and this agent was already honouring them — being LLM-based,
+it could — which worked but relied on undocumented behaviour. Measured on one Value
+Increment: a bare dispatch returned two MAJOR findings and **both were wrong**, one of which
+would have put a factual error about a product surface into customer-facing documentation; the
+same artifact dispatched with an explicit conventions list returned 14 findings, every one a
+genuine NIT, with zero false positives. Preventing a false finding before generation is
+cheaper and more reliable than triaging it afterwards, and it removes the need for an
+orchestrator to override a fix path the user explicitly chose.
 
 ## Procedure
 

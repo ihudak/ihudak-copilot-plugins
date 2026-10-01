@@ -13,22 +13,22 @@
     {
       "name": "dev-workflows",
       "source": "dev-workflows",
-      "description": "Full product-development lifecycle workflow skills for GitHub Copilot CLI: idea → create-vi → create-ard → specify → design → epics → implement → document → release-notes → ready, plus vuln (CVE remediation), upgrade, update-vi, api-guideline-reviewer, guideline-reviewer, docs-profile, feedback, and prompt utilities. Strong-tier model routing (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), branch management, dispatched review sub-agents, and automated maintenance. Each phase hands its artifact to the next through the specs repo's default branch, and the consuming skill refuses to start until it has landed. Optional read-only grounding: on shipped product docs ($DOCS_PATH), on tracked vault prior art ($VAULT_PATH), on the counterpart space's docs for space-constrained document: runs, and on mounted code for idea: --ground-code. 21 user-facing skills + 34 sub-agents.",
-      "version": "2.30.0",
+      "description": "Full product-development lifecycle workflow skills for GitHub Copilot CLI: idea → create-vi → create-ard → specify → design → epics → implement → document → release-notes → ready, plus vuln (CVE remediation), upgrade, update-vi, api-guideline-reviewer, guideline-reviewer, docs-profile, feedback, and prompt utilities. Role-split model routing — Anthropic models do the work, top OpenAI models review it — with branch management, dispatched review sub-agents, and automated maintenance. Each phase hands its artifact to the next through the specs repo's default branch, and the consuming skill refuses to start until it has landed. Optional read-only grounding on shipped product docs, tracked vault prior art, the counterpart space's docs, and mounted code. 21 user-facing skills + 35 sub-agents.",
+      "version": "2.32.0",
       "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/dev-workflows"
     },
     {
       "name": "dt-style-guide",
       "source": "dt-style-guide",
       "description": "Dynatrace corporate style guide checker and writing-aid plugin. Enforces terminology, trademarks, voice/tone, grammar, formatting, and inclusive-language rules from styleguide.dynatrace.com. Includes dt-review-pr (review PR doc changes), dt-review-docs (review files/directories with optional --fix), dt-style-refresh (update vendored rules), a dt-style-rules skill, two dispatched sub-agents (dt-style-checker, dt-doc-fixer), and eight vendored reference docs. Acts as a fallback for dev-workflows when no repo-configured prose linter is available.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/dt-style-guide"
     },
     {
       "name": "obsidian-llm-wiki",
       "source": "obsidian-llm-wiki",
       "description": "LLM Wiki pattern for an active Obsidian vault. Eleven skills (wiki-init, wiki-ingest, wiki-scan, wiki-query, wiki-save, wiki-lint, wiki-hot, wiki-tags-refresh, wiki-schema, wiki-task, wiki-tasks-extract) for ingesting, querying, saving, linting, and managing a persistent wiki compiled from meetings, projects, and daily notes. Includes task management: create individual tasks and batch-extract tasks from wiki content.",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "homepage": "https://github.com/ihudak/ihudak-copilot-plugins/tree/main/obsidian-llm-wiki"
     },
     {

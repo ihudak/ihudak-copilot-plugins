@@ -12,11 +12,13 @@ Each token is one of: `component:1.2.3` (exact), `component:minor` (latest patch
 
 `component` can be a library, framework, language runtime, build tool, or path like `.github/workflows`.
 
-Each component is committed on its own as soon as its gates pass; the branch is pushed once, and a pull request opened where the host allows one — see Phase 2's step 6.5 and step 7.5.
+Each component is committed on its own as soon as its gates pass — see Phase 2's step 6.5 and step 7.5 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md`); the branch is pushed once for the batch where §2.4's consent choice, an `origin` and §2.5's push itself all allowed it, and a pull request opened where **§2.4's consent choice**, §2.8's base-branch ladder and §2.6's `gh` capability probe allowed one as well — §3.1's rows rather than any list written out here are the authority on which line the run emitted. **§2.4 is named in both halves rather than carried forward from the first**, because its second option (*"Push the branch only — no pull request"*) allows the push and refuses the pull request. The commit is prompt-free; only the push and the pull request sit behind a consent choice, asked once for the batch.
 
 ---
 
 ## Phase 0 — Specs-repo preflight
+
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from an earlier run, retry an artifact commit that failed to push, and settle the branch. This runs against `$SPECS_PATH` only — `git -C "$SPECS_PATH"`, never a `cd`, so the code repo this run is about to upgrade is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal `commit-artifacts` step skips on it.
 
@@ -28,14 +30,14 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 2. **Resolve requested targets** — Apply the `Version Resolution` section below to each requested token.
 
-3. **Delegate planning in parallel** — Spawn one planner task per requested component. Use a single agent message for the whole batch.
+3. **Delegate planning in parallel** — Spawn one planner task per requested component. Use a single agent message for the whole batch. Per-component classification does not happen until step 5 (`upgrade-planner.md` says so in its own words), so the `model_routing` block this dispatch carries is **provisional**: start at `MODERATE`, the rung `vuln:` Step 0 takes for the same reason, and let step 5's classification be the run's.
 
    Use this pattern for each component:
 
    ```
    task(
      agent_type: "dev-workflows:upgrade-planner",
-     model: `<detection_model — §2.1 detection chain>`,
+     model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
      description: "Plan component upgrade",
      prompt: "## Upgrade Plan Request
      repo: [absolute repo path]
@@ -50,9 +52,11 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [SIMPLE | MODERATE | SIGNIFICANT | HIGH-RISK]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
-       detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+       defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+       detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: <true for SIGNIFICANT/HIGH-RISK, false otherwise>
        notes: <any §2 / §2.1 fallback or degradation>"
@@ -94,7 +98,7 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 ### Phase 2 prep (once)
 
 1. **Create feature branch**
-   - Run `git status --porcelain`. If dirty, show the diff summary and ask via `ask_user` whether to stash, proceed anyway, or cancel. On **stash**, record the resulting stash as `stash_ref`; on **proceed anyway**, record the `git status --porcelain -z --untracked-files=all` paths as `pre_existing_dirty` — `-z` is required, or a path carrying a space, a `"`, a `\`, or a non-ASCII byte is quoted and octal-escaped, breaking the set subtraction `code-repo-handoff.md` §2.2 carve-out 1 relies on. Steps 6.5 and 7.5 need both (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-outs 1–2); a clean tree records `null` for each.
+   - Run `git status --porcelain -z --untracked-files=all`. If dirty, show the diff summary and ask via `ask_user` whether to stash, proceed anyway, or cancel. The flags match the capture below deliberately: as a boolean test the bare form would do, but two forms on one line invite a later reader to "simplify" the capture to match the test and silently reintroduce the quoting bug the capture's `-z` exists to prevent. On **stash**, record the resulting stash as `stash_ref`; on **proceed anyway**, record the `git status --porcelain -z --untracked-files=all` paths as `pre_existing_dirty` — `-z` is required, or a path carrying a space, a `"`, a `\`, or a non-ASCII byte is quoted and octal-escaped, breaking the set subtraction `code-repo-handoff.md` §2.2 carve-out 1 relies on. Steps 6.5 and 7.5 need both (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.2 carve-outs 1–2); a clean tree records `null` for each.
    - Resolve the branch name per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/branch-naming.md` — **the repo's own documented convention wins**. Read the repo's `CONTRIBUTING.md`, `CONTRIBUTION.md`, `README.md`, `DOCUMENTATION-GUIDELINES.md`, `.github/copilot-instructions.md` (+ `.github/`) for a branch-naming section (§1.1) and fill its segments (§1.2): an **identity** placeholder from the §2 ladder (`$GIT_USER_INITIALS` → `git config user.initials` → inference → the §2.5 prompt), an **issue-key** segment from the run's Jira key when it has one (else the documented no-issue literal), and the **description** segment from the slug `upgrade-<component>-to-<version>` (or `upgrade-<first>-and-<N>-more` for a batch). Never add an identity segment the pattern does not ask for. Only when no convention is documented (§1.4) build `<prefix>/<slug>` with the §2 ladder's fallback `chore/`.
    - Resolve `<base>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.8's ladder (origin/HEAD gated on the named ref existing, then `main`, then `master`, then `develop`). If HEAD is on a branch other than `<base>` with commits `<base>` does not have — `git log origin/<base>..HEAD --oneline` non-empty (§2.8 yields a `<base>` only where `origin/<base>` exists) — ask whether to branch from current position, branch from `<base>`, or cancel. An exhausted ladder means there is no base to measure against or to branch from: ask nothing, note "Base branch unresolved — branching from the current position," and cut the branch from HEAD.
    - Run `git checkout -b <branch-name>`. If it exists, append `-<7-char-sha>`.
@@ -104,14 +108,30 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    ```
    task(
      agent_type: "dev-workflows:test-baseliner",
-     model: `<detection_model — §2.1 detection chain>`,
+     model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`,
      description: "Capture test baseline",
      prompt: "Mode: capture
      Project root: [absolute repo path]"
    )
    ```
 
-   Store the returned baseline; do not re-run baseline capture per component.
+   **Store the returned `## Test Baseline` block whole** and re-supply it as `baseline_block` on every executor dispatch below — its `### Suites` rows are what let verify tell a suite that regressed from one that could not run at either end, and `passing_count` / `passing_tests` are re-keyed from it, never in place of it. Do not re-run baseline capture per component.
+
+   Act on its `Status` before executing anything: `PARTIAL` names the suites this batch's verification will not cover — list them on the Upgrade Summary's `Not verified:` line and continue, since a runner that is not installed for one language is not a reason to leave another's component unupgraded. `NO_TESTS` is not a failure and is not asked about — every suite ran cleanly and the repository holds no tests (`dev-workflows:test-baseliner` capture step 4), so nothing was lost and no component's finish is marked down for it.
+
+   `RUN_FAILED` or `COMMAND_NOT_FOUND` means **nothing was captured, and what to do about it is the operator's decision rather than this command's** — the same question `vuln:` Step 3 puts, one capture serving one run in both. Surface the block's `### Suites` rows and its `### Notes` lines first — a hint has an answer to give wherever a note names the runner's own command — then ask:
+
+   `choices: ["Specify test command to use", "Upgrade unverified (the pull request opens as a draft carrying the DO-NOT-MERGE banner)", "Cancel this run"]`
+
+   - **Specify test command to use** → take free text, record it as `test_command_hint`, and re-dispatch the capture **immediately**, adding the line `command_hint: [the answer]` to the prompt. Act on the returned `Status` by this same list. Ask at most twice in a run; after that proceed as the option below does, with the last capture failure as the recorded reason.
+   - **Upgrade unverified** → execute every component. Each that reaches its verify finishes `TESTS_NOT_RUN`, because verify refuses a baseline covering no suite before it runs anything (`dev-workflows:test-baseliner` verify's pre-step gate), so the batch's pull request is a draft the banner says not to merge (step 7.5, `clean_finish: false`).
+   - **Cancel this run** → stop before the first component executes. **The branch step 1 cut stays**, empty: this plugin never deletes a branch (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §1 rule 3), so name the stray ref in the report rather than leaving it unexplained. Nothing was edited and no component is reported upgraded.
+
+   **Asked once for the batch, because the baseline is captured once for the batch** — the answer is a property of the repository and this run works one, so re-asking per component would put the same question to the same tree.
+
+   **Where `test_command_hint` was recorded, every later `test-baseliner` call in this run carries it** — which here means every `upgrade-executor` dispatch carries it as `command_hint:`, because the verify calls are the agent's and not this command's (its step 3). **A verify over a different set of suites is not a comparison**, and dropping the hint does not merely lose the verification, it manufactures a wrong answer: a hinted suite the baseline recorded pairs with nothing at verify, so its every baseline passing test falls out as **Missing from run** and the report reads `REGRESSIONS` against an upgrade that caused none — which this command's own "Handling Test Failures" would then put to the operator as a revert decision. Where the hint was all that was detected, verify instead detects nothing and returns `COMMAND_NOT_FOUND`, finishing every component `TESTS_NOT_RUN` after the operator supplied a command that worked.
+
+   **And report every `### Notes` line the block opens with `CAVEAT: ` before executing, whatever the `Status` was** — `OK` included, which is the arm on which a marked line is the return's own account of a baseline that is not what its counts claim: a qualifying suite nothing ran, counts a `Make` indirection may have summed twice, a `Make` fold's identifiers unattributed to what printed them — three states the `Status` and the counts show nothing of (`dev-workflows:test-baseliner` capture step 5). The mark is the agent's, so nothing here judges which note matters; an unmarked note records where a command ran and is not carried. Each marked line goes onto the Upgrade Summary's `Caveats:` line, which is batch-level for the same reason `Not verified:` is.
 
 ### Per-component loop (sequential, in requested order)
 
@@ -120,11 +140,15 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
    ```
    task(
      agent_type: "dev-workflows:upgrade-executor",
-     model: `<detection_model — §2.1 detection chain — for SIMPLE/MODERATE; planning_model — §2 Opus chain — only if HIGH-RISK>`,
+     model: `<detection_model — §2.1 detection chain — for SIMPLE/MODERATE; planning_model — §2 Opus chain — only if HIGH-RISK; under §10, run_flags.enforced_model>`,
      description: "Execute component upgrade",
      prompt: "## Upgrade Execution Request
      repo: [absolute repo path]
      phase: full
+     enforced_model: [run_flags.enforced_model, or omit]   # §10 — the agent passes it on its own test-baseliner dispatch
+     command_hint: [the recorded `test_command_hint` — include this line only where Phase 2 prep step 2 recorded one; it must reach step 3's verify call]
+     baseline_block: |
+       [the captured ## Test Baseline block, verbatim and whole]
      baseline:
        passing_count: [captured count]
        passing_tests:
@@ -133,9 +157,11 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
        classification: [component class]
        reason: <one-line>
        current_model: <the model this orchestrator is running under>
-       detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
-       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override); upgrade-executor escalates here only if HIGH-RISK
-       review_model:  <§2 Opus chain>    # code-review (dispatch-pinned to this chain; recorded, no override)
+       enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+       defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+       detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # upgrade-planner, test-baseliner; upgrade-executor (SIMPLE/MODERATE); review-fixer
+       planning_model: <§2 Opus chain>   # risk-planner (SIGNIFICANT/HIGH-RISK; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model); upgrade-executor escalates here only if HIGH-RISK
+       review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
        opus_available: <true if a §2 Opus model resolved, else false>
        gate_tests_on_review: [true for SIGNIFICANT / HIGH-RISK, false otherwise]
        notes: <any §2 / §2.1 fallback or degradation>
@@ -146,18 +172,19 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
 3a. **Handle an `upgrade-executor` stop.** If the executor returns `status: BLOCKED`, the upgrade plan at `plan_file` could not be read — an orchestrator bug, not a user choice: report the unreadable path to the user, mark this component `BLOCKED` in the Step 7 results table, and stop working this component (do not retry with a fresh planning pass). This applies regardless of classification — skip steps 4–6 for this component and continue the per-component loop with the next one.
 
-4. **Review gate for SIGNIFICANT / HIGH-RISK** — If the executor returns `status: AWAITING_REVIEW`, run the Opus code-review gate before any test verification:
+4. **Review gate for SIGNIFICANT / HIGH-RISK** — If the executor returns `status: AWAITING_REVIEW`, run the review-tier code-review gate before any test verification:
    - Capture the diff to a temp file: write `git add -N . && git diff` to `command mktemp -t dw-upgrade-diff-XXXXXX` (never inside a repo tree) and record its path as `review_diff_file`
    - Write the executor output to a temp file (`command mktemp -t dw-upgrade-claims-XXXXXX`, never inside a repo tree) and record its path as `claims_file`. Invoke `code-review` using the approved risk plan, the diff (from `review_diff_file`), and `claims_file: [the path]` (dispatch-pinned to Opus; recorded as `review_model` above, no `model:` override needed)
    - **Check the review's first line before acting on the verdict.** If it is `Diff: unreadable at <path>`, the orchestrator's own `review_diff_file` could not be read — an orchestrator bug, not a user choice: surface the unreadable path to the user and stop working this component, marking it `BLOCKED` in the Step 7 results table. Do NOT triage the finding and do NOT dispatch `review-fixer`: the finding names a capture failure no fixer can act on, and running the cycle would spend a fix dispatch and a re-review to arrive back here.
    - **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
-   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain>` for the surviving `BLOCKER` and `MAJOR` findings
-   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this component `BLOCKED` in the Step 7 results table, and stop working this component — skip steps 5–6 and continue the per-component loop with the next one. Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the Opus review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
+   - If review returns `BLOCK` or `PASS WITH RECOMMENDATIONS`, invoke `review-fixer` with model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>` for the surviving `BLOCKER` and `MAJOR` findings
+   - **Handle a `review-fixer` stop.** If its `Stop condition flag` is `NEEDS HUMAN`, do NOT re-run the review: surface the deferred BLOCKER(s) to the user with the reason `review-fixer` gave, mark this component `BLOCKED` in the Step 7 results table, and stop working this component — skip steps 5–6 and continue the per-component loop with the next one. Only when the flag is `CLEAR` do you **overwrite `review_diff_file`** with a fresh `git add -N . && git diff` and re-run the review-tier review once against that refreshed path — so the re-review reads the post-fix diff, not the stale pre-fix capture
    - If the second verdict is still `BLOCK`, stop and escalate; do not continue to tests
+   - **The recorded verdict names the version it was taken against.** Both the resumed verify step below and any regression fix that follows it change the tree after the review that produced this verdict, so the run's report states what the verdict covers and names the edits that followed it, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where nothing followed it, it says that too.
 
-5. **Resume verify step after review** — Re-invoke `upgrade-executor` with `phase: verify-resume`, the original `READY` plan (from `plan_file`), and the same baseline block captured in Phase 2 prep. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
+5. **Resume verify step after review** — Re-invoke `upgrade-executor` with `phase: verify-resume` (and the same `enforced_model:` where the first dispatch carried one), **the same `repo:` this component's first dispatch carried**, the original `READY` plan (from `plan_file`), the same `baseline_block` captured in Phase 2 prep, and the same `command_hint:` where one was recorded. **`repo:` and `command_hint:` are not optional on a resume**: this is the call that reaches the verify step, which takes its `Project root:` from `repo:` and must run the command the capture ran. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
-6. **If the executor returns `status: TEST_REGRESSION`**, follow "Handling Test Failures" below, then re-invoke `upgrade-executor` with `phase: regression-resume` + the chosen `regression_decision`, the original `READY` plan (from `plan_file`), and the same baseline block. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
+6. **If the executor returns `status: TEST_REGRESSION`**, follow "Handling Test Failures" below, then re-invoke `upgrade-executor` with `phase: regression-resume` (and the same `enforced_model:` where the first dispatch carried one) + the chosen `regression_decision`, the same `repo:`, the original `READY` plan (from `plan_file`), and the same baseline block. If the resumed agent returns `status: BLOCKED`, the re-supplied file path could not be read: report the named path to the user and stop this component. Do NOT retry, and do NOT reconstruct the artifact — a resume that re-derives its own input is the failure `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/context-management.md`'s read-failure contract exists to prevent.
 
 6.5. **Commit this component (in-loop, prompt-free)** — Once this component's own gates have settled — its review verdict is non-`BLOCK` or the user chose to keep it, and its verify step has returned — commit it before moving to the next one. Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` and execute **§2.1–§2.3 only** (the split-call form of §2.12 — the gate runs every time): stage per §2.2 honouring `pre_existing_dirty`, and commit per §2.3 with a subject derived from the repo's own `git log` — with a Jira key `<KEY> upgrade <component> to <version>`, otherwise matching whatever convention that log shows. Do **not** push here and do **not** ask §2.4's choice; step 7.5 owns both.
 
@@ -169,19 +196,21 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 
    **"Stop and escalate" on a persisting `BLOCK` stops the component, not the run.** The loop continues with the next component; step 7.5 still runs at the end. A reading that stops the whole run would leave every earlier component committed but never pushed.
 
-7. **Collect results** — Accumulate one summary row per component. Preserve the classification, review verdict, related upgrades applied, any regression notes, and this component's commit sha (or "no changes").
+7. **Collect results** — Accumulate one summary row per component. Preserve the classification, review verdict, related upgrades applied, any regression notes, every `CAVEAT: ` line and every `NEW-FAILURE: ` line this component's executor copied into the `notes` of **any** return it made — not only its last, since a `regression-resume` runs no verify of its own (`upgrade-executor`'s Phase resume note), so a New failure met at the first verify is absent from the `TEST_REGRESSION_KEPT` or `TEST_REGRESSION_REVERTED` that ends the component (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/handoff/upgrade-executor.md`) — which its `status` does not gate, so read them on `OK` as on any other value — and this component's commit sha (or "no changes").
 
 7.5. **Code-repo handoff (push + PR, once for the batch)** — After the loop, cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` and execute the full `finish-code-branch` entry point (§2) inline. Step 6.5 already committed every component, so §2.2 takes its `nothing staged` path and the call continues into §2.4's consent choice and §2.5–§2.6 — the branch carries commits to push (§2.12).
 
-   Pass the §2.11 inputs: `repo` and `branch` from Phase 2 prep step 1; `pre_existing_dirty` and `stash_ref` as recorded there; `title` = `<KEY> upgrade <component> to <version>` for a single component, or `<KEY> upgrade <first> and <N> more` for a batch (dropping the key in a run with none); `body_facts` = the Upgrade Summary rows, each component's classification and review verdict, and the test result against the Phase 2 prep baseline; `clean_finish: false` when any component ended `BLOCKED` or with a review still `BLOCK` or with kept regressions, `true` otherwise. Emit the §3.1 `Code repo:` outcome line with the Step 7 results table. Once it is emitted, remove each component's now-unread temp files — `command rm -f -- "<plan_file>" "<review_diff_file>" "<claims_file>"` — for every component whose disposition above does not still cite one of those paths in its own report.
+   Pass the §2.11 inputs: `repo` and `branch` from Phase 2 prep step 1; `pre_existing_dirty` and `stash_ref` as recorded there; `title` = `<KEY> upgrade <component> to <version>` for a single component, or `<KEY> upgrade <first> and <N> more` for a batch (dropping the key in a run with none); `body_facts` = the Upgrade Summary rows, each component's classification and review verdict, and the test result against the Phase 2 prep baseline; `clean_finish: false` when any component ended `BLOCKED` or `TESTS_NOT_RUN`, or with a review still `BLOCK`, or with kept regressions, or with a `NEW-FAILURE: ` line in the `notes` of any return it made, `true` otherwise — that last condition being no status test and not makeable into one, since a New failure moves no `test-baseliner` `Status` and the component reaches here `OK` — `upgrade-executor`'s own green value, never `vuln-fixer`'s `SUCCESS` — with a red suite behind it (`dev-workflows:test-baseliner` verify step 6); and `commit_template: null` — `upgrade:` documents no full template of its own, so §2.3 derives the rest of each subject from the repo's own `git log`. Emit the §3.1 `Code repo:` outcome line with the Step 7 results table. Once it is emitted, remove each component's now-unread temp files — `command rm -f -- "<plan_file>" "<review_diff_file>" "<claims_file>"` — for every component whose disposition above does not still cite one of those paths in its own report.
 
 8. **Post-batch maintenance** — After all components finish, invoke `impl-maintenance` with a compact session handoff summarising what was upgraded, key failures or workarounds, and the overall result. **Always pass `Command run: upgrade:`** in that handoff — omitting it makes `impl-maintenance` default to `implement:`, mislabeling the run.
+
+   **Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 
 **Context hygiene.** This was a large run — consider **`/compact`** to free context before your next task (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §3 — non-pipeline, so `/compact` only; guidance only).
 
 9. **Persist plugin feedback (automatic)** — After `impl-maintenance` returns, project its plugin-facing slice into the specs repo by citing `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and calling its `emit-auto` entry point (§6). Pass the Lessons Learned report, `command: upgrade:`, the run's `jira_key` (or `null`) and `source`, and `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). `emit-auto` renders only the report's **Command workflow improvements**, **New agents / skills**, and plugin **Reference docs** sections plus the **Key observations** that triggered them (§4 plugin-facing predicate) — never target-project `copilot-instructions.md`/hook advice — as `origin: auto` entries, dedupes by stable `id` (§3), resolves the target via the §2 specs-first ladder, and writes silently. List the persisted path (or "no plugin-facing signal — nothing persisted") after the lessons-learned report. ADDITIVE — this step NEVER fails the run, NEVER commits (still true — the assertion is scoped to *this step*, which only writes the feedback file; those writes are committed by the separate terminal `commit-artifacts` step, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4), and NEVER writes into the code repo or the current working directory.
 
-10. **Commit session artifacts (terminal)** — Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (upgrade:)` — or `NOISSUE …` when the run resolved no Jira key — and pushes per §4 step 5. It NEVER touches the code repo this run just upgraded: that repo's per-component commits, its push, and its pull request were steps 6.5 and 7.5, through a different reference and against a different remote. It NEVER force-pushes, NEVER fails the run, and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Print its §6 outcome line as the run's last output, prefixed `Specs repo:`, with any guard notice repeated in full. No `resume.md` is written for `upgrade:` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 skip list).
+10. **Commit session artifacts (terminal)** — Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits `<KEY> Add dev-workflows session artifacts (upgrade:)` — or `NOISSUE …` when the run resolved no Jira key — and pushes per §4 step 5. It NEVER touches the code repo this run just upgraded: that repo's per-component commits were step 6.5, and whatever push and pull request §2.4's consent choice allowed were step 7.5, through a different reference and against a different remote. It NEVER force-pushes, NEVER fails the run, and skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Print its §6 outcome line as the run's last output, prefixed `Specs repo:`, with any guard notice repeated in full. No `resume.md` is written for `upgrade:` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 skip list).
 
 ---
 
@@ -210,9 +239,23 @@ Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_
 | redis      | -      | -      | -           | -      | SKIPPED | Not found in project        |
 
 Tests: 142 passed, 0 regressions (baseline: 142 passing)
+Not verified: Jest/npm (`CI=true npm test`, frontend/package.json) — baseline PARTIAL
+Caveats: none
 ```
 
-Append a `### Review triage` section with one line per SIGNIFICANT/HIGH-RISK component that went through Opus review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no Opus review)" for components that never reached review.
+**The `Status` vocabulary is fixed here, not inferred from the example rows above.** It is
+exactly `OK`, `TESTS_NOT_RUN`, `SKIPPED`, `BLOCKED`, `BUILD_FAILED`, `TEST_REGRESSION_KEPT`,
+`TEST_REGRESSION_REVERTED`. **`OK` means the comparison happened and found no regression, and
+nothing else earns it** — a component whose post-upgrade verify could not run, or ran only in
+part, is **`TESTS_NOT_RUN`**, never `OK` with the qualification pushed into `Notes`.
+
+**`Not verified:` is the batch-level slot**, and the per-component `Notes` column is not a substitute for it: the baseline is captured once for the whole batch (Phase 2 prep), so a suite it could not cover is missed for **every** component and belongs on a line of its own. Fill it from the Phase 2 prep baseline's `### Suites` — each suite that row does not mark `OK` or `NO_TESTS`, with its command and its marker path — and write `none` where the baseline covered everything it detected. **Where the baseline covered nothing at all — a `RUN_FAILED` or `COMMAND_NOT_FOUND` capture the operator chose to upgrade past — `none` is the one thing this line must not say**, and the two get there differently. On `COMMAND_NOT_FOUND` there are no `### Suites` rows at all, so the fill rule enumerates nothing and the `none` predicate is **vacuously** satisfied — full coverage reported on the run that verified least. On `RUN_FAILED` the suites were detected and every one of them aborted, so each has a row and the fill rule enumerates them all, which is right. Say that nothing was verified, and why. A component whose own verify left something uncovered is the `Notes` column's, not this line's.
+
+**`Caveats:` is the batch-level slot for a different thing, and the two are not merged**: `Not verified:` names a suite the baseline could not cover, which its `### Suites` rows already show, while a `CAVEAT: ` line names something those rows and the counts do **not** show — a suite nothing ran though nothing failed, counts that may be summed twice, a `Make` fold's unattributed identifiers. Fill it from the Phase 2 prep baseline's `### Notes`, verbatim, one marked line per entry, whatever that baseline's `Status` was; write `none` where it marked nothing, which is every batch whose repository has none of the shapes that mint one (`dev-workflows:test-baseliner` capture step 5). A marked line an `upgrade-executor` returned in its own `notes` is that **component's** and goes in its `Notes` cell instead, since only the baseline is captured once for the batch. **Every `NEW-FAILURE: ` line goes in that cell too, named test by test**, and belongs on neither batch line: it is the one entry here that is not about coverage — the suite ran and something in it is red — it is that component's own verify that met it, and it is what moved the batch's `clean_finish` to `false`.
+
+**Where the run recorded `baseline_unverified`, the `Tests:` line says so instead of counts** — the capture failure that produced it, whether it was the operator's own answer or the run's own record after two failed `command_hint` attempts, and that every component above therefore finished `TESTS_NOT_RUN`.
+
+Append a `### Review triage` section with one line per SIGNIFICANT/HIGH-RISK component that went through review-tier review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE, no review-tier review)" for components that never reached review.
 
 Include the `impl-maintenance` lessons-learned report after the summary table.
 
@@ -236,6 +279,13 @@ the decision:
 - Map the final choice to `regression_decision: keep-anyway | revert` and re-invoke
   `upgrade-executor` with `phase: regression-resume` (see Phase 2 step 6).
 
+**`status: TESTS_NOT_RUN` is a different return and takes no `regression_decision`.** It means the
+verify call compared nothing — no failing tests to show, and nothing about this component's tests known
+either way. The changes stay applied. Report the reason the executor recorded, carry the component into
+the Upgrade Summary as unverified, and set `clean_finish: false` for the batch (step 7). Never map it
+onto `revert`: rolling an upgrade back because a suite could not be started is a decision taken on no
+evidence at all.
+
 ---
 
 ## Invariants (always enforced)
@@ -243,14 +293,16 @@ the decision:
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - NEVER skip per-component classification after planning
 - NEVER use Opus for a `MODERATE` component unless the user explicitly asks for it
-- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` component before the Opus review returns a non-BLOCK verdict
+- NEVER run tests for a `SIGNIFICANT` / `HIGH-RISK` component before the review-tier review returns a non-BLOCK verdict
 - NEVER modify files during Phase 1
 - NEVER touch files before the upgrade branch exists
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - ALWAYS capture the baseline once before executing any component
-- ALWAYS pass the same baseline block to `upgrade-executor` on `phase: verify-resume`
+- ALWAYS pass the same `baseline_block` — and the `command_hint` where one was recorded — to `upgrade-executor` on every dispatch, `phase: verify-resume` included
+- ALWAYS put a baseline capture that returns `RUN_FAILED` or `COMMAND_NOT_FOUND` to the operator before the first component executes — never store it and proceed
+- NEVER read a verify report as a pass while its `### New failures` list is non-empty — a New failure moves no `test-baseliner` `Status`, so `OK` and `PARTIAL` are both reachable with a red suite (`dev-workflows:test-baseliner` verify step 6). The list is read **beside** the `Status`, never instead of it: the `Status` arm's own return stands, the failures are named test by test in that component's `Notes` cell, and the batch finishes `clean_finish: false`
 - ALWAYS include classification in the final summary table
 - ALWAYS commit each component in step 6.5 as its gates settle, and run the full `finish-code-branch` once in step 7.5 (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` §2.12's split form) — the commits are prompt-free (§1 rule 5), the push and pull request sit behind §2.4's choice, and a run that ends with the upgrade uncommitted is a defect
-- NEVER skip step 6.5 for a component that ended `BLOCKED` or with a review still `BLOCK` — it is committed like any other and sets `clean_finish: false`, which makes step 7.5's pull request a draft carrying the DO-NOT-MERGE banner (§2.9)
+- NEVER skip step 6.5 for a component that ended `BLOCKED` or with a review still `BLOCK` — it is committed like any other and sets `clean_finish: false`, which makes any pull request step 7.5 opens a draft carrying the DO-NOT-MERGE banner (§2.9); whether one is opened at all is §2.4's consent choice, §2.8's base-branch ladder, §2.6's `gh` capability probe and §2.5's push — never this flag
 - NEVER push or ask for the pull request inside the per-component loop — one push, one pull request, one `Code repo:` line per run
 - After the run, suggest **`/compact`** (a big non-pipeline run) per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §3 — compact-only, no clear/resume pointer; guidance only, never auto-run.

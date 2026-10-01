@@ -19,12 +19,12 @@ release-notes:   → release-notes → release-notes-writer: resolve destination
 ready:           → [require-on-main: spec/design paths — gates as a finding capping PARTIAL, never stops] → ready → [readiness-reviewer@strong] → [handoff-to-main: _readiness.md] → impl-maintenance → commit-artifacts
 
 Implementation & maintenance:
-implement:       → [require-on-main: in-scope specification.md/design.md] → implement → [risk-planner@strong plan critique] → [code-review@strong] → [triage: verify each finding] → review-fixer → test-writer → tests → impl-maintenance → [handoff-to-main: escalated spec/design notes, when any] → [finish-code-branch: commit + consent-gated push/PR in the code repo] → commit-artifacts
+implement:       → [require-on-main: in-scope specification.md/design.md] → [risk-planner@strong plan critique] → implementation → test-writer → [code-review@strong] → [triage: verify each finding] → review-fixer → tests → impl-maintenance → [handoff-to-main: escalated spec/design notes, when any] → [finish-code-branch: commit + consent-gated push/PR in the code repo] → commit-artifacts
 document:        → document (dual-mode)
                     ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts   (no doc-reviewer gate in this mode)
                     └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [triage: verify each finding] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip] → commit-artifacts
-vuln:            → vuln → vuln-research → vuln-fixer (branch + fix, uncommitted) → [code-review@strong] → [triage: verify each finding] → review-fixer → tests → [finish-code-branch: commit + push/PR, per CVE, from the base branch] → impl-maintenance → commit-artifacts
-upgrade:         → upgrade → upgrade-planner → [risk-planner@strong] → upgrade-executor → [code-review@strong] → [triage: verify each finding] → review-fixer → tests → [finish-code-branch §2.2–§2.3: commit this component] ⟲ → [finish-code-branch: push/PR once for the batch] → impl-maintenance → commit-artifacts
+vuln:            → vuln → vuln-research → vuln-fixer (branch + fix, uncommitted) → [code-review@strong] → [triage: verify each finding] → review-fixer → [vuln-fixer verify-resume: tests vs the run baseline — reviewed path; the unreviewed path tests inside the first fixer call] → [finish-code-branch: commit + push/PR, per CVE, from the base branch] → impl-maintenance → commit-artifacts
+upgrade:         → upgrade → upgrade-planner → [risk-planner@strong] → upgrade-executor → [code-review@strong] → [triage: verify each finding] → review-fixer → [upgrade-executor verify-resume: tests vs the baseline — reviewed path; the unreviewed path tests inside the first executor call] → [finish-code-branch §2.2–§2.3: commit this component] ⟲ → [finish-code-branch: push/PR once for the batch] → impl-maintenance → commit-artifacts
 docs-profile:    → docs-profile → (writes .dev-workflows/docs-profile.yml as reviewable PR; consumed by document: jira mode)
 
 All seventeen in-scope skills additionally run `specs-preflight` at run start — as early as
@@ -55,8 +55,15 @@ guideline-reviewer:      → guideline-reviewer skill → guideline-reviewer age
 
 Utilities: feedback:, prompt:, prompt-brainstorm:, prompt-grill-me:
 
-"@strong" = strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller.
+"@strong" = strong reasoning tier, pinned by the caller, and it now resolves by ROLE:
+**work** steps (planning and planning critique, synthesis, delegated authoring,
+implementation, fixes) take `model-routing.md` §2, Anthropic-first — Opus
+5.5/5/4.8/4.7/4.6/4.5; **review** gates take §2.3, OpenAI-first — `gpt-6-astra` →
+`gpt-6.1-sol` → `gpt-6-sol`, falling back to the whole of §2. A review never prefers
+the session model: the point of the tier is that the reviewer is not the author.
 ```
+
+Re-measure the seventeen preflight callers from the repo root with ``grep -l '`specs-preflight` entry point' dev-workflows/skills/*/SKILL.md | wc -l`` — the execution phrase, not every bare mention.
 
 Key invariants for the VI-creation flow (`idea:`, `create-vi:`, `create-ard:`, `specify:`, `design:`, `implement:`, `epics:`, `ready:`):
 - `idea:` Phase 5 relocates `idea.md` into `$SPECS_PATH/specifications/<KEY>-<slug>/` and hands it off via `handoff-to-main` (`skills/_shared/phase-handoff.md` §2) behind the §4.3 consent choice; relocation is `idea:`'s alone — `create-vi: <KEY>` finds it there and never moves it
@@ -77,10 +84,10 @@ Key invariants enforced by all three code orchestrators (`implement:`, `vuln:`, 
 - `impl-maintenance` runs post-batch to update KB, `copilot-instructions.md`, and project docs
 
 Key invariants for `implement:` specifically:
-- Test baseline captured (Phase 2.6) **before** any source edits, using `test-baseliner`
-- `test-writer` sub-agent (Phase 3.7) writes tests for **new/changed behaviour** — mandatory for code changes
-- If no test framework is detected, user is asked explicitly — test-writing is never silently skipped
-- Full test suite verified against baseline (Phase 3.8) before Phase 4
+- Test baseline captured (Pre-Phase 3.5) **before** any source edits, using `test-baseliner` — every suite its detection table covers, all of them in a polyglot repository, or where it covers none the test command the repository declares for itself; a `PARTIAL` capture proceeds and names what it did not cover, and a `CAVEAT: ` note is surfaced whatever the `Status`
+- `test-writer` sub-agent (Phase 3.5 step 1; Phase 3B step 4a on the review-gated path) writes tests for **new/changed behaviour** — mandatory for code changes
+- If the pre-edit baseline captures nothing (`COMMAND_NOT_FOUND` or `RUN_FAILED`), the user is asked at Pre-Phase 3.5 — where a baseline can still be taken — never after the edits; a supplied command is recorded as `test_command_hint` and carried as `command_hint` on every later `test-baseliner` dispatch — test-writing is never silently skipped
+- Full test suite verified against baseline (Phase 3.5 step 4) before Phase 4
 
 Key invariants for `document:` doc-edit mode:
 - **No branch creation by default** — works on current branch unless user requests one

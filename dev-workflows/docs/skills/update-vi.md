@@ -8,7 +8,9 @@ Refreshes an existing Value Increment against its Jira source — routine update
 
 ## Synopsis
 
-    update-vi: <KEY> [@transcript-or-notes ...] [--no-docs]
+    update-vi: <KEY> [@transcript-or-notes ...] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 - **`<KEY>`** (mandatory) — the existing VI's Jira key. Format-validated only (`^[A-Z][A-Z0-9_]*-\d+$`).
 - **`[@transcript-or-notes ...]`** (optional) — one or more paths to a transcript or notes file, read as secondary, read-only grounding for the grill.
@@ -52,9 +54,11 @@ flowchart TD
 
 ## Gates
 
+Phase 6 filters next-step routes before showing them. If no downstream artifact exists to re-run, it skips the picker and continues housekeeping. Otherwise every applicable route appears with `Stop here` and the native free-text option; there is no four-option truncation.
+
 - **Phase 3.5 — Dynatrace style check**, mirroring [`create-vi:`](create-vi.md) exactly: `dt-style-guide:dt-style-checker` applies MAJOR fixes inline and re-runs once; a non-gating quality pass, skipped gracefully when the `dt-style-guide` plugin is not installed.
 - **Phase 3.6 — Structural pre-lint** ([`skills/_shared/pre-lint.md`](../../skills/_shared/pre-lint.md)), advisory only — mechanical findings fixed inline, content gaps left for the grill.
-- **Phase 4 — `vi-reviewer`.** As in [`create-vi:`](create-vi.md), this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It reviews the whole updated VI against [`skills/_shared/vi-format.md`](../../skills/_shared/vi-format.md). `PASS` / `PASS WITH RECOMMENDATIONS` proceeds. `BLOCK` triggers one inline fix cycle and one re-review; a persistent `BLOCK` is escalated per [`skills/_shared/escalation-rules.md`](../../skills/_shared/escalation-rules.md)'s "Review verdict BLOCK" choices, exactly as in [`create-vi:`](create-vi.md).
+- **Phase 4 — `vi-reviewer`.** As in [`create-vi:`](create-vi.md), this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It reviews the whole updated VI against [`skills/_shared/vi-format.md`](../../skills/_shared/vi-format.md). `PASS` / `PASS WITH RECOMMENDATIONS` proceeds. `BLOCK` triggers one inline fix cycle and one re-review; a persistent `BLOCK` is escalated per [`skills/_shared/escalation-rules.md`](../../skills/_shared/escalation-rules.md)'s "Review verdict BLOCK" choices, exactly as in [`create-vi:`](create-vi.md).
 
 ## Example
 

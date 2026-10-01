@@ -1,6 +1,6 @@
 # implement:
 
-Classifies task risk, creates a branch, plans and implements the change, writes tests, and — for risky work — runs an Opus code review before handing back a structured report.
+Classifies task risk, creates a branch, plans and implements the change, writes tests, and — for risky work — runs a review-tier code review before handing back a structured report.
 
 ## Who runs it
 
@@ -8,7 +8,9 @@ Classifies task risk, creates a branch, plans and implements the change, writes 
 
 ## Synopsis
 
-    implement: <prompt> [@path ...]
+    implement: <prompt> [@path ...] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The argument mixes free-text prose with **zero or more `@path` tokens**; each is classified **by inspection, not by matching the path string** — a single `.md` file is a spec file, a directory holding `prompt.md` and/or a `*-design.md` is a spec folder, a directory holding a `*-index.md` (or ticket-key subdirectories) is a Jira ticket folder, and any git working tree (including the current one) is a code repo. The shared Jira-input front-end runs first and unifies this grammar with [`document:`](document.md)'s: a JiraID resolves under `$VAULT_PATH/jira-products/`, a directory that inspects as a Jira export becomes `jira_export_root`, a spec folder contributes to `specs`, and everything else is `direct` (free text / `@file` — this command's original flow). A jira-driven run implements **one Epic at a time**: an explicit `<VI> <Epic>` (or a bare nested Epic key) proceeds directly; a bare VI with exactly one Epic auto-selects it; a VI with ≥2 Epics renders a status-aware picker (Jira status maps to ○ / ◐ / ●, plus an explicit "Implement one broad VI-level slice instead" choice); a VI with 0 Epics offers [`epics:`](epics.md) first, or a broad VI-level slice.
 
@@ -31,10 +33,13 @@ flowchart TD
     p2b --> prep3
     prep3 --> prep35["Pre-Phase 3.5 — Capture test baseline"]
     prep35 -- "SIMPLE / MODERATE" --> p3a["Phase 3A — Implementation (SIMPLE / MODERATE)"]
-    prep35 -- "SIGNIFICANT / HIGH-RISK" --> p3b["Phase 3B — Implementation + Opus review (SIGNIFICANT / HIGH-RISK)"]
+    prep35 -- "SIGNIFICANT / HIGH-RISK" --> p3b["Phase 3B — Implementation"]
+    p3b --> tw["Phase 3B step 4a — test-writer"]
+    tw --> rv["Phase 3B — review-tier review → triage → review-fixer"]
     p3a --> p35["Phase 3.5 — Write and verify tests (SIMPLE / MODERATE)"]
     p35 --> p4["Phase 4 — Post-implementation maintenance (both branches)"]
-    p3b --> p4
+    rv -->|Non-BLOCK| verify["Phase 3.5 post-review — lint/build + verify + fix loop"]
+    verify --> p4
     p4 --> p45["Phase 4.5 — Escalation handoff (spec/design conformance notes)"]
     p45 --> p46["Phase 4.6 — Code-repo handoff"]
     p46 --> p5["Phase 5 — Final Report"]
@@ -44,6 +49,8 @@ flowchart TD
 `implement/SKILL.md` carries 17 `## Phase` headings — plus two `Pre-Phase` steps, `Pre-Phase 3 — Create feature branch` and `Pre-Phase 3.5 — Capture test baseline`, sitting between plan approval and coding; the diagram above includes them as their own nodes because two of this repo's Key invariants name them explicitly (a branch created before any file is touched; a test baseline captured before any source edit). It dispatches eight subagents directly: `jira-reader` and `code-scanner` (both Phase 1.7, one `code-scanner` per repo in a single response capped at 4 concurrent — only when `fan_out = true`), `risk-planner` (Phase 2B, SIGNIFICANT/HIGH-RISK only, caller-pinned to the strong reasoning tier — see [Gates](#gates)), `test-writer` (Phase 3.5 / Phase 3B step 4a, writing tests for the diff), `test-baseliner` (Pre-Phase 3.5's capture, then Phase 3.5 / 3B's verify), `code-review` (Phase 3B, SIGNIFICANT/HIGH-RISK only, caller-pinned to the strong reasoning tier — see [Gates](#gates)), `review-fixer` (Phase 3B's BLOCK / PASS WITH RECOMMENDATIONS fix cycle), and `impl-maintenance` (Phase 4, session lessons-learned). No indirect dispatch reaches a ninth agent. Phase 2A/2B's codebase exploration and Phase 4's documentation/knowledge-base/instructions maintenance sweep additionally spawn `general-purpose` agents — a Copilot CLI built-in agent type, not a `dev-workflows:` one, so they sit outside both counts.
 
 ## What it needs
+
+The risky path writes tests **before** capturing the review diff, then executes verification only after the review clears. Both paths honor the pre-edit test decision: a recorded skip still runs lint/build, not verification.
 
 - **The description** — a spec file, spec folder, Jira ticket folder, code repo, or free text, classified by inspection at Phase 0. A referenced `@dir` that's missing or unrecognized is surfaced immediately, never silently skipped.
 - **A design-doc open-question guard** — when the primary description is a `design.md` (or `*-design.md`) carrying any unresolved `- [ ]` under its own `## Open questions` heading, the run refuses to proceed by default; overriding is logged in the Phase 5 report. A `specification.md`-level open question is exempt.
@@ -55,15 +62,17 @@ flowchart TD
 
 ## What it produces
 
-Code changes on the feature branch created at Pre-Phase 3, **committed** to that branch at Phase 4.6 and — behind a single consent choice — pushed, with a pull request opened where the host allows one; the commit itself is not offered as a choice, because it is local and reversible and work that was never committed is the one loss no later step can undo. At least one test per new or changed behaviour, written by `test-writer` (a missing test framework is surfaced explicitly, never silently skipped); and a structured Phase 5 Final Report (classification, branch and its `Code repo:` handoff outcome, files changed, review verdict + triage, Spec/design conformance, the four maintenance-agent summaries, session learnings, and a next-step recommendation). On the SIGNIFICANT/HIGH-RISK path with a `specification.md`/`design.md` in scope, any unresolved `missing`/`contradicts` in-scope requirement from `code-review`'s Spec/design conformance dimension is escalated as a `- [ ]` note back onto `specification.md`/`design.md` under `## Engineering review`, offered for branch + commit + push + PR at Phase 4.5 behind the same [`phase-handoff.md`](../../skills/_shared/phase-handoff.md) consent choice every producer uses. Once every Epic under a VI is implemented, the run's own forward pointer recommends [`document:`](document.md) `<VI>` next, then `release-notes: <VI>` once documented — both VI-level, run once rather than per Epic.
+Code changes on the feature branch created at Pre-Phase 3, **committed** to that branch at Phase 4.6 and — behind a single consent choice — pushed, with a pull request opened where the host allows one; the commit itself is not offered as a choice, because it is local and reversible and work that was never committed is the one loss no later step can undo. At least one test per new or changed behaviour, written by `test-writer` (a baseline that captures nothing — no marker in `test-baseliner`'s [detection table](../reference/test-suite-detection.md) qualified and the repository declares no test command of its own, or every suite it ran aborted — is put to you at Pre-Phase 3.5, before any file is edited: supply a test command, used for the baseline and every later verify alike, or skip the tests explicitly; never silently skipped, and a skip still runs the lint and build); and a structured Phase 5 Final Report (classification, branch and its `Code repo:` handoff outcome, files changed, review verdict + triage, Spec/design conformance, the four maintenance-agent summaries, session learnings, and a next-step recommendation). On the SIGNIFICANT/HIGH-RISK path with a `specification.md`/`design.md` in scope, any unresolved `missing`/`contradicts` in-scope requirement from `code-review`'s Spec/design conformance dimension is escalated as a `- [ ]` note back onto `specification.md`/`design.md` under `## Engineering review`, offered for branch + commit + push + PR at Phase 4.5 behind the same [`phase-handoff.md`](../../skills/_shared/phase-handoff.md) consent choice every producer uses. Once every Epic under a VI is implemented, the run's own forward pointer recommends [`document:`](document.md) `<VI>` next, then `release-notes: <VI>` once documented — both VI-level, run once rather than per Epic.
 
 ## Gates
 
-Phase 3B dispatches `code-review` — only on the SIGNIFICANT/HIGH-RISK path; SIMPLE/MODERATE runs have no Opus gate at all. Like every other Opus reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It runs **after** implementation and **before** tests — a `BLOCK` verdict means tests do not run yet. Findings are triaged first ([`finding-triage.md`](../../skills/_shared/finding-triage.md)) before any `review-fixer` dispatch — the fixer sees survivors only. `BLOCK` invokes `review-fixer` for BLOCKER/MAJOR findings, then one re-review passing the fixer's report back as `claims_file`; an unresolved BLOCKER after that cycle is escalated individually. `PASS WITH RECOMMENDATIONS` invokes `review-fixer` for MAJOR findings only; MINOR/NIT findings are deferred. `PASS` proceeds. Cap: one fix cycle plus one re-review.
+Phase 3B dispatches `code-review` — only on the SIGNIFICANT/HIGH-RISK path; SIMPLE/MODERATE runs have no review gate at all. Like every other review-tier reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It runs **after** implementation and **before** tests — a `BLOCK` verdict means tests do not run yet. Findings are triaged first ([`finding-triage.md`](../../skills/_shared/finding-triage.md)) before any `review-fixer` dispatch — the fixer sees survivors only. `BLOCK` invokes `review-fixer` for BLOCKER/MAJOR findings, then one re-review passing the fixer's report back as `claims_file`; an unresolved BLOCKER after that cycle is escalated individually. `PASS WITH RECOMMENDATIONS` invokes `review-fixer` for MAJOR findings only; MINOR/NIT findings are deferred. `PASS` proceeds. Cap: one fix cycle plus one re-review.
 
 Planning gates too: `risk-planner` (Phase 2B, same strong-reasoning pin) is mandatory for SIGNIFICANT/HIGH-RISK work, and can itself return a `### Re-classification` down to SIMPLE/MODERATE — the user confirms before falling back to Phase 2A. For a bug-shaped task, `risk-planner` must back its ranked hypotheses with a repro it **actually ran**, or explicitly return `Ranking withheld — no red-capable repro`; proceeding on a guess is never the silent default. On the SIMPLE/MODERATE path there is no `risk-planner` and no `code-review` — Phase 3.5's fix loop applies fixes via the session model directly, capped at 2 attempts before surfacing remaining regressions to the user.
 
-A run that ends on a failed gate — a review still `BLOCK` after its one fix cycle, or regressions you chose to keep — is still committed, and still offered for push and PR under the same consent choice — the failed gate never downgrades what you are offered. What changes is the pull request itself: it is opened as a draft whose body leads with a DO-NOT-MERGE line naming the blocking fact. Unreviewed work that exists can be reviewed later; work that was never committed cannot (`../../skills/_shared/code-repo-handoff.md` §2.9).
+A repository with several suites has all of them baselined; where some ran and some could not, the run continues and the Final Report's Deferred items name the suites it did not verify. A test this run wrote that fails sends the run to the fix loop even where no earlier test regressed.
+
+A run that ends on a failed gate — a review still `BLOCK` after its one fix cycle, failures you chose to keep, a test suite that could not run and that you accepted as unverified, or two supplied test commands that both failed — is still committed, and still offered for push and PR under the same consent choice — the failed gate never downgrades what you are offered. What changes is the pull request itself: where one is opened, it is a draft whose body leads with a DO-NOT-MERGE line naming the blocking fact. Unreviewed work that exists can be reviewed later; work that was never committed cannot (`../../skills/_shared/code-repo-handoff.md` §2.9).
 
 ## Example
 

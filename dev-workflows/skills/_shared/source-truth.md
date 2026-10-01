@@ -268,7 +268,7 @@ claims per file against the source using §3 techniques. **Severity rule
 is a **BLOCKER** UNLESS the doc contains an explicit intentional-discrepancy
 marker explaining the gap. See §7 for the marker format.
 
-**Note on `release-notes-writer`:** This agent applies the same source-truth verification to the specific option/label/count claims its draft makes (when `code_repos` is provided), recording discrepancies in its `gaps[]` for the release-notes command to escalate to the user.
+**Note on `release-notes-writer`:** This agent applies the same source-truth verification to the specific option/label/count claims its draft makes (when `code_repos` is provided), and on every run checks its conditional and quantitative claims against the acceptance criteria it was handed. Its `gaps[]` separates `kind: acceptance-criteria` (draft versus cited criterion, an authoring discrepancy) from `kind: source-truth` (Jira-supported intent versus verified code). The release-notes skill resolves the criteria kind first without an implementation-gap report; only a separate source-truth gap with code evidence reaches this reference's intended-versus-actual decision flow.
 
 ## 5. Hard rules
 
@@ -289,9 +289,11 @@ marker explaining the gap. See §7 for the marker format.
 - Reviewer severity rule: a customer-visible option / label / count
   that does not appear in the source is **BLOCKER**, not CONCERN —
   unless an intentional-discrepancy marker is present (§7).
-- Bug-report draft destination is the same vault project folder used for
-  the release-notes draft (auto-discovered by the orchestrator at
-  `<vault>/Projects/Products/**/<JIRA_KEY>*`). File name:
+- Bug-report draft destination is the ticket's vault project folder
+  (auto-discovered by the orchestrator at
+  `<vault>/Projects/Products/**/<JIRA_KEY>*`) — the folder `document:`
+  uses, which is not the release-notes draft's when that draft is written
+  into the VI's specs folder. File name:
   `<JIRA_KEY>-implementation-gaps.md`. Same hard rule as for release-notes:
   **NEVER `/tmp/`** — container restarts wipe it.
 
@@ -455,8 +457,7 @@ When `discrepancy_decisions` contains ANY entry with decision
 `document-as-spec` (where the code lags the intended phrasing),
 `skip-and-report`, or `document-as-code` **where the Jira phrasing asserts a
 specific value that contradicts the source**, the writer MUST emit a
-Markdown file alongside the release-notes draft at the auto-discovered vault
-project folder. Skip a `document-as-code` entry whose Jira phrasing is vague
+Markdown file in the auto-discovered vault project folder (§5 above names it). Skip a `document-as-code` entry whose Jira phrasing is vague
 or non-committal — "several registries" against a source with four is loose,
 not wrong. When the two readings are arguable, emit: the output is a draft
 the user reviews, so a spurious entry costs a paragraph while a miss leaves
@@ -494,8 +495,8 @@ team (or amend the Jira ticket if the gap is intentional).
                     filing a defect against the implementation team>
 ```
 
-The bug-report draft uses the same hard-rule for destination as the
-release-notes draft (vault, never `/tmp/`, never inside the docs repo).
+The bug-report draft's destination is always the vault project folder,
+never `/tmp/`, never inside the docs repo.
 
 ### 7.6 Intentional-discrepancy marker format (for the writer)
 

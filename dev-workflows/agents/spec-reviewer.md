@@ -1,11 +1,11 @@
 ---
 name: spec-reviewer
-description: "Reviews a product specification.md authored by specify: for per-stage quality (problem/scope/user-stories/acceptance-criteria/test-cases), cross-stage consistency, coverage, and identifier integrity. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
+description: "Reviews a product specification.md authored by specify: for per-stage quality (problem/scope/user-stories/acceptance-criteria/test-cases), cross-stage consistency, coverage, and identifier integrity. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-specification reviewer for drafts produced by `specify:`. Uses the strongest available
-reasoning model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** `specification.md` and checks it against the
+reasoning model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)). Reads the **whole** `specification.md` and checks it against the
 per-stage rules in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md` plus the cross-stage
 checks below. Never edits the specification.
 
@@ -70,8 +70,8 @@ Fix: <concrete recommendation, or "needs product input">
 ```
 
 Then a final line — the verdict:
-- `PASS` — no findings above MINOR.
-- `PASS WITH RECOMMENDATIONS` — MAJOR/MINOR/NIT only, no BLOCKER.
+- `PASS` — no findings at all.
+- `PASS WITH RECOMMENDATIONS` — no BLOCKER, but at least one MAJOR, MINOR or NIT. The three are a **partition**: every finding set matches exactly one. `PASS` used to read "no findings above MINOR" beside a `PASS WITH RECOMMENDATIONS` of "MAJOR / MINOR / NIT only", so a lone MINOR matched both and the verdict was the reviewer's coin-toss — and the caller dispatches a fixer on one of the two.
 - `BLOCK` — at least one BLOCKER.
 
 If nothing is actionable, say so and state the detected maturity stage.

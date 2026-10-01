@@ -1,7 +1,7 @@
 # Structural pre-lint (embedded — shared reference)
 
 Deterministic, grep-expressible structural checks the reviewer-gated commands run against a
-just-authored artifact **before** dispatching their Opus reviewer — so an Opus review pass is not
+just-authored artifact **before** dispatching their review-tier reviewer — so a review-tier review pass is not
 consumed BLOCKing on mechanical structure. **Advisory:** surface findings, inline-fix the mechanical
 ones, leave content gaps for the author, then proceed to the reviewer. Pre-lint **never hard-stops**
 on its own; the reviewer remains the gate.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.5
+
+### Fixed
+
+- **`dt-style-checker` had no way to be told what a caller's format mandates.** New optional `known_conventions` input: conventions the calling skill has chosen because another authority requires them (format-mandated headings, bracketed requirement IDs, a corpus that omits the ® symbol). A finding that contradicts one is not raised. Without it a bare dispatch on one release note returned two MAJOR findings and both were wrong.
+- **`references/terminology.md` stated the ® rule with no product-line exception, and mapped every "interface" to the branded web-UI term.** The ® rule now carries the Managed-corpus exception, the `interface → Dynatrace web UI` mapping is scoped to the Environment UI, and **Cluster Management Console** has its own row as a distinct surface.
+- **`dt-review-pr` and `dt-review-docs` ran Vale through the user's aliases.** Each form now runs `builtin cd` with its output discarded, and `vale`, `mktemp` and `rm` as `command <name>`: the skill's shell carries the user's aliases and shell functions, so a `cd` of theirs could print ahead of Vale's output and a `vale` alias could change its flags.
+- These entries first sat under 0.3.4, which was already published without them, so this is a new version rather than an amended one.
+
 ## 0.3.4
 
 ### Fixed

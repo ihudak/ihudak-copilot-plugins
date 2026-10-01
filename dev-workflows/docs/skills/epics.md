@@ -8,7 +8,9 @@ Reads a Value Increment and its existing Epics from exported markdown, optionall
 
 ## Synopsis
 
-    epics: <VI-KEY | dir> [<Epic-KEY>] [--no-docs]
+    epics: <VI-KEY | dir> [<Epic-KEY>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 The positional input resolves through the shared Jira-input front-end: a **VI JiraID** (requires `$VAULT_PATH`), or a **jira-export directory** (works without it). `epics:` is **jira-driven only** — a plain prompt with no Jira input stops with `EPICS_NEEDS_JIRA`. An optional trailing **Epic key** narrows the run to refining that one Epic (`focus_key`): Phase 3.5's refinement-mode gate then treats it, and any detected empty "team-Epic shell" linked to the VI, as a fill-in target rather than a non-duplication constraint. `--no-docs` turns off the optional Phase 3.6 documentation-grounding dispatch.
 
@@ -52,7 +54,7 @@ One `.md` file per new or refined Epic, under the resolved output directory: `$V
 
 ## Gates
 
-Phase 7 dispatches `epic-reviewer`. Like `ard-reviewer`, this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site, resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It checks goal clarity, acceptance-criteria testability, scope boundaries, and non-duplication with existing Epics under the parent VI. Findings are triaged first — each verified at the location it names, every dismissal recorded with a reason, survivors only handed to `doc-fixer`. `BLOCK` invokes `doc-fixer` for BLOCKER/MAJOR findings and re-reviews once, passing the fixer's own report back as `claims_file` so the re-review falsifies the fixer's account rather than assuming it; an unresolved BLOCKER after that cycle is escalated individually. `PASS WITH RECOMMENDATIONS` fixes MAJOR findings only; `PASS` proceeds. Cap: one fix cycle plus one re-review.
+Phase 7 dispatches `epic-reviewer`. Like `ard-reviewer`, this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site, resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It checks goal clarity, acceptance-criteria testability, scope boundaries, and non-duplication with existing Epics under the parent VI. Findings are triaged first — each verified at the location it names, every dismissal recorded with a reason, survivors only handed to `doc-fixer`. `BLOCK` invokes `doc-fixer` for BLOCKER/MAJOR findings and re-reviews once, passing the fixer's own report back as `claims_file` so the re-review falsifies the fixer's account rather than assuming it; an unresolved BLOCKER after that cycle is escalated individually. `PASS WITH RECOMMENDATIONS` fixes MAJOR findings only; `PASS` proceeds. Cap: one fix cycle plus one re-review.
 
 Ahead of the review, Phase 6.2 runs `dt-style-guide:dt-style-checker` as the **primary** style checker — not a fallback, since Epic drafts are vault-internal with no repo-side prose linter to fall back from. It is skipped gracefully, with a note in the final report, when the separate `dt-style-guide` plugin is not installed. Phase 6.3 then runs a structural pre-lint ([`skills/_shared/pre-lint.md`](../../skills/_shared/pre-lint.md)) — advisory only, checking required headings, Given/When/Then acceptance criteria, and the `[NEEDS CLARIFICATION]` cap.
 

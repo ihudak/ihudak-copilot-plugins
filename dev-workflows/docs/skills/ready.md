@@ -8,7 +8,9 @@ Reads the declared Jira workflow status for a VI or Epic and checks whether the 
 
 ## Synopsis
 
-    ready: <VI-Key | dir> [<Epic-Key>]
+    ready: <VI-Key | dir> [<Epic-Key>] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `ready:` is jira-driven only — a `mode: direct` prompt stops with `READY_NEEDS_JIRA`. `<VI>` alone checks **VI-level** readiness against [`workflow-states.md`](../../skills/_shared/workflow-states.md)'s VI ladder: a `null` focus Epic is a first-class check here, not something that must be resolved down to a single Epic the way [`design:`](design.md)'s picker requires. An explicit `<VI> <Epic>` scopes the check to that Epic's ladder instead.
 
@@ -43,7 +45,7 @@ flowchart TD
 
 ## Gates
 
-Phase 4 dispatches `readiness-reviewer`. Like every other Opus reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It reads the Phase 3 skeleton (a coverage map, a status-expectation checklist against [`workflow-states.md`](../../skills/_shared/workflow-states.md), and the repo-availability check) plus every artifact end-to-end itself, and returns SUPPORTED / PARTIAL / NOT-SUPPORTED — it never modifies files and never re-derives the declared status. Unlike every other reviewer in this pipeline there is no fix cycle here: `readiness-reviewer`'s verdict *is* the report, written into `_readiness.md` as returned — no `doc-fixer` or `review-fixer` dispatch, and no re-review.
+Phase 4 dispatches `readiness-reviewer`. Like every other review-tier reviewer in this pipeline, it carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It reads the Phase 3 skeleton (a coverage map, a status-expectation checklist against [`workflow-states.md`](../../skills/_shared/workflow-states.md), and the repo-availability check) plus every artifact end-to-end itself, and returns SUPPORTED / PARTIAL / NOT-SUPPORTED — it never modifies files and never re-derives the declared status. Unlike every other reviewer in this pipeline there is no fix cycle here: `readiness-reviewer`'s verdict *is* the report, written into `_readiness.md` as returned — no `doc-fixer` or `review-fixer` dispatch, and no re-review.
 
 ## Example
 

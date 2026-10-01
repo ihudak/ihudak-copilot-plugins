@@ -37,12 +37,34 @@ commands so the routing graph and the offer rules live in ONE place (the same sh
 
 **A next-step offer that names a downstream command must also name the merge.** The downstream command executes `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) and stops while this phase's pull request is open, so an offer that reads "next: `create-ard: <KEY>`" without "once the pull request is merged" sends the user into a stop they were not warned about.
 
+**And it must name it truthfully, which means the clause is never unconditional.** A run that staged nothing, or whose handoff the user declined, opened no pull request — and "once the pull request above is merged" then parks the operator waiting for a merge that will never happen, on a run they could often start immediately. The failing outcomes also differ from each other: only some have a branch to name. So an offer carries the clause as the placeholder **`<merge-clause>`**, resolved from the `Phase handoff:` line `phase-handoff.md` §4.1 actually emitted:
+
+| §4.1 outcome | `<merge-clause>` resolves to |
+|---|---|
+| Committed, pushed, PR opened | `(once the pull request above is merged)` |
+| PR already existed | `(once the pull request above is merged)` |
+| PR not opened | `(once you open the pull request for <branch> and it is merged)` |
+| Push failed | `(once <branch> is pushed, its pull request opened, and merged)` |
+| No remote | `(once <branch> is merged into the default branch — this specs repo has no remote, so no pull request will do it)` |
+| Nothing to commit | `(its inputs are already on the default branch — you can run it now)` |
+| Declined by the user | `(once this run's artifacts reach the default branch — they are written but not there)` |
+| Gate failed | `(once this run's artifacts reach the default branch — the handoff did not run)` |
+| Anything else, or unresolvable | `(once this phase's artifacts are on the default branch)` |
+
+`Branch name substituted` is an append to another line rather than an outcome of its own — whatever branch the emitted line ends up naming is the branch the clause names. **Three rows name a branch, and which three is the point**: the declined and gate-failed lines carry none, because on those paths `handoff-to-main` committed nothing, so there is no branch in existence to send anyone to — where *No remote* **does** commit, on a branch that nothing in that repository will ever push. The property is *committed something*; the catch-all is for a line that could not be read at all, never for an outcome §4.1 defines.
+
+**Where the placeholder sits.** It never goes inside the code span that carries the command: every value it resolves to is a parenthesised English sentence, so a clause inside the command's span makes the one line an operator copies end in prose. In prose it takes a span of its own after the command's; in a `choices:` option it is plain text after the command and any role or `(Recommended)` label. It is a placeholder, not an instruction to reword an option, so an array carrying it is still presented verbatim per `escalation-rules.md`.
+
+**Where this rule applies: every next-step offer this plugin prints that names a downstream command whose `require-on-main` gate the offering run feeds.** Five offers carry it — `create-vi:`'s and `update-vi:`'s *Next steps* phases, `create-ard:`'s *Next-step offer (adaptive)* phase, and the `### Next step` sections of `specify:` and `design:`. Four of them hardcoded "until the pull request above is merged" on runs that reach outcomes opening no pull request; the fifth, `update-vi:`, named two downstream commands that gate this run's own VI and stated no wait at all. An offer that names a command waiting on nothing this run wrote — a sibling-Epic fan-out, `release-notes:` — carries no clause. Two of the five are prose rather than a `choices:` array, which is the form a sweep for arrays does not see: read each command's own offer.
+
 ## Surface
 
 The universal minimum is an adaptive **`### Next step`** section at the END of the command's
 Final Report (guidance-only prose). A command MAY additionally present a richer interactive
 `choices:` offer (the reference commands `idea:`, `create-vi:`, `create-ard:` do) — compatible,
 not required.
+
+**Filter before rendering a conditional offer.** When no forward route survives its artifact/outcome conditions, state that no applicable next step was found and omit the interactive picker; continue the skill's remaining housekeeping. Never ask only `Stop here` or `Stop here` plus `Other…`. Otherwise show every surviving route with the skill's native stop/free-text options; do not import Claude's four-option cap.
 
 ## The routing graph (role-aware)
 
@@ -53,11 +75,7 @@ not required.
 - `create-vi: <JIRA-KEY>` — after the paste-into-Jira + re-import round-trip:
   `release-notes: <VI>` (PM — draft the release note; recommended clear next step); hand to PA
   *(optional)* → `create-ard: <VI>`; or hand to PE → `epics: <VI>` (or `specify: <VI>`).
-- `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an
-  existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira +
-  re-import round-trip it offers the same forward paths as `create-vi:`: `release-notes: <VI>`
-  (PM), `create-ard: <VI>` (PA, if one exists), `epics: <VI>` (PE), `specify: <VI>` (PE, if one
-  exists).
+- `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira + re-import round-trip it offers conditional re-runs of `release-notes: <VI>` (PM), `create-ard: <VI>` (PA), `epics: <VI>` (PE), and `specify: <VI>` (PE). Every route requires its downstream artifact to exist; changed dependencies are flagged and recommended first, and no surviving route means no picker.
 
 **PA — architecture (optional)**
 

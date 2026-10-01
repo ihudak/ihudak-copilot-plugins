@@ -139,7 +139,13 @@ When `docs_grounding` is present, use its `docs_references` for terminology and 
    `Release-notes category:` line, and NO `--- Summary ---` divider — the whole output is the text the
    PM pastes into the Jira release-notes field.
 
-8. **Source-truth check (when `code_repos` is provided).** Verify the specific option/label/count claims the draft makes against the source (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §3). Do NOT auto-resolve: when a claim is contradicted, record a `gaps[]` entry with `field: prose`, `jira_phrasing`, `source_phrasing`, `source_location`, and `recommended_action: "ask user"`. Keep the draft prose in the Jira phrasing for now; the skill resolves it.
+8. **Source-truth check — two scopes, only one of them gated on `code_repos`.**
+
+   **Number the claims first.** Before either check, number every conditional, quantitative or option/label/count claim in the draft `C1`, `C2`, … in the order it appears, and put that number in the `claim_id` of every discrepancy gap about it. A claim both 8a and 8b contradict yields two gaps with the **same** `claim_id`; the command relies on that to avoid asking about an omitted claim twice.
+
+   **8a. Against the acceptance criteria — ALWAYS, whether or not `code_repos` was provided.** Every **conditional or quantitative** claim the draft makes — a retention window, a trigger condition, a scope qualifier, a date, a count, a "for as long as / until / unless" clause — is verified against the acceptance criteria already in the handoff. This runs on a Jira-content-only run too, which is the point: those runs have no diff, so gating the whole check on `code_repos` left them with no automated check at all over claims that derive from criteria sitting right there in the input. Watch specifically for a qualifier that shifts meaning — *"the longest contractual support term for your cluster"* where the criterion says the longest term **offered** is a different and materially misleading statement — and for a control's scope being widened or narrowed in the retelling. Record a contradiction as `kind: acceptance-criteria`, `field: prose`, with `draft_phrasing`, `criteria_phrasing`, `criteria_location` (criterion ID/heading in the handoff, or file:line), and `recommended_action: "ask user"`; never auto-resolve. This is an authoring discrepancy, not evidence of an implementation gap: do not put the draft in `jira_phrasing` or the criterion in `source_phrasing`.
+
+   **8b. Against the code (when `code_repos` is provided).** Verify the specific option/label/count claims the draft makes against the source (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §3). Do NOT auto-resolve: when a claim is contradicted, record a `gaps[]` entry with `kind: source-truth`, `field: prose`, `jira_phrasing` supported by the Jira content, `source_phrasing`, a verified code `source_location`, and `recommended_action: "ask user"`. Never label a draft's criteria contradiction as Jira intent. Keep the draft prose unresolved for now; the skill handles criteria gaps before code gaps.
 
 ## Output
 
@@ -147,7 +153,8 @@ Return YAML exactly as defined in `~/.copilot/installed-plugins/ihudak-copilot-p
 
 ## Hard rules
 
-- When code_repos is provided, NEVER silently emit a claim the source contradicts; record it in gaps[] for the skill to escalate.
+- NEVER silently emit a conditional or quantitative claim the acceptance criteria contradict (8a) — this holds on every run, `code_repos` or not. When code_repos IS provided, the same applies to claims the code contradicts (8b). Record both in gaps[] for the skill to escalate.
+- `status: OK` with `gaps: []` is a claim that 8a ran and found nothing, not that it was skipped. Two runs returned that pair while a factual slip against the criteria survived to the orchestrator; the agent was not unreliable so much as unchecked on exactly the runs where Jira content is the only source.
 - `imported_change_type` is authoritative EXCEPT two not-routable values that fall through to
   inference (§2) instead: `not applicable`, and `Bug fix` on a change that trips the §5 deprecation
   trigger — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/release-note-types.md` §7.

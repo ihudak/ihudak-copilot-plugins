@@ -31,6 +31,8 @@ Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-b
 
 ## Phase 0 — Resolve input
 
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
+
 1. **Resolve the Jira input via the shared front-end.** Classify the argument (text following the `design:` trigger) **minus every recognised flag** (`--design-twice`) before resolving — strip it first, exactly as `skills/idea/SKILL.md`'s Phase 1 strips its own flags: an unstripped `--design-twice` is parsed as part of the Jira key and the run resolves the wrong feature, or fails. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument. `design:` is
    **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
@@ -75,7 +77,7 @@ run — the terminal `commit-artifacts` step skips on it.
      to step 5.
    - **`focus_key` null** → inspect the resolved VI dir in the specs repo:
      - it holds a **flat `specification.md`** (a stand-alone top-level Epic, or a broad VI-level spec) → one design; the feature folder is the VI dir itself. Skip the picker; go to step 5 (step 3's gate re-applies against this flat path).
-     - it holds **Epic subfolders** → enumerate the **spec'd** ones using the ref test `git -C "$SPECS_PATH" cat-file -e "origin/<default>:specifications/<VI>-<vslug>/<EPIC>-<eslug>/specification.md" 2>/dev/null` (exit 0 = present on `<default>`; the `2>/dev/null` is required — git writes `fatal:` to stderr on absence) — never a worktree file-existence check, which would list a branch-only Epic as designable for a user to select before step 3's gate stops on it. A subfolder that fails the test is excluded from the actionable set and counted in the excluded-count report, with the reason distinguished: *"N Epic(s) excluded — no specification.md; M excluded — specification.md not yet merged to `<default>`."* Then branch on count — this is the reusable **progress-aware Epic-picker pattern** in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` (§ Progress-aware Epic picker), applied here with `design:`'s own done-predicate and **enumerated from the specs repo** (not `jira-reader`):
+     - it holds **Epic subfolders** → enumerate the **spec'd** ones using the ref test `git -C "$SPECS_PATH" cat-file -e "<default-ref>:specifications/<VI>-<vslug>/<EPIC>-<eslug>/specification.md" 2>/dev/null` (`<default-ref>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.2 — `origin/<default>` where the specs repo has a remote, the local default branch where it has none; exit 0 = present on `<default>`; the `2>/dev/null` is required — git writes `fatal:` to stderr on absence) — never a worktree file-existence check, which would list a branch-only Epic as designable for a user to select before step 3's gate stops on it. A subfolder that fails the test is excluded from the actionable set and counted in the excluded-count report, with the reason distinguished: *"N Epic(s) excluded — no specification.md; M excluded — specification.md not yet merged to `<default>`."* Then branch on count — this is the reusable **progress-aware Epic-picker pattern** in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` (§ Progress-aware Epic picker), applied here with `design:`'s own done-predicate and **enumerated from the specs repo** (not `jira-reader`):
        - **exactly 1 spec'd Epic** → no picker; auto-select it; re-point the feature folder to its per-Epic subfolder; emit a one-line notice.
        - **≥2 spec'd Epics** → render the picker, one `choices` entry per spec'd Epic (its ○/◐/● marker + key + title), then `"Other… (describe)"`. Compute each Epic's state from `design:`'s **done-predicate** against that Epic's resolved folder:
          - **○ not started** — a `specification.md` exists there but no `design.md` and no `_design-session.md` → selectable.
@@ -126,8 +128,10 @@ model_routing:
   classification: <SIMPLE|MODERATE|SIGNIFICANT|HIGH-RISK>
   reason: <one-line>
   current_model: <the model this orchestrator/grill is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # code-scanner, interface-designer, impl-maintenance
-  review_model:    <§2 Opus chain>     # design-reviewer (caller-pinned; recorded)
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # code-scanner, interface-designer, impl-maintenance
+  review_model:    <§2.3 review tier>     # design-reviewer (caller-pinned; recorded)
   authoring_model: <= current_model>   # the interactive grill + design.md authoring (session model, not a delegated subagent)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -198,7 +202,7 @@ Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per t
 **all** confirmed, mounted repos (the scan runs over the full set regardless of classification — only
 grill depth / sections / review scale by tier). Wait for each batch before the next.
 
-→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Scan this repo for the brief:
   >
   > repo_path:     <resolved absolute path for this repo from Phase 3>
@@ -282,7 +286,7 @@ response** (the plugin's existing parallel fan-out pattern), each blind to the o
 take, labelled **A**, **B**, and **C** in that order; those are the labels the Final report's
 `chose <A|B|C|hybrid>` refers to:
 
-→ task(agent_type: "dev-workflows:interface-designer", model: `<detection_model — §2.1 detection chain>`) ×3:
+→ task(agent_type: "dev-workflows:interface-designer", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) ×3:
   > "Produce one interface proposal for this brief:
   >
   > constraint: [A — Minimise the interface | B — Maximise flexibility | C — Optimise for the most common caller]
@@ -323,7 +327,7 @@ enforces the open-questions hard block).
 
 Dispatch `design-reviewer` (Opus):
 
-→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2 Opus chain; caller-pinned, recorded>`):
+→ task(agent_type: "dev-workflows:design-reviewer", model: `<review_model — §2.3 review tier; caller-pinned, recorded; under §10, run_flags.enforced_model>`):
   > "Review the design for this brief:
   >
   > Design path:        [absolute path to design.md]
@@ -345,6 +349,8 @@ Dispatch `design-reviewer` (Opus):
 Cap: one fix cycle + one re-review maximum. Phase 7 will not hand off a `design.md` with any unresolved
 `- [ ]`.
 
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
+
 ---
 
 ## Phase 7 — Handoff
@@ -354,7 +360,7 @@ Write the feature folder: `design.md` (flat, alongside `specification.md`), the 
 `_design-glossary.md`. **Refuse to proceed if `design.md` has any unresolved `- [ ]`** (the
 decision-completeness gate).
 
-Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's choice array verbatim:
+Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — stopping** array verbatim (the set carries the amended `specification.md`, which `design:` itself stops on, so the strongest-class rule of §4.0 selects it), after that section's push-target probe:
 `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]`
 
 On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: design`; `feature_folder` as resolved in Phase 0 — the per-Epic subfolder for a **per-Epic** or **stand-alone-Epic** design (`<EPIC>` = `focus_key`, which for a stand-alone Epic equals `jira_key`), or the VI dir for a **broad VI-level** design (`focus_key` null); Epic keys are globally unique, so the per-Epic form needs no VI prefix — §2.2 derives `design/<EPIC>-<eslug>` or `design/<VI>-<vslug>` from it, matching today's branch names, both forms using hyphens; `deliverable_paths` = `design.md`, the amended `specification.md`, `_design-session.md`, and `_design-glossary.md`; `title: <EPIC|VI> Add engineering design`; and `body_facts` = the `design.md` sections authored, the spec-challenge count (`## Engineering review` notes / new spec `- [ ]`), the confirmed repo set, and the `design-reviewer` verdict. **Merged-to-main = ready for `implement:`.** Emit its §4.1 outcome line in the Final report.
@@ -374,6 +380,8 @@ not apply to a stand-alone Epic, a single-Epic VI, or a broad VI-level design.
 Terminal phase — runs after Phase 7 and before the Final report is presented;
 NEVER interrupts an earlier phase. `design:` has no built-in maintenance agent,
 so this phase invokes `impl-maintenance` on the Sonnet detection chain and then
+
+**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 persists the plugin-facing slice of its report as session feedback.
 
 **Capture-at-block invariant.** This terminal phase captures gaps for a *completed* run. Separately, if an EARLIER phase **halts on a plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked), `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) at that halt **before** escalating — so a run abandoned at the block still records the gap. NEVER `emit-block` for a work-quality review BLOCK or an environment / user halt (repo/spec gate, jira-not-found, cancellation).
@@ -385,7 +393,7 @@ persists the plugin-facing slice of its report as session feedback.
 §1 — this block prints the guidance only), then a
 same-role `/compact` suggestion + `/rename <VI-ID>-<slug>-dev`. Guidance only, never auto-run.
 
-1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain>`):
+1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
    > "Analyse this session and return a Lessons Learned report.
    >
    > Session handoff:
@@ -454,7 +462,9 @@ The report always states exactly one of the Phase 5 interface fan-out outcomes w
 
 ### Next step
 
-End the report with a `### Next step` recommendation per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` (guidance only — never auto-invoked): → `implement: <VI> <Epic>` (depth, still Dev), which will not start against this design until the pull request above is merged; the **Epic fan-out** `design: <VI> <another-Epic>` designs a sibling Epic (breadth, no merge wait — a different Epic's design). If the run BLOCKED or `design.md` has open questions, recommend resolving those first.
+End the report with a `### Next step` recommendation per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` (guidance only — never auto-invoked): → `implement: <VI> <Epic>` (depth, still Dev) `<merge-clause>`, which stops rather than proceeding wherever this design reached a branch (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3.3 rows D/E) and is unaffected wherever it reached none (§3.4's `implement:` row); the **Epic fan-out** `design: <VI> <another-Epic>` designs a sibling Epic (breadth, no merge wait — a different Epic's design). If the run BLOCKED or `design.md` has open questions, recommend resolving those first.
+
+`<merge-clause>` is the placeholder `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` owns, resolved from this run's own `Phase handoff:` outcome line (§4.1) and never written as the unconditional "once the pull request above is merged" — the handoff offered above reaches a declined, a push-failed and a nothing-to-commit outcome among others §4.1 lists, and none of those three opens a pull request to wait on. This offer is prose rather than a `choices:` array, so nothing that sweeps arrays sees it: it is held by review alone.
 
 ### Context hygiene
 

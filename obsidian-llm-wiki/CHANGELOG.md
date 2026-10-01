@@ -4,6 +4,13 @@ All notable changes to the **obsidian-llm-wiki** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 
+## [0.3.6] — 2026-09-30
+
+### Fixed
+
+- **`skills/_shared/vault-conventions.md` was the one copy the fix below missed.** Its Read-Only Zones section still named 2 of the 4 commands that write outside `wiki/`, while `wiki-init/SKILL.md`'s own vault block named all four — two live instructions disagreeing about the same boundary. Now names all four.
+- This entry first sat under 0.3.5, which was already published without it, so this is a new version rather than an amended one.
+
 ## [0.3.5] — 2026-09-26
 
 ### Fixed

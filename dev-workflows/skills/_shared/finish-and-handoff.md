@@ -12,10 +12,16 @@ branch off the base (main/master/release), named per repo convention, and
 recorded:
 - `base_branch` — the resolved base.
 - `profile_commit` (C0) — set ONLY for an inline-profiling run
-  (`profile_source: generated`): the commit that introduced
-  `.dev-workflows/docs-profile.yml`, found with
-  `git log --diff-filter=A --format=%H -- .dev-workflows/docs-profile.yml | head -1`.
-  Absent otherwise.
+  (`profile_source: generated`): the commit `docs-profile: --inline` made and
+  handed back (`document:` Phase 0 step 4(c)). It is never looked up with
+  `git log --diff-filter=A`, which names the newest commit that *added* the
+  file — on a repository whose profile predates the run, a commit far below
+  this branch, so the squash would fold every commit since into the docs
+  commit. Absent otherwise.
+
+Every git call in this flow runs as `git -C <docs_repo_path>`, the docs
+repository's top level (`document:` Phase 0 step 2), never from the working
+directory — so every path it names is relative to that top level.
 
 ## 2. Squash (always)
 
@@ -24,19 +30,24 @@ cross-links) may have edited without committing; the Phase 6.2 clean-tree
 precondition means anything uncommitted is this run's work.
 Then squash:
 - squash base = `profile_commit` (C0) when recorded — keeps the profile-config
-  commit as a distinct first commit; otherwise `git merge-base <base_branch> HEAD`.
-- mechanics: `git add` the docs-repo changes → `git reset --soft <squash-base>`
-  → one `git commit -m "<message>"`.
+  commit as a distinct first commit; otherwise
+  `git -C <docs_repo_path> merge-base <base_branch> HEAD`.
+- mechanics: `git -C <docs_repo_path> add -- <each path under docs_repo_path the run wrote or edited>`
+  → `git -C <docs_repo_path> reset --soft <squash-base>`
+  → one `git -C <docs_repo_path> commit -m "<message>"`. Never a path outside the docs
+  repository — the implementation-gaps draft in the vault project folder, a screenshot staged under
+  `screenshot_staging_dir`, or Phase 8's feedback file under `$SPECS_PATH` — which git refuses
+  (`fatal: … is outside repository`) along with every other path in the same `add`.
 - message follows `profile.commit_convention` when present (dynatrace-docs:
   `<JIRA-KEY> <summary>`); for a repo with no such field, infer from recent
-  `git log` / `CONTRIBUTING` (a ticket-key prefix, or a conventional-commits
+  `git -C <docs_repo_path> log` / `CONTRIBUTING` (a ticket-key prefix, or a conventional-commits
   `docs:` prefix), else fall back to `<JIRA_KEY> <summary>`. The Jira key carries
   traceability; the reader-visible changelog still must NOT name it.
 
 ## 3. Push (opt-in)
 
 Offer `["Push <branch> to origin now", "Skip — I'll push later", "Cancel"]`.
-- **Push** → `git push -u origin <branch>`; report the result. `git push` is
+- **Push** → `git -C <docs_repo_path> push -u origin <branch>`; report the result. `git push` is
   git-protocol, not the REST API the zero-external-API invariant forbids.
 - **Skip** → "Branch `<branch>` ready with N commit(s). Push when ready."
 - **Cancel** → stop and summarise.
@@ -44,7 +55,7 @@ Never force-push. Never call a REST API over HTTPS from this flow. (The `gh` CLI
 
 ## 4. Host detection
 
-Classify the docs repo's `git remote get-url origin`:
+Classify the docs repo's `git -C <docs_repo_path> remote get-url origin`:
 - host `bitbucket.org` → Bitbucket Cloud;
 - a self-hosted host with `/scm/` in the path or a bitbucket-style hostname →
   Bitbucket Server;

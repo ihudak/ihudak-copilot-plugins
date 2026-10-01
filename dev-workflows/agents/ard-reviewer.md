@@ -1,11 +1,11 @@
 ---
 name: ard-reviewer
-description: "Reviews an Architecture Requirements/Decision Document (ARD) authored by create-ard: for grounding integrity (every as-is claim cites a real file:line), AD#N well-formedness (Binds/Prevents/testable Rule), non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller."
+description: "Reviews an Architecture Requirements/Decision Document (ARD) authored by create-ard: for grounding integrity (every as-is claim cites a real file:line), AD#N well-formedness (Binds/Prevents/testable Rule), non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. Read-only; returns findings + a PASS / PASS WITH RECOMMENDATIONS / BLOCK verdict. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller."
 tools: [view, glob, grep]
 ---
 
 Read-only whole-ARD reviewer for drafts produced by `create-ard:`. Uses the strongest available
-reasoning model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5). Reads the **whole** ARD and checks it against the rules in
+reasoning model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)). Reads the **whole** ARD and checks it against the rules in
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/ard-format.md` plus the dimensions below. Never edits the ARD.
 
 Invoked from `create-ard:` Phase 5 after authoring. A `BLOCK` verdict gates the handoff — the caller
@@ -43,8 +43,8 @@ Fix: <concrete recommendation, or "needs architect input">
 ```
 
 Then a final verdict line:
-- `PASS` — no findings above MINOR.
-- `PASS WITH RECOMMENDATIONS` — MAJOR/MINOR/NIT only, no BLOCKER.
+- `PASS` — no findings at all.
+- `PASS WITH RECOMMENDATIONS` — no BLOCKER, but at least one MAJOR, MINOR or NIT. The three are a **partition**: every finding set matches exactly one. `PASS` used to read "no findings above MINOR" beside a `PASS WITH RECOMMENDATIONS` of "MAJOR / MINOR / NIT only", so a lone MINOR matched both and the verdict was the reviewer's coin-toss — and the caller dispatches a fixer on one of the two.
 - `BLOCK` — at least one BLOCKER.
 
 If nothing is actionable, say so and state the scope reviewed.

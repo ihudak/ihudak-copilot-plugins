@@ -2,6 +2,8 @@
 
 Session feedback captures two different signals about **the dev-workflows plugin itself** — what you report, and what your corrections reveal — never about the target project you happened to be working in, and persists them per-VI into the specs repo, so the plugin maintainer can aggregate what went wrong or felt awkward across every engineer who used it. It shares its per-VI home, `<VI-dir>/dev-workflows/`, with the follow-up files described elsewhere in this reference section, but is otherwise a separate mechanism: no dedup *between the two subsystems*, no cross-reference, and its own file per VI rather than per session.
 
+Under [`--skip-feedback`](run-flags.md) the automatic half of this is narrowed to bug capture: the run dispatches `defect-reporter` in place of `impl-maintenance` and persists only real defects, and a run with no defects persists nothing. What the flag costs is the in-session Lessons Learned report. `feedback:` and `prompt:` are unaffected — the flag does not apply to them, since they *are* the feedback surface.
+
 ## What gets logged, and by what
 
 Two capture paths feed the same file, distinguished by their `origin`:

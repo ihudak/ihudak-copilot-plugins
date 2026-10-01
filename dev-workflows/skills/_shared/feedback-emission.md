@@ -83,7 +83,7 @@ back in review because the two products differ here.
   value when it fits so clusters don't fragment):
   `missing-capability`, `wrong-output`, `ambiguous-prompt`,
   `missing-reference-doc`, `model-routing`, `manual-workaround`,
-  `false-positive`, `docs-ux`, `other`.
+  `false-positive`, `docs-ux`, `environment-defect`, `other`.
 - **`origin: prompt` entries add two more prose blocks** after Friction /
   Suggested improvement: **User prompt** (the user's corrective request,
   verbatim) and **Resolution** (what the AI actually did).
@@ -140,7 +140,8 @@ mount / permission) drops to the next tier with the same notice.
 
 ## 4. Plugin-facing predicate — what persists
 
-Persist **only** signals about the dev-workflows plugin itself:
+Persist **only** signals about the dev-workflows plugin itself, and **defects in
+the container environment** the plugin is run in:
 
 - Command workflow improvements (a command should behave differently — e.g. the
   `saas|managed` scoping case).
@@ -148,6 +149,8 @@ Persist **only** signals about the dev-workflows plugin itself:
 - Gaps in the plugin's own reference docs (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/**`).
 - Corrective interactions captured by `prompt:*` (any command output the user
   had to fix).
+- Defects in the container environment — a tool the image is meant to provide
+  and lacks, a wrong mount, a bad default — as `category: environment-defect`.
 
 **Do NOT persist target-project tooling advice** — project `copilot-instructions.md` rules,
 target-repo hooks, and other repo-specific suggestions stay in
@@ -159,6 +162,17 @@ slice is exactly its **Command workflow improvements**, **New agents / skills**,
 and **Reference docs** (paths under `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows`) sections, plus the
 **Key observations** that triggered them. Discard its **copilot-instructions.md rules** and
 **Hooks** sections (target-project advice).
+
+### 4.1 Defect predicate
+
+Fixable in this plugin or in the container image:
+
+- a wrong or self-contradictory instruction; a broken script, gate or hook; a missing or wrong reference; a skill contradicting its own documentation; a crash;
+- a container environment defect: a tool missing from the image, a wrong mount, a bad default (a tool missing on the user's own machine or from any other container is not one — §6 `emit-block`).
+
+Excluded: friction, wishes, improvements, polish; user mistakes (wrong argument, typo, misaddressed key); target-project issues; Copilot CLI / model / external-service issues neither repo can fix.
+
+`dev-workflows:defect-reporter` applies this predicate directly under `--skip-feedback` (`run-flags.md` §4) — it cites this section, never copies it. The widening in this section's opening paragraph applies to every run, not only a bugs-only one, so a container bug surfacing during an ordinary session is no longer dropped by the plugin-only reading this predicate used to have.
 
 ## 5. Interaction model — silent, high-recall
 
@@ -181,7 +195,8 @@ signal the maintainer needs.
 
 ## 6. Caller contract
 
-Three named entry points. Every caller supplies `plugin_version` (§3) and lets
+Five named entry points: `emit-auto`, `emit-manual`, `emit-prompt`, `emit-block`,
+and `emit-bugs`. Every caller supplies `plugin_version` (§3) and lets
 this reference resolve the target (§2), dedupe/append (§3), and format the entry
 (§1). None of them commits; none writes into a docs/code repo or the current
 working directory. The artifacts are committed later, once, by the run's
@@ -220,7 +235,7 @@ Behavior: `origin: prompt`; write the entry with the two extra prose blocks
 (User prompt verbatim + Resolution, §1); never silently skipped (§3); resolve
 the target (§2); write silently (§5); surface the path.
 
-### `emit-block` — capture-at-block (a run halting on a plugin gap)
+### `emit-block` — capture-at-block (a run halting on a plugin gap, or on a tool the container image lacks)
 
 Inputs: `command` (exact slash-command name), `jira_key` (or `null`), `source`
 (`vault | directory | none`), and the **halting gap** — a short description of
@@ -242,3 +257,11 @@ the run needed). It does **NOT** fire for: a code / doc / Epic review **BLOCK**
 (repo-missing, dirty-tree, jira-not-found, refresh-blocked, and the other
 `escalation-rules.md` cases); or user cancellation. The §4 plugin-facing scoping
 applies (never target-project `copilot-instructions.md` / hook advice).
+
+### `emit-bugs` — bugs-only callers (`--skip-feedback`, `run-flags.md` §4)
+
+Inputs: the `defect-reporter` **Defects** list, `command` (the exact skill name), `jira_key` (or `null`), `source` (`vault | directory | none`), and `plugin_version`.
+
+Behavior: render one `origin: auto` entry per defect — Friction = the defect plus its evidence; Suggested improvement = the repro plus the location to fix; `impact` is `blocker | friction` only, never `polish` — `emit-bugs` drops any defect marked `polish` and writes no entry for it; `category` is drawn from §1's vocabulary — `environment-defect` for a container-environment location, else `wrong-output` / `missing-reference-doc` / `missing-capability` / `other` as fits; dedupe by the stable `id` (§3); resolve the target (§2); write silently (§5). Return the persisted path.
+
+`emit-bugs` replaces `emit-auto` for the duration of `--skip-feedback`, and is called only when `defect-reporter` returned at least one defect; when the list is empty, this reference is not loaded at all and the caller reports `— no defects` directly (`run-flags.md` §4).

@@ -10,7 +10,7 @@ Draft child Epics for the Jira Value Increment: the argument (text following the
 
 Usage: `epics: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 2).
 
-`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown in the user's Obsidian vault, optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on an Opus review.
+`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown in the user's Obsidian vault, optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on a review-tier review.
 
 Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not yet implemented** — there are no PRs to diff. Code scanning (when enabled) is a plain filesystem search to understand what exists and what needs to be built.
 
@@ -19,6 +19,8 @@ Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not ye
 ---
 
 ## Phase 0 — Load
+
+**Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
 1. **Resolve the Jira input via the shared front-end.** Strip every recognised
    flag first — `--no-docs` and `--docs <path>` (consumes the token after it)
@@ -117,8 +119,10 @@ model_routing:
   classification: MODERATE        # typical; SIGNIFICANT possible
   reason: <one-line>
   current_model: <the model this orchestrator is running under>
-  detection_model: <§2.1 detection chain: claude-sonnet-4.6, fallback claude-sonnet-4.5/gpt-5.4>   # jira-reader, code-scanner, dt-style-checker, doc-fixer, epic-writer (MODERATE), Phase 8 maintenance agents
-  review_model:    <§2 Opus chain>     # epic-reviewer (dispatch-pinned to this chain; recorded, no override)
+  enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
+  defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, dt-style-checker, doc-fixer, epic-writer (MODERATE), Phase 8 maintenance agents
+  review_model:    <§2.3 review tier>     # epic-reviewer (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
   implementation_model: <= detection_model>   # the epic-writer subagent (Phase 6); planning_model if SIGNIFICANT/HIGH-RISK
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -210,7 +214,7 @@ inventory. **Additive, zero-cost when absent** — the common case, since
 
 Invoke `jira-reader` with `depth: vi-plus-epics`. This depth is specifically designed for Epic writing: richer than `vi-only` so themes extracted for `code-scanner` aren't starved of context, but lighter than `full` so the agent doesn't read dozens of already-closed child Stories.
 
-→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:jira-reader", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Return the structured handoff for this brief:
   >
   > jira_export_root: [resolved jira_export_root]
@@ -306,7 +310,7 @@ Spawn `code-scanner` instances in **batches of up to 4 concurrent agents** per t
 
 For each repo in the batch:
 
-→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dev-workflows:code-scanner", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Scan this repo for the brief:
   >
   > repo_path:     <resolved absolute path for this repo from Phase 4>
@@ -345,11 +349,11 @@ Handle per-repo status after the batch returns:
 
 The drafting is delegated to the **`epic-writer`** subagent (pinned to the §2.1 detection chain for MODERATE; §2 Opus only if the run is SIGNIFICANT/HIGH-RISK — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9.2). The orchestrator prepares a handoff and dispatches; it does not write Epics itself, and **nothing commits in this phase** (still true — `epics:` never branches, and the Epic drafts it writes are never committed; git hygiene of the write target is the user's responsibility. The run commits only inside `$SPECS_PATH`, and only its bounded session-artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 
-1. **Write the handoff file.** Create a temp file (`command mktemp -t dw-epics-handoff-XXXXXX.md` — never the vault, never a repo) containing the `epic-writer` input contract: `jira_reader_handoff`, `code_scanner_outputs` (empty if no scan), `scope` (Phase 2 in/out of scope), `existing_epics` (non-duplication), `output_dir` (resolved Phase 1 dir), `vi_goal`, `jira_key`, `requirements` + `requirements_source` (from Phase 3), `applicable_ard` (the Phase 2.5 invariants + guidance_summary, or omit when status was none), `existing_epic_themes` (themes of the already-linked Epics), `mode` (`generate` | `refine` | `both` — from Phase 3.5; `generate` when 3.5 skipped), and `refinement_targets` (list of `{key, team, scope_hint, current_body_path}`, where `current_body_path = <jira_export_root>/<EPIC-KEY>/<EPIC-KEY>.md`; empty in `generate` mode), and `docs_grounding` (the Phase 3.6 digest, or omit when OFF/EMPTY). Record its absolute path. When `focus_key` is set (the Phase 3 refinement target), set `scope` in-scope to just the focus Epic and `existing_epics` to the *other* linked Epics, so `epic-writer` re-drafts the single focus Epic's definition file; `output_dir` is unchanged. Remove the handoff file (`command rm -f -- "<path>"`) once step 2's dispatch (and any re-dispatch on `status: BLOCKED`) has returned — no later step in this run reads it again.
+1. **Write the handoff file.** Create a temp file (`command mktemp -t dw-epics-handoff-XXXXXX` — never the vault, never a repo) containing the `epic-writer` input contract: `jira_reader_handoff`, `code_scanner_outputs` (empty if no scan), `scope` (Phase 2 in/out of scope), `existing_epics` (non-duplication), `output_dir` (resolved Phase 1 dir), `vi_goal`, `jira_key`, `requirements` + `requirements_source` (from Phase 3), `applicable_ard` (the Phase 2.5 invariants + guidance_summary, or omit when status was none), `existing_epic_themes` (themes of the already-linked Epics), `mode` (`generate` | `refine` | `both` — from Phase 3.5; `generate` when 3.5 skipped), and `refinement_targets` (list of `{key, team, scope_hint, current_body_path}`, where `current_body_path = <jira_export_root>/<EPIC-KEY>/<EPIC-KEY>.md`; empty in `generate` mode), and `docs_grounding` (the Phase 3.6 digest, or omit when OFF/EMPTY). Record its absolute path. When `focus_key` is set (the Phase 3 refinement target), set `scope` in-scope to just the focus Epic and `existing_epics` to the *other* linked Epics, so `epic-writer` re-drafts the single focus Epic's definition file; `output_dir` is unchanged. Remove the handoff file (`command rm -f -- "<path>"`) once step 2's dispatch (and any re-dispatch on `status: BLOCKED`) has returned — no later step in this run reads it again.
 
 2. **Dispatch the writer:**
 
-→ task(agent_type: "dev-workflows:epic-writer", model: `<detection_model — §9 / §2.1 detection chain; planning_model (§2 Opus) only if classification is SIGNIFICANT/HIGH-RISK>`):
+→ task(agent_type: "dev-workflows:epic-writer", model: `<detection_model — §9 / §2.1 detection chain; planning_model (§2 Opus) only if classification is SIGNIFICANT/HIGH-RISK; under §10, run_flags.enforced_model>`):
   > "Write the child Epic definitions for this brief.
   >
   > handoff_file: [absolute path of the temp handoff file from step 1]"
@@ -390,19 +394,29 @@ Fold the results back: *assign* → re-dispatch `epic-writer` once (or Edit inli
 
 Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (Jira mode), this does NOT use `docs-style-checker` (no repo linter for vault content). Instead, the Dynatrace corporate style guide checker validates terminology, trademarks, voice/tone, and inclusive language.
 
-→ task(agent_type: "dt-style-guide:dt-style-checker", model: `<detection_model — §9 / §2.1 detection chain>`):
+→ task(agent_type: "dt-style-guide:dt-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Run the style check for this brief:
   >
   > files:    [absolute paths of every Epic file written in Phase 6]
   > doc_type: epic
-  > emphasis: terminology and customer-facing captions, labels, messages, and text"
+  > emphasis: terminology and customer-facing captions, labels, messages, and text
+  >
+  > known_conventions:
+  >   - the section headings mandated verbatim by the Epic template and matched
+  >     literally by `pre-lint.md`'s required-heading grep — sentence-casing them fails the
+  >     plugin's own lint
+  >   - spaced em dashes, the house convention in every plugin-authored artifact in the
+  >     specs repo
+  >   - bracketed requirement IDs (`[AC#1]`, `[US#1]`, `[SM#1]`, `[UC#1]`, `[FR#1]`)
+  >   - wikilinked tracker keys
+  >   - this is an internal planning document, exempt from the trademark/(R) rule"
 
 Act on the return:
 
 - **`status: OK`** — zero violations. Proceed to Phase 7.
 - **`status: VIOLATIONS_FOUND`** — invoke `doc-fixer` with the violations treated as per their severity. After `doc-fixer` completes, re-run `dt-style-checker` once:
 
-  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain>`):
+  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
     > "Fix the style violations for this brief:
     >
     > Task description: [Epic drafting for <JIRA_KEY>]
@@ -450,7 +464,7 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 
 **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
 
-- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX.md`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
+- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
   ```
   choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run", "Other… (describe)"]
   ```
@@ -458,7 +472,7 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 
 - **PASS WITH RECOMMENDATIONS** — invoke `doc-fixer` for MAJOR findings only:
 
-  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain>`):
+  → task(agent_type: "dev-workflows:doc-fixer", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
     > "Fix the review findings for this brief:
     >
     > Task description: [Epic drafting for <JIRA_KEY>]
@@ -471,6 +485,8 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 - **PASS** — proceed to Phase 8.
 
 Cap: one fix cycle + one re-review maximum.
+
+**The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 
 ---
 
@@ -494,7 +510,7 @@ Epic-review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK]
 
 Then spawn all four maintenance agents in a **single task message**. They are independent and run concurrently.
 
-**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §2.1 detection chain>`):
+**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write documentation review. Change summary:
 > [paste change summary block]
 >
@@ -504,7 +520,7 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > If an update is warranted: apply minimal edits.
 > Return: file updated and what changed, OR 'no update required (reason)'."
 
-**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §2.1 detection chain>`):
+**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write knowledge review. Change summary:
 > [paste change summary block]
 >
@@ -519,7 +535,7 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > - **Ref**: [first 60 chars of the Jira key + VI summary]
 > Return: file updated/created and summary of entry, OR 'no update required'."
 
-**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §2.1 detection chain>`):
+**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-write instructions review. Change summary:
 > [paste change summary block]
 >
@@ -529,7 +545,9 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > If YES: apply minimal, additive, scoped changes only.
 > Return: what was changed and why, OR 'no update required'."
 
-**Agent 4 — Session maintenance** (dev-workflows:impl-maintenance, model: `<detection_model — §2.1 detection chain>`):
+**Agent 4 — Session maintenance** (dev-workflows:impl-maintenance, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
+
+**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 > "Analyse this session and return a Lessons Learned report.
 >
 > Session handoff:
@@ -716,7 +734,7 @@ in full.
 - ALWAYS write to the resolved `output_dir` — `$VAULT_PATH/jira-drafts/<jira_key>/` when `$VAULT_PATH` is set, else `<parent-of-jira_export_root>/epic-drafts/<jira_key>/` (or the user-confirmed alternative) — auto-create the directory if missing
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `epic-reviewer` before Phase 8 maintenance
-- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its Opus pin fixed at dispatch (no override); coordination + interactive gates run on `current_model`
+- ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override unless §10 enforces a model); coordination + interactive gates run on `current_model`
 - ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts (still true — the drafts land in the vault / output directory, which the terminal `commit-artifacts` step never stages; git management there is the user's responsibility)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block

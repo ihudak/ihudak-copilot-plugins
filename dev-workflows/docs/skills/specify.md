@@ -8,7 +8,9 @@ Reads a Jira Epic or VI from exported markdown, lightly grounds in code, and aut
 
 ## Synopsis
 
-    specify: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--no-docs]
+    specify: <VI-Key | Epic-Key | dir> [<Epic-Key>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 Key distinction from [`epics:`](epics.md): `epics:` *splits* a VI into Epic drafts; `specify:` *authors one specification* for a single item. The VI-level path is genuinely valid, not a fallback of last resort: `specify: <VI>` with no focus Epic stays in the PE lane and produces one broad `specification.md` at the VI dir. What Phase 2 Step A does with a bare VI key depends on how many child Epics it has:
 
@@ -26,10 +28,15 @@ flowchart TD
     p0["Phase 0 — Resolve input"] --> p1["Phase 1 — Configure"]
     p1 --> p15["Phase 1.5 — Classify"]
     p15 --> p2["Phase 2 — Read Jira"]
-    p2 --> d1{"Epic count for this VI? (Phase 2 Step A)"}
-    d1 -- "stand-alone Epic, or exactly 1 child Epic → auto-resolved" --> p25["Phase 2.5 — Resolve applicable ARD (optional)"]
+    p2 --> focus{"Focus Epic already resolved?"}
+    focus -->|Yes: skip Step A| p25["Phase 2.5 — Resolve applicable ARD (optional)"]
+    focus -->|No| d1{"Item type / child Epic count? (Phase 2 Step A)"}
+    d1 -- "stand-alone Epic, or exactly 1 child Epic → auto-resolved" --> p25
     d1 -- "≥2 child Epics → pick one, or author one broad VI-level spec" --> p25
-    d1 -- "0 child Epics → split via epics:, or author one broad VI-level spec" --> p25
+    d1 -->|0 child Epics| zero{"Split first, author broad spec, or cancel?"}
+    zero -->|Author one broad VI-level spec| p25
+    zero -->|Split via epics:| split["Stop — create Epics in Jira, re-import, then re-run"]
+    zero -->|Cancel| stop["Stop current run"]
     p25 --> p3["Phase 3 — Derive repos + soft gate"]
     p3 --> p4["Phase 4 — Light code scan"]
     p4 --> p5["Phase 5 — Author via grill"]
@@ -57,7 +64,7 @@ flowchart TD
 
 ## Gates
 
-Phase 6 dispatches `spec-reviewer`. Like `ard-reviewer` and `epic-reviewer`, this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5) and recorded as `review_model`. It checks per-stage quality, cross-stage consistency, coverage, and identifier integrity. `BLOCK` fixes the BLOCKER findings inline — the orchestrator/grill edits `specification.md` directly; there is no delegated writer to re-dispatch — and re-reviews once; an unresolved BLOCKER after that cycle is escalated individually, with "Defer" appending a `## Refinement notes` section to the spec itself. `MAJOR`/`MINOR`/`NIT` findings under `PASS WITH RECOMMENDATIONS` are deferred to the final report with no mandatory fix cycle. Cap: one fix cycle plus one re-review.
+Phase 6 dispatches `spec-reviewer`. Like `ard-reviewer` and `epic-reviewer`, this agent carries no `model:` pin of its own — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review) and recorded as `review_model`. It checks per-stage quality, cross-stage consistency, coverage, and identifier integrity. `BLOCK` fixes the BLOCKER findings inline — the orchestrator/grill edits `specification.md` directly; there is no delegated writer to re-dispatch — and re-reviews once; an unresolved BLOCKER after that cycle is escalated individually, with "Defer" appending a `## Refinement notes` section to the spec itself. `MAJOR`/`MINOR`/`NIT` findings under `PASS WITH RECOMMENDATIONS` are deferred to the final report with no mandatory fix cycle. Cap: one fix cycle plus one re-review.
 
 Ahead of the review, Phase 5.5 runs a structural pre-lint ([`skills/_shared/pre-lint.md`](../../skills/_shared/pre-lint.md)) — advisory only — checking the Universal checks and the spec block, including that the header's `Open questions` count matches the actual `- [ ]` count.
 

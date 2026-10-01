@@ -78,7 +78,14 @@ INSTRUCTIONS_MD_MAX = 40_000
 INSTRUCTIONS_MD_WARN = 36_000
 INSTRUCTIONS_FILE_WARN = 20_000
 
-SKIP_DIRS = {".git", "node_modules", ".superpowers", ".idea"}
+SKIP_DIRS = {
+    ".git", "node_modules", ".superpowers", ".idea",
+    # scripts/fixtures/ holds selftest scaffolding for the sibling gates. Any plugin.json
+    # under it names no real, installable plugin and is deliberately absent from every
+    # marketplace.json; without this exclusion the reverse "every manifest is advertised"
+    # assertion below would report a defect that does not exist.
+    "fixtures",
+}
 
 
 def find_files(root: Path, name: str) -> list[Path]:
@@ -272,6 +279,9 @@ def validate_repo(root: Path) -> tuple[int, int]:
         print("  ERROR no marketplace.json found in this repository")
         errors += 1
 
+    # Every catalog entry's name, across every marketplace.json in the repository.
+    advertised: set[str] = set()
+
     for catalog_path in catalogs:
         data = load(catalog_path)
         if data is None:
@@ -287,6 +297,7 @@ def validate_repo(root: Path) -> tuple[int, int]:
         for index, entry in enumerate(entries):
             name = entry.get("name", f"<unnamed #{index}>")
             label = f"{rel} plugins[{index}] ({name})"
+            advertised.add(name)
 
             e, w = check_description(label, entry.get("description", ""))
             errors += e
@@ -313,6 +324,23 @@ def validate_repo(root: Path) -> tuple[int, int]:
                 )
                 errors += 1
 
+    # The reverse of the loop above: every manifest found on disk must be named by
+    # some catalog, not just every catalog entry must have a manifest. A plugin with a
+    # valid manifest and no row in any marketplace.json passed every gate and shipped
+    # to nobody, because Claude Code and Copilot CLI both install only what a catalog
+    # advertises. No suppression mechanism -- a plugin that is deliberately
+    # unadvertised is a decision to make when that plugin exists, not a standing
+    # escape hatch.
+    for name, (manifest_path, manifest_data) in manifests.items():
+        if name not in advertised:
+            manifest_rel = manifest_path.relative_to(root)
+            print(
+                f"  ERROR {manifest_rel}: plugin {manifest_data.get('name')!r} "
+                f"has a plugin.json but is not listed in any marketplace.json "
+                f"in this repository"
+            )
+            errors += 1
+
     e, w = check_instruction_sizes(root)
     errors += e
     warnings += w
@@ -333,7 +361,8 @@ def _selftest() -> int:
     def build(root: Path, *, version: str = "1.0.0", catalog_version: str | None = None,
               description: str = "A fixture plugin.",
               top_instructions: str | None = None,
-              instructions_files: dict[str, str] | None = None) -> None:
+              instructions_files: dict[str, str] | None = None,
+              ghost_manifest: bool = False) -> None:
         plugin_dir = root / "fixture-plugin"
         (plugin_dir / ".plugin").mkdir(parents=True)
         (plugin_dir / ".plugin" / "plugin.json").write_text(json.dumps(
@@ -345,6 +374,14 @@ def _selftest() -> int:
             "plugins": [{"name": "fixture-plugin", "source": "fixture-plugin",
                           "version": catalog_version or version, "description": description}],
         }), encoding="utf-8")
+        if ghost_manifest:
+            # A valid manifest with no catalog entry anywhere -- the state the
+            # reverse-advertisement assertion exists to catch.
+            ghost = root / "ghost-plugin" / ".plugin"
+            ghost.mkdir(parents=True)
+            (ghost / "plugin.json").write_text(json.dumps(
+                {"name": "ghost-plugin", "version": "1.0.0",
+                 "description": "An unadvertised fixture plugin."}), encoding="utf-8")
         if top_instructions is not None:
             (root / ".github").mkdir(parents=True, exist_ok=True)
             (root / ".github" / "copilot-instructions.md").write_text(
@@ -384,6 +421,8 @@ def _selftest() -> int:
          "but fixture-plugin/.plugin/plugin.json says", catalog_version="9.9.9")
     case("an over-long description is rejected", False, "ERROR",
          description="x" * (DESCRIPTION_MAX + 1))
+    case("a plugin.json with no catalog entry anywhere is rejected", False,
+         "is not listed in any marketplace.json", ghost_manifest=True)
     case("a description past the warning threshold is reported", True, "WARN",
          description="x" * (DESCRIPTION_WARN + 1))
     case("a repository with no copilot-instructions.md passes", True, "OK")

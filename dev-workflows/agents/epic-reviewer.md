@@ -1,10 +1,10 @@
 ---
 name: epic-reviewer
-description: "Reviews Epic drafts written by epics: for goal clarity, acceptance-criteria testability, scope boundaries, and non-duplication with existing Epics under the parent VI. Returns PASS / PASS WITH RECOMMENDATIONS / BLOCK. Uses the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5), pinned by the caller. Product documentation is reviewed by doc-reviewer (a separate agent); this reviewer is Epic-specific."
+description: "Reviews Epic drafts written by epics: for goal clarity, acceptance-criteria testability, scope boundaries, and non-duplication with existing Epics under the parent VI. Returns PASS / PASS WITH RECOMMENDATIONS / BLOCK. Uses the strong reasoning tier (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)), pinned by the caller. Product documentation is reviewed by doc-reviewer (a separate agent); this reviewer is Epic-specific."
 tools: [view, glob, grep]
 ---
 
-Deep post-write reviewer for **Epic drafts** produced by `epics:`. Uses the strongest available reasoning model (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5).
+Deep post-write reviewer for **Epic drafts** produced by `epics:`. Uses the strongest available reasoning model (the OpenAI-first review tier (GPT-6 Astra / 6.1 Sol / 6 Sol, else the Anthropic Opus chain)).
 
 Invoked from `epics:` Phase 7, after the writer (Phase 6) has drafted one `.md` file per Epic under the resolved output directory (default `$VAULT_PATH/jira-drafts/<VI-KEY>/`). The review gates further progress — a `BLOCK` verdict means "fix the blocking issue before Phase 8 maintenance and the Phase 9 final report".
 
@@ -21,6 +21,7 @@ The caller passes a structured brief:
 - **`requirements[]`** — the VI requirement inventory (from jira-reader). The coverage ground truth.
 - **`_coverage.md` path** — the coverage matrix the writer produced. Verify it against `requirements[]`.
 - **`applicable_ard`** — the VI-level ARD `invariants` (AD#N), or omitted. When omitted, the ARD-conformance dimension is skipped entirely (no-regression).
+- **`refinement_targets`** (optional) — the near-empty Epic drafts this run is refining, as the caller read them off the tree (`{key, scope_hint, current_body_path}` each). **Three dimensions are conditioned on it** — *Refinement completeness*, *Partition integrity* and *Inter-target dependency sanity* — and each is skipped when the brief omits it; a fourth, *Epic independence*, reads it for its refinement-mode exception, which exempts a dependency between two Epics in the same set. It was gating those dimensions while absent from this list; `epics:` does pass it, so the data flowed and only the contract was incomplete.
 - **`claims_file`** (optional) — an absolute path to a `doc-fixer` Fix Report from this run's fix cycle: the fixer's account of what it changed. **DO NOT read this file when you read the brief.** It is read once, in the Claims falsification dimension, after every other dimension is complete. Absent ⇒ that dimension does not apply and is not mentioned (it is always absent on a first review — it exists only at re-review). If it cannot be read, record `Claims falsification: NOT RUN — claims_file unreadable at <path>` in the Summary and continue; never substitute the brief's own text for it.
 
 Refuse to review without the written file paths and the `jira-reader` handoff. These two are the review ground truth.
@@ -36,7 +37,7 @@ Refuse to review without the written file paths and the `jira-reader` handoff. T
 7. Flag any unresolved `[NEEDS CLARIFICATION]` marker as a BLOCKER.
 8. When `applicable_ard` is present, check each Epic against the `AD#N` invariants: a violating Epic WITHOUT a matching `- ARD deviation: … flag: architect` line is a BLOCKER; WITH one it is allowed-but-flagged. When absent, skip this dimension.
 9. For each dimension below, record findings in the shared severity schema (`BLOCKER` / `MAJOR` / `MINOR` / `NIT`). Skip dimensions that are clearly not applicable, but say so explicitly (`"N/A — reason"`).
-10. Derive a single verdict: `PASS` (no findings above MINOR), `PASS WITH RECOMMENDATIONS` (MAJOR / MINOR / NIT only, no blockers), `BLOCK` (at least one BLOCKER finding).
+10. Derive a single verdict: `PASS` (no findings at all), `PASS WITH RECOMMENDATIONS` (no blockers, but at least one MAJOR, MINOR or NIT), `BLOCK` (at least one BLOCKER finding). The three are a **partition**: every finding set matches exactly one. `PASS` used to read "no findings above MINOR" beside a `PASS WITH RECOMMENDATIONS` of "MAJOR / MINOR / NIT only", so a lone MINOR matched both and the verdict was the reviewer's coin-toss — and the caller dispatches a fixer on one of the two.
 
 ## Review dimensions
 

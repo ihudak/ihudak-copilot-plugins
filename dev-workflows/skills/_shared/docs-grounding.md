@@ -30,8 +30,20 @@ write-target discovery hint (see its Phase 0).
    - it contains at least one markdown file
      (`find "$docs_root" -type f -name '*.md' -print -quit` is non-empty).
    On a host where `/workspace/docs` is absent, the gate fails → `OFF` → the run
-   behaves exactly as it does today.
-3.5. **Index state — qmd only.** Skip entirely when `command -v qmd` fails: `retrieval: fallback`, silent, exactly as today. Otherwise probe with `timeout 10s qmd status` and `timeout 10s qmd collection list`. **If either probe fails or times out, treat that exactly as `qmd` absent** — `retrieval: fallback`, silent, no prompt — which mirrors `docs-grounder`'s rung 3 so the command and the agent degrade identically instead of disagreeing about the same broken install. Otherwise take one branch.
+   behaves exactly as it does without docs grounding.
+3.5. **Index state — qmd only.** Skip entirely when `command -v qmd` fails: `retrieval: fallback`, silent, exactly as it does without this step. Otherwise probe with `timeout 10s qmd status` and `timeout 10s qmd collection list`. **If either probe fails or times out, treat that exactly as `qmd` absent** — `retrieval: fallback`, silent, no prompt — which mirrors `docs-grounder`'s rung 3 so the command and the agent degrade identically instead of disagreeing about the same broken install. Apply **Shadow detection** below before selecting a coverage branch: a shadowing project-local index means `retrieval: fallback`, no build or refresh, with the shadow clause in the plan-approval line. Otherwise take one branch according to whether a collection covers `docs_root`.
+
+   **Global vector counts do not prove coverage of this root.** A positive `Vectors:` count from `qmd status` can belong entirely to unrelated collections. Successful probes that find no collection covering `docs_root` therefore take the no-collection branch even when the global count is positive. These probes alone establish neither orphaned documents nor a corrupt registry: do not diagnose either, recommend registry repair, or suppress the build choice on that evidence. No direct SQLite inspection or repair belongs to this procedure.
+
+   **One state is narrower, and it is the one the probes can see: an index with documents and no collections at all.** `qmd collection list` reports none — `Collections (0)`, `No collections found`, or no collection entry at all — while `qmd status` reports `Total: <D> files indexed` with `D > 0`. Positive vectors belonging to other roots cannot explain that, because there are no other roots: the index holds documents that no collection reaches. A field run met exactly this — 22,000 documents and 92,330 vectors under an empty collection registry — and was steered into rebuilding what was already built. The cause is still not diagnosed here (a damaged registry, a removed collection whose rows survive, a `qmd cleanup` that has not run), so the no-collection prompt is still shown, but its recommendation moves, its build option says what it may cost, and the plan-approval line says why:
+
+   ```
+   choices: ["Skip — ground with keyword fallback this run (Recommended — the index already holds <D> documents that no collection reaches; inspect it with 'qmd status' before rebuilding)",
+             "Build the docs index anyway — <N> markdown files; may re-embed documents the index already holds",
+             "Turn docs grounding off for this run"]
+   ```
+
+   A collection that exists and does not cover `docs_root` is the ordinary no-collection branch, whatever either count says.
 
    **A collection covers `docs_root`** → `timeout 60s qmd update`. Incremental (qmd re-indexes only changed files), instant when nothing changed, and safe to kill because the index is SQLite and rolls back. On a cap breach, prompt once — never silently pay 60 seconds on every future run:
 
@@ -54,6 +66,8 @@ write-target discovery hint (see its Phase 0).
    On "Build": `qmd collection add "<docs_root>" --name docs` then `qmd embed`, **uncapped** — killing a consented build wastes the work it has already done — reporting elapsed time on completion. The prompt disappears permanently once the index exists.
 
    **Index building NEVER happens inside `docs-grounder`.** An agent cannot ask, so an agent told to self-heal has only two options: burn many minutes silently, or abort on its own judgment. This step exists because the orchestrator can ask.
+   **Embedding coverage is a proportion, not a boolean.** `qmd status` reports both a document count and a vector count, so the `qmd-vector` rung is selected on *partial* coverage exactly as on full — and a collection that is, say, two-thirds embedded returns low-relevance noise from `qmd vsearch` for most queries while the digest in fact comes from lexical `qmd search`. Reporting full semantic retrieval while delivering little of it is the defect, not the degradation itself. When the index has embeddings but fewer than the document count, keep `retrieval: qmd-vector` — vector search does work for the embedded slice — and append the partial-coverage clause to the plan-approval line, naming both numbers. The neighbouring cases ("no embeddings", "some pages may be stale") already have clauses; this is the third.
+
 4. **Return** `{ docs_grounding, docs_root, retrieval, reason }`, where `retrieval` is `qmd-vector | qmd-lexical | fallback`. `docs-grounder` re-probes and its rung selection is authoritative; this value drives the prompts above and the line below.
 
 **Default-safety note.** A `/workspace/*` default is safe here because this is a
@@ -70,7 +84,11 @@ docs grounding: ON <root> (retrieval: qmd-vector)
 docs grounding: ON <root> (retrieval: qmd-lexical — index has no embeddings)
 docs grounding: ON <root> (retrieval: qmd-vector; index refresh exceeded 60s — some pages may be stale)
 docs grounding: ON <root> (retrieval: qmd-vector; docs checkout <N> days old — refresh on the host)
-docs grounding: ON <root> (retrieval: fallback — no qmd index; build once: qmd collection add "<root>" --name docs && qmd embed)
+docs grounding: ON <root> (retrieval: fallback — qmd absent)
+docs grounding: ON <root> (retrieval: fallback — probe failed: <which call, exit or timeout>)
+docs grounding: ON <root> (retrieval: fallback — no collection covers this docs root; build once: qmd collection add "<root>" --name docs && qmd embed)
+docs grounding: ON <root> (retrieval: fallback — the index holds <D> documents but no collections; a rebuild may duplicate them — check `qmd status` first)
+docs grounding: ON <root> (retrieval: qmd-vector; index <M> of <N> documents embedded — vector search covers only part of the corpus)
 docs grounding: ON <root> (retrieval: fallback — a project-local .qmd index in <cwd> is shadowing the user-scope one; run from another directory or remove it)
 docs grounding: OFF (<reason>)
 ```
@@ -98,8 +116,8 @@ default for this retrieval agent):
 ```
 
 Wait for the digest. On `status: ERROR` or any dispatch failure, treat as
-`docs_grounding: OFF` and proceed as today (record one line in the final report).
-On `status: EMPTY`, proceed as today; the digest simply adds nothing.
+`docs_grounding: OFF` and proceed as the run does without docs grounding (record one line in the final report).
+On `status: EMPTY`, proceed the same way; the digest simply adds nothing.
 
 ## Consumption
 

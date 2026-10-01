@@ -8,7 +8,9 @@ Grounds on the mounted implementation repos — architect-driven discovery, no P
 
 ## Synopsis
 
-    create-ard: <VI-KEY> [<Epic-KEY>] [--no-docs]
+    create-ard: <VI-KEY> [<Epic-KEY>] [--no-docs] [--skip-feedback] [--enforce-model=<model>]
+
+[Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 `create-ard: <VI-KEY>` authors a **VI-level** ARD. `create-ard: <VI-KEY> <Epic-KEY>` authors an **Epic-level** ARD, which inherits the VI-level ARD read-only (Phase 2) and layers its own `[AD#N]` decisions on top — an Epic/area decision wins on conflict, and a real contradiction is caught by `ard-reviewer` at authoring time rather than left for a downstream consumer to resolve. A bare `<Epic-Key>` also resolves — the shared Jira-input front-end auto-resolves its parent VI. `--no-docs` turns off the optional Phase 3 documentation-grounding pass (on by default when `$DOCS_PATH` resolves).
 
@@ -48,7 +50,7 @@ flowchart TD
 
 ## Gates
 
-Phase 5 dispatches `ard-reviewer`. This agent carries no `model:` pin in its own frontmatter — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), recorded in `model_routing` as `review_model`, resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 or GPT-5.6/5.5). It checks grounding integrity (every as-is claim cites a real `file:line`), `[AD#N]` well-formedness, non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. `PASS` / `PASS WITH RECOMMENDATIONS` proceeds. `BLOCK` triggers one inline fix cycle — the orchestrator/grill edits the ARD directly; there is no delegated fixer — and one re-review; if still `BLOCK`, each unresolved BLOCKER is escalated individually per [`skills/_shared/escalation-rules.md`](../../skills/_shared/escalation-rules.md). Cap: one fix cycle plus one re-review. For a per-area split, each area ARD is reviewed separately.
+Phase 5 dispatches `ard-reviewer`. This agent carries no `model:` pin in its own frontmatter — the orchestrator pins the model at the dispatch call site (`task(model: <review_model>)`), recorded in `model_routing` as `review_model`, resolved from the strong reasoning tier (Opus 5.5/5/4.8/4.7/4.6 for work, GPT-6 Astra/6.1 Sol/6 Sol for review). It checks grounding integrity (every as-is claim cites a real `file:line`), `[AD#N]` well-formedness, non-contradiction of inherited VI-level invariants, altitude purity (no per-repo solutions at VI level), and recorded open questions. `PASS` / `PASS WITH RECOMMENDATIONS` proceeds. `BLOCK` triggers one inline fix cycle — the orchestrator/grill edits the ARD directly; there is no delegated fixer — and one re-review; if still `BLOCK`, each unresolved BLOCKER is escalated individually per [`skills/_shared/escalation-rules.md`](../../skills/_shared/escalation-rules.md). Cap: one fix cycle plus one re-review. For a per-area split, each area ARD is reviewed separately.
 
 For `SIGNIFICANT` / `HIGH-RISK` classifications, Phase 1.5 additionally requires the session itself to already be running a strong-reasoning model before the run proceeds at all — a tiered hard model gate testing `current_model` (the session's own tier), never `opus_available` (environment reachability), since the grill and ARD authoring both run inline: if `current_model` isn't strong-tier, the run stops, offering to relaunch on the strong tier only when one is reachable (`opus_available: true`) — otherwise that option is dropped — plus an override on the current model (logged in the final report) or cancel. For `SIMPLE`/`MODERATE`, a missing strong-reasoning model only degrades advisorially, recorded in `notes`.
 
