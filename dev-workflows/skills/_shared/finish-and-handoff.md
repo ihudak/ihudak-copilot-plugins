@@ -35,7 +35,7 @@ Then squash:
 - mechanics: `git -C <docs_repo_path> add -- <each path under docs_repo_path the run wrote or edited>`
   → `git -C <docs_repo_path> reset --soft <squash-base>`
   → one `git -C <docs_repo_path> commit -m "<message>"`. Never a path outside the docs
-  repository — the implementation-gaps draft in the vault project folder, a screenshot staged under
+  repository — the implementation-gaps draft in the ticket's feature folder, a screenshot staged under
   `screenshot_staging_dir`, or Phase 8's feedback file under `$SPECS_PATH` — which git refuses
   (`fatal: … is outside repository`) along with every other path in the same `add`.
 - message follows `profile.commit_convention` when present (dynatrace-docs:
@@ -65,9 +65,9 @@ Classify the docs repo's `git -C <docs_repo_path> remote get-url origin`:
 ## 5. PR draft (always; no API)
 
 Compose the draft and BOTH write and show it:
-- **write** to the vault project folder as `<JIRA_KEY>-pr-draft.md`
-  (`find $VAULT_PATH/Projects -maxdepth 5 -type d -name "<JIRA_KEY>*"`; ask if
-  none) — the same destination convention as the release-notes / bug drafts.
+- **write** to the ticket's feature folder as `<JIRA_KEY>-pr-draft.md` (ask if
+  none) — the same destination as the release-notes and gaps drafts; the terminal
+  `commit-artifacts` step commits it.
 - **title**: per `commit_convention` (e.g. `<JIRA-KEY> <summary>`).
 - **body**: what was documented; the output files; the Phase 6.5
   render-verification summary; deferred style/review/render items; a link back

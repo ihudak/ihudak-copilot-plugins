@@ -179,7 +179,7 @@ Before clarification, show a readiness table summarizing what Phase 0 resolved:
 
 | Item | Resolved |
 |---|---|
-| Jira input | source: `<vault \| directory>`; export root: `<jira_export_root>` |
+| Jira input | source: `<specs \| directory>`; export root: `<jira_export_root>` |
 | Docs repo | `<docs_repo_path>` (`is_dynatrace_docs`: yes/no) — write context `<obsidian \| docs_repo \| non_docs_repo \| plain_dir>` |
 | Profile | `profile_source`: `<in-repo \| built-in \| generated>` |
 | Toolchain | `<all required tools present>` OR `<N missing: vale, pnpm — user chose to continue>`; writing into `<docs_repo_path>`[ (cwd is `<cwd>`)] |
@@ -225,14 +225,12 @@ Ask about:
   ```
   Record the answer as `new_images_wanted` (true/false). When `false`, Phase 5.6 skips its **add** list only and still reviews existing images on the edited pages. The downstream `doc-planner` (Phase 5.7) detects the repo's `image_policy` and decides per screenshot whether the writer will copy it locally or stage it for manual upload.
 
-  **Resolve `<screenshot_staging_dir>`.** No longer gated on `new_images_wanted`: Phase 5.6 always runs and its existing-image review can need a durable location for a replacement source regardless of this answer, so `<project_dir>` (set below) must be resolved on every run, not only an add-list one. **This unconditional resolution is deliberate and stays**, including the "Not found" prompt it can raise on a run that turns out to have no image work at all: Phase 1 runs long before `write_targets` exist, so any narrower precondition ("only when this run will touch images") is undecidable here. The occasional needless prompt is the accepted cost of closing a container-restart data-loss gap — do not re-gate this on `new_images_wanted` or on a guess about image work. For the `cdn_upload_required` case the staged copies must live somewhere that survives a container restart — `$VAULT_PATH` is always host-mounted, the docs repo (often a docker repo-volume) and `/tmp` are not. Find the ticket's persistent Obsidian project folder:
-  ```bash
-  find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<JIRA_KEY>*" 2>/dev/null | head -1
-  ```
-  - **Found** → record the matched folder as `<project_dir>` (the project-folder root — reused as an image source in Phase 5.6), and set `<screenshot_staging_dir>` to that project folder's screenshot subfolder: prefer an existing `Doc screenshots/` or `Attachments/` subdirectory; otherwise `Doc screenshots/` (created on first write).
-  - **Not found** (e.g. a non-`PRODUCT-` ticket with no project folder) → `<project_dir>` is null (Phase 5.6's project-folder scan then contributes nothing); ask:
+  **Resolve `<screenshot_staging_dir>`.** No longer gated on `new_images_wanted`: Phase 5.6 always runs and its existing-image review can need a durable location for a replacement source regardless of this answer, so `<project_dir>` (set below) must be resolved on every run, not only an add-list one. **This unconditional resolution is deliberate and stays**, including the **Not resolvable** prompt it can raise on a run that turns out to have no image work at all: Phase 1 runs long before `write_targets` exist, so any narrower precondition ("only when this run will touch images") is undecidable here. The occasional needless prompt is the accepted cost of closing a container-restart data-loss gap — do not re-gate this on `new_images_wanted` or on a guess about image work. For the `cdn_upload_required` case the staged copies must live somewhere that survives a container restart — `$SPECS_PATH` is host-mounted, the docs repo (often a docker repo-volume) and `/tmp` are not.
+  `<project_dir>` = the parent of `jira_export_root` — one rule: a top-level key's feature folder (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`), a nested Epic's parent folder, and, for a directory input outside `$SPECS_PATH`, the folder beside the import.
+  - **Resolved** → `<screenshot_staging_dir>` = `<project_dir>/Doc screenshots/` (an existing `Doc screenshots/` is preferred; otherwise created on first write). Under `$SPECS_PATH` it is never committed: where this default resolves under `$SPECS_PATH`, the Phase 6 writer step excludes that directory once from `git status` (below).
+  - **Not resolvable** → `<project_dir>` is null; ask:
     ```
-    choices: ["Enter an absolute directory under $VAULT_PATH (you'll be prompted)", "Skip — only needed if the docs repo turns out to be cdn_upload_required", "Cancel", "Other… (describe)"]
+    choices: ["Enter an absolute staging directory (you'll be prompted)", "Skip — only needed if the docs repo turns out to be cdn_upload_required", "Cancel", "Other… (describe)"]
     ```
     Reject `/tmp` and any path inside the docs repo. Record the result as `<screenshot_staging_dir>` (or null if skipped).
 
@@ -241,7 +239,7 @@ Also display (for user context):
 - Write context (`obsidian` / `docs_repo` / `non_docs_repo` / `plain_dir`)
 - Whether branching will happen (only when context is `docs_repo` — confirmed at plan approval)
 - Resolved `$REPOS_PATH`
-- Resolved `$VAULT_PATH` and `<JIRA_KEY>`
+- Resolved feature folder and `<JIRA_KEY>`
 - Space scope — show `space_constraint` (Phase 0 step 7): `saas`/`managed` means `target_spaces` is already fixed to that single space; `none` means the applicable space(s) are auto-determined and confirmed in Phase 4.5 (after the Jira read and repo resolution). Once Phase 4.5 has run, the resolved `target_spaces` is the authoritative value displayed here.
 
 ---
@@ -487,7 +485,7 @@ Build this list only when `new_images_wanted` is `true` (Phase 1); when `false`,
    ```
    When `specs_dir` is `none`, this source contributes nothing.
 2. **`jira-reader` `attachments[]`** — the image paths enumerated under the VI's `attachments/` dirs (Phase 3 handoff `attachments[].path`; these live under `jira_export_root/…`, so this covers screenshots developers attached in Jira). May be empty.
-3. **Recursive scan of `<project_dir>`** — when Phase 1 resolved a `<project_dir>` (the persistent Obsidian project folder under `$VAULT_PATH/Projects`), recursively scan it for image files:
+3. **Recursive scan of `<project_dir>`** — when Phase 1 resolved a `<project_dir>` (the ticket's feature folder), recursively scan it for image files (this includes every `jira-import/*/attachments/` image under it):
    ```bash
    find "<project_dir>" -type f \
      \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.webp" \) 2>/dev/null
@@ -542,9 +540,9 @@ When both lists are empty, skip presenting this prompt — there is nothing to s
 - `SKIPPED_BY_USER` — the choice was "Add-list only — existing images are current" or "Nothing to do — no image work this run"; `user_decision` quotes the choice verbatim.
 - `NOT_APPLICABLE` — both lists were empty (the prompt above was skipped); `precondition_unmet: "no add-list candidates and no image references on any extend-existing write target"`.
 
-For any **manual** free-text paths, accept any absolute filesystem path (vault, `/tmp`, home, the docs repo); accept multiple (one per line or space-separated). Validate each path exists and has an image extension (`.png|.jpg|.jpeg|.gif|.svg|.webp`); drop and report any that don't.
+For any **manual** free-text paths, accept any absolute filesystem path (`/tmp`, home, the docs repo); accept multiple (one per line or space-separated). Validate each path exists and has an image extension (`.png|.jpg|.jpeg|.gif|.svg|.webp`); drop and report any that don't.
 
-When you need to **add a new image** for this feature (a screenshot the docs should have but no source yet holds — including a replacement source for an accepted existing-image entry), place it in the **Projects VI-dir** — `<project_dir>` (i.e. `$VAULT_PATH/Projects/<VI-dir>/…`, e.g. its `Doc screenshots/` subfolder). **Never** put it under `jira-import/`: that directory is regenerated on every Jira import, so a manually-added image there is lost on the next import. `jira-import` is a read-only source (developer-attached Jira screenshots, via source 2); authored/curated images belong in the Projects folder.
+When you need to **add a new image** for this feature (a screenshot the docs should have but no source yet holds — including a replacement source for an accepted existing-image entry), place it in `<screenshot_staging_dir>` (`<project_dir>/Doc screenshots/`). **Never** put it under `jira-import/`: that directory is regenerated on every Jira import, so a manually-added image there is lost on the next import. `jira-import` is a read-only source (developer-attached Jira screenshots, via source 2); authored/curated images belong in the feature folder's own `Doc screenshots/`.
 
 The selected add-list paths populate the existing **`screenshots[]`** passed to `doc-planner` in Phase 5.7 — the downstream placement machinery (per-screenshot `dest`/`staging`/`upload_note`, `image_policy`) is unchanged. An accepted item — from either list — carries into Phase 6.1 for its CDN URL. The outcome is recorded as `existing_image_decisions[]` (schema above; matches `doc-writer`'s input contract) and carried in the Phase 6.3 handoff file alongside `cdn_urls`.
 
@@ -624,7 +622,7 @@ Handle the `status` and `gaps`:
   choices: ["Copy them into the repository beside the page", "Stage for manual upload to the repo's image-management tool", "Leave these screenshots off this page", "Cancel"]
   ```
   - **Copy them into the repository beside the page** → record `local` for that target.
-  - **Stage for manual upload to the repo's image-management tool** → record `cdn_upload_required` for that target. Where `<screenshot_staging_dir>` is null — Phase 1's **Not found** branch was skipped — first take an absolute staging directory from the user, rejecting `/tmp` and any path inside the docs repo as that branch does, and record it as `<screenshot_staging_dir>`.
+  - **Stage for manual upload to the repo's image-management tool** → record `cdn_upload_required` for that target. Where `<screenshot_staging_dir>` is null — Phase 1's **Not resolvable** branch was skipped — first take an absolute staging directory from the user, rejecting `/tmp` and any path inside the docs repo as that branch does, and record it as `<screenshot_staging_dir>`.
   - **Leave these screenshots off this page** → once the checklist is final — after the re-invocation below, where there is one — remove that target's `screenshots:` entries from it; the writer places no screenshot on that page, and each screenshot is listed in Phase 9's `### Deferred items` as a user-declined screenshot.
   - **Cancel** → stop and summarise.
   - A free-text answer is mapped onto one of the first three, or the question is asked again; it is never written through as a policy of its own.
@@ -684,7 +682,7 @@ the row `DEGRADED`, with `not_run:` naming what did not run (e.g.
    ```
    "Document as intended (spec)" describes the agreed contract — the `spec_phrasing` (or the Jira phrasing when it is `(no spec)`) — and, when the code lags the intended phrasing, adds an intentional-discrepancy marker + bug-report draft. "Document as actual (code)" matches what shipped, and when it is a qualifying `document-as-code` case per §7.5, also records the gap in the bug-report draft. "Skip this claim and report it" omits the claim but still records the gap in the bug-report draft.
 
-4. **Record `discrepancy_decisions[]`** keyed by `number` (claim, jira_phrasing, spec_phrasing, source_phrasing, source_location, decision ∈ {document-as-spec, document-as-code, skip-and-report}, rationale). `spec_phrasing` is recorded verbatim (`(no spec)` when none was provided). Set `bug_report_destination` to the ticket's vault project folder (resolved exactly like the release-notes destination in `release-notes:` — `find $VAULT_PATH/Projects -maxdepth 5 -type d -name "<JIRA_KEY>*"`; ask if none) when any decision is `document-as-spec` (where the code lags the intended phrasing), `skip-and-report`, or a qualifying `document-as-code` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §7.5.
+4. **Record `discrepancy_decisions[]`** keyed by `number` (claim, jira_phrasing, spec_phrasing, source_phrasing, source_location, decision ∈ {document-as-spec, document-as-code, skip-and-report}, rationale). `spec_phrasing` is recorded verbatim (`(no spec)` when none was provided). Set `bug_report_destination` to the ticket's feature folder (`<project_dir>`; ask if none) when any decision is `document-as-spec` (where the code lags the intended phrasing), `skip-and-report`, or a qualifying `document-as-code` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §7.5.
 
 Pass `discrepancy_decisions` to Phase 6.3.
 
@@ -742,7 +740,7 @@ Run this phase when, in the checklist Phase 5.7 settled, **any** screenshot has 
    ```
 
    - **Upload now** → collect one CDN URL per image (prompt per image, or one URL per line in image order). Validate each pasted value looks like a URL (e.g. starts with `http://` / `https://`); re-prompt for any that don't. Record `cdn_urls[<image>]` for a regular screenshot, or the entry's `new_url` for an existing-image replacement. Phase 6.3 then writes the **real CDN URL** into each markdown image reference instead of a TODO placeholder — for an existing-image replacement, it swaps that occurrence in place. Nothing is staged and the Phase 9 "Screenshots to upload manually" section stays empty for these images.
-   - **Defer** → the existing async behavior for regular screenshots: stage each image under `<screenshot_staging_dir>` (the ticket's persistent Obsidian project folder resolved in Phase 1), Phase 6.3 inserts the `TODO-upload` placeholder reference, and every staged image is listed in the Phase 9 `### Screenshots to upload manually` section. Existing-image replacements are exempt from this path (see above) — their `new_url` is still collected now.
+   - **Defer** → the existing async behavior for regular screenshots: stage each image under `<screenshot_staging_dir>` (the ticket's feature folder resolved in Phase 1), Phase 6.3 inserts the `TODO-upload` placeholder reference, and every staged image is listed in the Phase 9 `### Screenshots to upload manually` section. Existing-image replacements are exempt from this path (see above) — their `new_url` is still collected now.
    - **Cancel** → stop and summarise.
 
    Record the decision as `cdn_handoff_decision ∈ {upload-now, defer}` and carry it (with any `cdn_urls` and the updated `existing_image_decisions[]`) into Phase 6.3.
@@ -796,6 +794,14 @@ The writing is delegated to the **`doc-writer`** subagent (pinned to the §2 Opu
 
 3. **Handle the return.**
    - **`status: DONE`** — record `files_written` + `notes` for Phases 6.4 / 6.5 / 7 / 8. Then **commit** per the branch/commit policy below.
+
+     The run commits no screenshot — a staged one is a copy kept only until the operator uploads it, and an image the operator places in `Doc screenshots/` (a new image or a replacement source, Phase 5.6) is likewise never committed — so keep them out of `$SPECS_PATH`'s `git status`, lest every later run's `specs-preflight` meet them as dirty paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.3 G1). Take `<rel>` as a path with its leading `$SPECS_PATH/` removed (a path that does not begin with it is outside the specs repo: do nothing). When Phase 1 resolved the **default** `<project_dir>/Doc screenshots/` under `$SPECS_PATH`, exclude that **directory** once: `<rel>` = the directory, with a trailing `/` (`/specifications/…/Doc screenshots/`). A user-entered staging directory may hold the operator's own files, so there `<rel>` is each staged file's path, one by one. Where `git -C "$SPECS_PATH" check-ignore -q --no-index -- "<rel>"` exits 1, append one anchored, glob-escaped line to the repository's local exclude file:
+
+     ```
+     f=$(git -C "$SPECS_PATH" rev-parse --git-path info/exclude) && case $f in /*) ;; *) f="$SPECS_PATH/$f" ;; esac && mkdir -p "$(dirname "$f")" && printf '\n/%s\n' "$(printf '%s' "<rel>" | sed -e 's/[][*?\\]/\\&/g' -e 's/ $/\\ /')" >> "$f"
+     ```
+
+     The exclude file is the repository's own and never committed; exit 0 from `check-ignore` (already ignored) appends nothing, and so does any exit other than 0 or 1. After appending, re-run the same `check-ignore`: name any path it still does not ignore in the Phase 9 report as "left untracked".
    - **`status: BLOCKED`** — surface the named gap to the user:
      ```
      choices: ["Provide the missing input (you'll be prompted)", "Cancel"]
@@ -1156,7 +1162,7 @@ choices: ["Push <branch> to origin now", "Skip — I'll push later", "Cancel"]
 Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finish-and-handoff.md` §4–§5:
 1. **Detect the host** from the docs repo's `git -C <docs_repo_path> remote get-url origin` (Bitbucket Cloud / Bitbucket Server / GitHub / other).
 2. **Compose the draft**: title (per `commit_convention`); body — what was documented, the output files, the Phase 6.5 render-verification summary, deferred style/review/render items, a link to the Jira VI. When Phase 5.8 recorded any `document-as-spec` / `skip-and-report` decision, prepend a banner: `> ⚠ DO NOT MERGE until <JIRA_KEY>-implementation-gaps.md is resolved.` A qualifying `document-as-code` decision (§7.5) does NOT get this banner even though it also produces a gaps file — the docs correctly describe what shipped, so the PR is mergeable; only the source ticket needs correcting.
-3. **Write + show**: write `<JIRA_KEY>-pr-draft.md` to the vault project folder (`find $VAULT_PATH/Projects -maxdepth 5 -type d -name "<JIRA_KEY>*"`; ask if none) AND print it.
+3. **Write + show**: write `<JIRA_KEY>-pr-draft.md` to the feature folder (`<project_dir>`; ask if none) AND print it.
 4. **Host footer**: Bitbucket → "open a PR in the web UI and paste the title + body"; GitHub → additionally offer `gh pr create --title "<title>" --body-file <pr-draft path>` that the user may run; other → "open a PR and paste the title + body". Bitbucket offers no CLI to open one — a host capability limit, not a policy: the plugin does open a pull request on a host with a CLI, but only in the separate GitHub-hosted specs repo (`$SPECS_PATH`), via a different flow — never in this docs repo (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2.6).
 
 Carry the squash result, push outcome, and PR-draft path into the Phase 9 report.
@@ -1267,7 +1273,7 @@ SIGNIFICANT — Jira-driven feature documentation has large blast radius if wron
 - [top suggestions from impl-maintenance agent, or "no suggestions — routine session"]
 
 ### Screenshots to upload manually
-[Only populated for the **Defer** path of Phase 6.1 — i.e. a target used image_policy: cdn_upload_required (a target whose ambiguous policy Phase 5.7's **Ambiguous image policy** step resolved to "Stage for manual upload to the repo's image-management tool" included) AND the user chose "Defer — stage with TODO placeholders" at the Phase 6.1 CDN handoff. For each staged screenshot: src (original user-provided path), staging path under <screenshot_staging_dir> (the persistent Obsidian project folder), the target page it belongs on, the proposed alt-text, and the upload_note from the planner. Omit this section entirely when no screenshots were staged — including when the user chose "Upload now" in Phase 6.1 (those images carry real CDN URLs in the markdown and need no manual step).]
+[Only populated for the **Defer** path of Phase 6.1 — i.e. a target used image_policy: cdn_upload_required (a target whose ambiguous policy Phase 5.7's **Ambiguous image policy** step resolved to "Stage for manual upload to the repo's image-management tool" included) AND the user chose "Defer — stage with TODO placeholders" at the Phase 6.1 CDN handoff. For each staged screenshot: src (original user-provided path), staging path under <screenshot_staging_dir> (the ticket's feature folder), the target page it belongs on, the proposed alt-text, and the upload_note from the planner. Omit this section entirely when no screenshots were staged — including when the user chose "Upload now" in Phase 6.1 (those images carry real CDN URLs in the markdown and need no manual step).]
 
 ### Implementation gaps (Jira vs source)
 [Populated when Phase 5.8 produced any `document-as-spec` / `skip-and-report` decision, **or** any qualifying `document-as-code` decision (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md` §7.5 — the Jira phrasing asserts a specific value that contradicts the source). All three write the same bug-report draft, so all three are listed here; the status line differs by decision:
@@ -1362,7 +1368,7 @@ in full.
 - GitHub URLs may use the `gh` CLI for head/base SHA resolution; no direct REST calls outside `gh`
 - NEVER write inside `_archive/` — that path is read-only by convention
 - NEVER write inside `jira-import/` — that path is re-created from scratch on every Jira import; writes there will be lost
-- NEVER write product documentation outside the resolved `docs_repo_path` (Phase 0); the only other writes are to the ticket's vault project folder under `$VAULT_PATH` (the `<JIRA_KEY>-implementation-gaps.md` bug-report draft, the `<JIRA_KEY>-pr-draft.md`, and screenshot staging) and this run's own temporary files — Phase 6.3's handoff file and Phase 7's claims file, each made by `command mktemp` and removed at the top of Phase 8 — never anywhere else.
+- NEVER write product documentation outside the resolved `docs_repo_path` (Phase 0); the only other writes go to `<project_dir>` and `<screenshot_staging_dir>` as Phase 1 defines them — the feature folder under `$SPECS_PATH`, beside the import for a directory input outside it, or the staging directory the user entered (the `<JIRA_KEY>-implementation-gaps.md` bug-report draft, the `<JIRA_KEY>-pr-draft.md`, and screenshot staging; where a draft lies under `$SPECS_PATH` the terminal `commit-artifacts` commits it, `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) and this run's own temporary files — Phase 6.3's handoff file and Phase 7's claims file, each made by `command mktemp` and removed at the top of Phase 8 — never anywhere else.
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `docs-style-checker` (Phase 6.4) before `doc-reviewer` (Phase 7)
 - ALWAYS run the Phase 0 toolchain preflight (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md`) after profile resolution and before Phase 1; it prompts only when a required tool is missing
@@ -1378,7 +1384,7 @@ in full.
 - ALWAYS produce the Phase 9 report as the final output
 - ALWAYS end the Phase 9 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked; omitted in direct doc-edit mode (Mode B)
 - ALL written claims must be traceable to Jira keys or PR diffs — attribution goes in the run's return payload and the commit message, NEVER inline in the rendered page (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1)
-- For `image_policy: cdn_upload_required`, NEVER copy user-provided screenshots into the repo — stage under `<screenshot_staging_dir>`, the ticket's persistent Obsidian project folder under `$VAULT_PATH` (never the docs repo, never `/tmp`) — and surface in the Phase 9 `### Screenshots to upload manually` section
+- For `image_policy: cdn_upload_required`, NEVER copy user-provided screenshots into the repo — stage under `<screenshot_staging_dir>` as Phase 1 defines it — the feature folder's `Doc screenshots/` under `$SPECS_PATH`, beside the import for a directory input outside it, or the directory the user entered (never the docs repo, never `/tmp`) — and surface in the Phase 9 `### Screenshots to upload manually` section
 - ALWAYS end the Phase 9 report with a `### Context hygiene` block per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — prepare-first (the `resume.md` write runs later, in the terminal follow-up phase, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 — this block prints the guidance only), then a docs→PM handoff suggestion (`/clear`) + `/rename <VI-ID>-<slug>-dev`; guidance only, never auto-run. **Mode B (direct doc-edit) omits this** — no VI context.
 - ALWAYS run `specs-preflight` in the shared `## Mode detection` section, before dispatching to either mode — so it runs for Mode B as well as Mode A — and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 
