@@ -3,6 +3,38 @@
 All notable changes to the **dev-workflows** plugin are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
+A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
+
+## [2.33.0] — 2026-10-01
+
+### Added — five more `check-docs.sh` checks ported from `ai-workflows`
+
+- **Check 10, identity quarantine**: no page under `docs/` may name this marketplace or its container repo, `getting-started.md` the single sanctioned exception. Fixed two real violations the check found: `dynatrace-docs-frontmatter.md` and `upgrade.md` both hardcoded the marketplace's install path (`~/.copilot/installed-plugins/<marketplace>/...`); both now link the shared files relatively (`../../skills/_shared/...`), as every other docs page does, so check 1 verifies the links resolve.
+- **Check 11, merge-clause adoption**, adapted for this edition's `name:` colon-trigger convention (both the row-F caller column and a `choices:` option's command reference) alongside the Claude editions' `/name` and `/plugin:name` forms in the same shared extractor. Like ai-workflows' original it reads `choices:` arrays only, so a prose offer stays a review matter.
+- **Check 12** is the former check 10 (choices arity) renumbered to align across editions; stays inert here (`HAS_CHOICE_CAP=0`, now declared explicitly in the edition-config block) since this edition's `ask_user` has no option cap.
+- **Check 15, index membership**, adapted to this edition's `name:` triggers; fixed a real gap this check found: `docs/workflow.md`'s own intro prose omitted `dynatrace-docs-frontmatter:` from its list of diagram-exempt, non-pipeline skills even though the README already documents it as one. Only the sentence saying which skills are omitted is read for the exemption; the intro's mention of `idea:`, `document:` and `release-notes:` exempts none of them.
+- **Check 17, dispatch authority**, adapted to this edition's bare, lower-case `tools: [..., task]` frontmatter and its own `task` (not `Task`) wording in the NEVER-dispatch anchor sentence; both forms are matched case-insensitively by one shared regex. All three task-carrying agents (`docs-style-checker`, `upgrade-executor`, `vuln-fixer`) already comply.
+- **Check 18, published changelog**, scoped to `*/CHANGELOG.md` (this edition's plugins sit one level shallower than `plugins/*/CHANGELOG.md`), armed only by `ASSERT_PUBLISHED=1` — which `.github/workflows/validate-catalog.yml` now sets on pushes to `main` and nowhere else. This changelog's header now states the convention the check enforces.
+- Checks 13, 14, 16 and 19 are deliberately not ported, for the same reasons as the Claude editions (vendor-neutrality and loader-contract checks this plugin's branding and single-plugin shape make inapplicable); the numbering gap is explained in `scripts/check-docs.sh`'s edition-config block.
+- `--selftest` grew from 35 to 59 passing cases of 70 (11 skipped: 6 cost-only, 5 choices-arity).
+- `.github/instructions/dev-workflows-shared.instructions.md` describes all fifteen checks.
+
+### Added — the mermaid diagram gate
+
+- **`scripts/mermaid/check-mermaid.mjs`, ported from ai-workflows as in the Claude editions**, finds every ```` ```mermaid ```` block in every tracked markdown file with a real CommonMark lexer and parses it with mermaid's own parser. CI now runs its `--selftest` and then `--root .` on every push; until now nothing here parsed a diagram, since check 15 reads diagrams only for which skills they name. The parser and lexer are pinned by exact version and a committed lockfile, and installed with `--ignore-scripts`. Every diagram in the tree parses. `.github/copilot-instructions.md` states the label-quoting rule; the evidence is in `docs/maintainers/rationale.md` § mermaid-gate.
+- **`scripts/check-id-grammar.sh` no longer walks `scripts/mermaid/node_modules/`**, the git-ignored tree `npm ci` installs the gate's parser into, whose third-party markdown files a local run otherwise scanned. A selftest case pins the exclusion.
+
+### Fixed — `idea:` names the merge before `create-vi:`
+
+- **After either refined branch's §4.3 consent choice, `idea:` now recommends `create-vi: <KEY>` `<merge-clause>`**, ported from ai-workflows as in the Claude editions. It recommended no next skill at all after a handoff, though `create-vi:`'s Phase 0 rung 1 runs `require-on-main` on exactly the `idea.md` whose pull request `idea:` had just opened, and stops on rows D/E while that pull request is open. On a decline or a failed handoff it also offers `create-vi: <KEY> @<path>`: `create-vi: <KEY>` alone finds the relocated file on no ref and goes down an idea ladder whose discover rung searches the vault, not the specs folder the file was moved into.
+- **`skills/_shared/next-phase-offer.md` names `idea:` as the sixth adopter**, so check 11 now examines `idea:`'s `choices:` arrays and its writer declaration, which names `idea.md` rather than "the relocated file". The recommendation itself is prose, which check 11 cannot see — like `specify:`'s and `design:`'s, it stays a review matter.
+- **The third option of `idea:`'s §4.3 consent choice (*Cancel*) now reports the *Declined by the user* line**, as §4.3 says both declining options do; only the second did. `docs/skills/idea.md` describes the recommendation.
+
+### Fixed — the repository's gates (not shipped in the plugin)
+
+- **Check 11 read a handoff's declared paths past the `title:` token, to the end of the line.** This plugin writes the declaration on one long unwrapped line whose tail routinely names the deliverable again in prose — `idea:`'s ends "`idea.md` is relocated but not on the default branch" — so a declaration reworded to name no path still looked extractable. The span now ends at `title:`. Two selftest cases, one per bound of the span, each confirmed red against an extractor without that bound.
+- **`scripts/validate-catalog.py` counted an instructions file's own path as a live `applyTo` match.** An instructions file is a real file, so a glob naming only itself — or two files naming only each other — passed, though such a file applies only while an instructions file is itself being edited, never during the work it governs. A match under `.github/instructions/` no longer counts, and the error says why.
+- **Its `scripts/fixtures` exclusion matched the directory name at any depth**, hiding a manifest under any directory called `fixtures` from both directions of the advertisement check. It is now a root-anchored `SKIP_PREFIXES` entry, ported from ai-workflows, which also skips a git worktree copy at `.worktrees/` or `worktrees/`: with a worktree on an older release on disk the gate walked it and reported version drift against the main checkout (measured: 3 errors with a 2.29.0 worktree beside 2.32.0). The `applyTo` loop applies the same exclusion. `--selftest` 18 → 27: two anchoring pairs, four instructions-folder cases and a worktree-only glob, each confirmed red against the code it replaced.
 
 ## [2.32.0] — 2026-10-01
 

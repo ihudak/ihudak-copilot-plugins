@@ -31,9 +31,10 @@ fails above 40,000 characters and warns above 36,000, and each
 ``.github/instructions/*.instructions.md`` warns above 20,000. And it checks that every
 ``.github/instructions/**/*.instructions.md`` file declares a non-empty ``applyTo``
 frontmatter string (a comma-separated glob string -- Copilot's own syntax, not a YAML
-list) whose every comma-separated glob matches at least one file, so a file that would
-never apply to anything, or a glob left dead by a rename, fails the build instead of
-surviving unnoticed.
+list) whose every comma-separated glob matches at least one file outside
+``.github/instructions/`` itself, so a file that would never apply to anything, a glob left
+dead by a rename, or a glob that matches only its own instructions file fails the build
+instead of surviving unnoticed.
 
 Usage:
     python3 scripts/validate-catalog.py [REPO_ROOT ...]
@@ -78,14 +79,37 @@ INSTRUCTIONS_MD_MAX = 40_000
 INSTRUCTIONS_MD_WARN = 36_000
 INSTRUCTIONS_FILE_WARN = 20_000
 
-SKIP_DIRS = {
-    ".git", "node_modules", ".superpowers", ".idea",
-    # scripts/fixtures/ holds selftest scaffolding for the sibling gates. Any plugin.json
-    # under it names no real, installable plugin and is deliberately absent from every
-    # marketplace.json; without this exclusion the reverse "every manifest is advertised"
-    # assertion below would report a defect that does not exist.
-    "fixtures",
-}
+SKIP_DIRS = {".git", "node_modules", ".superpowers", ".idea"}
+
+# scripts/fixtures/ holds selftest scaffolding for the sibling gates. Any plugin.json under
+# it names no real, installable plugin and is deliberately absent from every
+# marketplace.json; without an exclusion the reverse "every manifest is advertised"
+# assertion below would report a defect that does not exist.
+#
+# This is a PATH prefix, not a SKIP_DIRS entry, and the distinction is load-bearing.
+# SKIP_DIRS matches a bare directory NAME at any depth, which is safe for `.git` and
+# `node_modules` -- names nothing legitimate is ever called -- but "fixtures" is a common
+# word. As a SKIP_DIRS entry (its shape here until ported from ai-workflows) it silently hid
+# any manifest nested under a directory named `fixtures` anywhere in the tree, including a
+# real plugin's own test corpus, from BOTH directions of the advertisement check. Anchored
+# here instead, it excludes exactly the one directory it was written for.
+#
+# A git worktree at `.worktrees/<name>/` (or `worktrees/<name>/`) is a SECOND FULL COPY of
+# the tree: every manifest and catalog in it is walked again, so a worktree on an older
+# version reports version drift against the main checkout's manifests (measured at 3 errors
+# with a dev-workflows 2.29.0 worktree beside a 2.32.0 checkout), and its instructions-file
+# globs count bytes no file this checkout works with will ever trigger.
+# The copy is never what this gate is asked about, and the gate is run from the main
+# checkout while a worktree is still on disk -- at the moment someone is deciding whether a
+# merge was sound. Both names are excluded because both are what the worktree tooling
+# creates.
+#
+# Root-anchored for exactly the reason the `fixtures` exclusion is: `worktrees` is an
+# ordinary word, and a bare name-match at any depth would hide a real manifest nested under
+# any directory that happened to be called that. The selftest pins both anchorings with a
+# pair each -- a manifest under the root's own prefix is skipped, an identical one under
+# the same name further down is still reported.
+SKIP_PREFIXES = (("scripts", "fixtures"), (".worktrees",), ("worktrees",))
 
 
 def find_files(root: Path, name: str) -> list[Path]:
@@ -100,6 +124,10 @@ def find_files(root: Path, name: str) -> list[Path]:
         p
         for p in root.rglob(name)
         if not any(part in SKIP_DIRS for part in p.parts)
+        and not any(
+            p.relative_to(root).parts[: len(prefix)] == prefix
+            for prefix in SKIP_PREFIXES
+        )
     )
 
 
@@ -196,19 +224,23 @@ def _parse_apply_to(text: str) -> tuple[str | None, bool]:
 def check_instructions_apply_to(root: Path) -> tuple[int, int]:
     """Return (errors, warnings): every .github/instructions/**/*.instructions.md must declare a
     non-empty `applyTo` frontmatter string, and every comma-separated glob in it must match at
-    least one file under root.
+    least one file under root, outside .github/instructions/ itself.
 
     Parser limits: `applyTo` must be a top-level (unindented) `key: value` line in the
     frontmatter; the value is read as a single string and split on commas -- an inline YAML
     list (`applyTo: [a, b]`) is read as one glob whose literal text is `[a, b]` and will
     correctly fail to match anything, since Copilot's own schema never accepts that form
     either. Globs go through pathlib, which has no brace expansion, so a `{a,b}` glob matches
-    nothing and is reported dead; write each alternative as its own comma-separated entry.
+    nothing and is reported dead; write each alternative as its own comma-separated entry. A
+    match under .github/instructions/ is not counted, so a glob whose every match is an
+    instructions file is reported -- including one written on purpose to apply while
+    instructions files are edited; none exists today.
     """
     errors = warnings = 0
     inst_dir = root / ".github" / "instructions"
     if not inst_dir.is_dir():
         return errors, warnings
+    inst_parts = (".github", "instructions")
 
     no_apply_to = (
         "no non-empty applyTo: string -- without one this file never applies to any file "
@@ -236,15 +268,39 @@ def check_instructions_apply_to(root: Path) -> tuple[int, int]:
             continue
 
         for glob in globs:
+            # Mirror find_files' SKIP_DIRS/SKIP_PREFIXES exclusion, anchored at root: a
+            # glob whose only matches sit under .git, a worktree copy, node_modules or
+            # .superpowers is dead for this gate's purposes even though Path.glob finds
+            # bytes there.
             candidates = set(root.glob(glob))
             if glob == "**" or glob.endswith("/**"):
                 candidates.update(root.glob(glob + "/*"))
             matches = [
                 p for p in candidates
-                if p.is_file() and not any(part in SKIP_DIRS for part in p.parts)
+                if p.is_file()
+                and not any(part in SKIP_DIRS for part in p.parts)
+                and not any(
+                    p.relative_to(root).parts[: len(prefix)] == prefix
+                    for prefix in SKIP_PREFIXES
+                )
             ]
+            # A match under .github/instructions/ does not count either. An instructions
+            # file is a real file, so a glob naming its own path -- or two files naming only
+            # each other -- passed as live, yet such a file applies only while an
+            # instructions file is itself being edited, never during the work it governs.
+            outside = [p for p in matches if p.relative_to(root).parts[:2] != inst_parts]
             if not matches:
                 print(f"  ERROR {rel}: applyTo glob {glob!r} matches no file under {root}")
+                errors += 1
+            elif not outside:
+                inside = ", ".join(sorted(str(p.relative_to(root)) for p in matches))
+                print(
+                    f"  ERROR {rel}: applyTo glob {glob!r} matches only files under "
+                    f".github/instructions/ ({inside}) -- Copilot applies an instructions "
+                    f"file when it works with a file its applyTo matches, and an instructions "
+                    f"file is worked on only while it is itself being edited, never during "
+                    f"the work it governs; point the glob at the files it is about"
+                )
                 errors += 1
 
     return errors, warnings
@@ -362,7 +418,7 @@ def _selftest() -> int:
               description: str = "A fixture plugin.",
               top_instructions: str | None = None,
               instructions_files: dict[str, str] | None = None,
-              ghost_manifest: bool = False) -> None:
+              ghost_manifest: bool = False, ghost_under: str | None = None) -> None:
         plugin_dir = root / "fixture-plugin"
         (plugin_dir / ".plugin").mkdir(parents=True)
         (plugin_dir / ".plugin" / "plugin.json").write_text(json.dumps(
@@ -374,10 +430,13 @@ def _selftest() -> int:
             "plugins": [{"name": "fixture-plugin", "source": "fixture-plugin",
                           "version": catalog_version or version, "description": description}],
         }), encoding="utf-8")
-        if ghost_manifest:
+        if ghost_manifest or ghost_under is not None:
             # A valid manifest with no catalog entry anywhere -- the state the
-            # reverse-advertisement assertion exists to catch.
-            ghost = root / "ghost-plugin" / ".plugin"
+            # reverse-advertisement assertion exists to catch. `ghost_under` plants it below
+            # a caller-chosen directory instead, so a SKIP_PREFIXES case can show whether
+            # the walk reached it: reported means walked, silent means skipped.
+            base = root.joinpath(*ghost_under.split("/")) if ghost_under else root
+            ghost = base / "ghost-plugin" / ".plugin"
             ghost.mkdir(parents=True)
             (ghost / "plugin.json").write_text(json.dumps(
                 {"name": "ghost-plugin", "version": "1.0.0",
@@ -425,6 +484,21 @@ def _selftest() -> int:
          "is not listed in any marketplace.json", ghost_manifest=True)
     case("a description past the warning threshold is reported", True, "WARN",
          description="x" * (DESCRIPTION_WARN + 1))
+    # SKIP_PREFIXES, as two PAIRS. Only a pair discriminates: an unanchored exclusion -- a
+    # bare name-match at any depth, the shape the SKIP_PREFIXES comment exists to keep out
+    # -- passes each green case and fails its red one, while no exclusion at all fails the
+    # green. This edition has no duplicate-name assertion, so a verbatim worktree copy of
+    # the fixture would be silent either way; an unadvertised manifest is what shows
+    # whether the walk went there.
+    case("an unadvertised manifest in a worktree copy at the repo root is not walked",
+         True, "OK", ghost_under=".worktrees/wt")
+    case("an unadvertised manifest under a `worktrees` directory below the root is still "
+         "reported", False, "is not listed in any marketplace.json",
+         ghost_under="nested/worktrees/wt")
+    case("an unadvertised manifest under scripts/fixtures/ is not walked", True, "OK",
+         ghost_under="scripts/fixtures/docs/pass")
+    case("an unadvertised manifest under a `fixtures` directory elsewhere is still reported",
+         False, "is not listed in any marketplace.json", ghost_under="decoy/fixtures")
     case("a repository with no copilot-instructions.md passes", True, "OK")
 
     # The instruction-file budget. Characters, not bytes: every `→` and `—` is three bytes,
@@ -480,6 +554,47 @@ def _selftest() -> int:
          instructions_files={"multibad.instructions.md":
                               '---\napplyTo: "fixture-plugin/**/*.json,fixture-plugin/nope/**"\n'
                               '---\n\nA rule.\n'})
+
+    # A match under .github/instructions/ does not count. An instructions file is a real
+    # file, so Path.glob finds it, and one whose only glob names its own path counted as
+    # live -- it applies only while it is itself being edited, never to the work it
+    # describes. Two files whose globs name only each other are the same defect one step
+    # removed, and excluding the file itself alone would pass them; the whole folder is
+    # excluded for that reason.
+    case("an instructions file whose only glob is its own path is rejected", False,
+         "matches only files under .github/instructions/",
+         instructions_files={"selfref.instructions.md":
+                              '---\napplyTo: ".github/instructions/selfref.instructions.md"\n'
+                              '---\n\nA rule.\n'})
+    case("two instructions files whose globs match only each other are rejected", False,
+         "a.instructions.md: applyTo glob '.github/instructions/b.instructions.md' matches "
+         "only files under .github/instructions/",
+         instructions_files={"a.instructions.md":
+                              '---\napplyTo: ".github/instructions/b.instructions.md"\n'
+                              '---\n\nA rule.\n',
+                              "b.instructions.md":
+                              '---\napplyTo: ".github/instructions/a.instructions.md"\n'
+                              '---\n\nA rule.\n'})
+    # The pair. One glob, `**/*.md`, which matches the instructions file itself either way;
+    # the only difference is whether a real file outside the folder
+    # (.github/copilot-instructions.md) also matches. A gate that rejected any glob touching
+    # the folder fails the green case; a gate that still counted the instructions file fails
+    # the red one.
+    case("a glob matching an instructions file and a file outside the folder passes", True,
+         "OK", top_instructions="A file outside the instructions folder.\n",
+         instructions_files={"broad.instructions.md":
+                              '---\napplyTo: "**/*.md"\n---\n\nA rule.\n'})
+    case("the same glob, with nothing outside the folder to match, is rejected", False,
+         "applyTo glob '**/*.md' matches only files under .github/instructions/",
+         instructions_files={"broad.instructions.md":
+                              '---\napplyTo: "**/*.md"\n---\n\nA rule.\n'})
+    # The applyTo loop mirrors find_files' SKIP_PREFIXES: a glob whose only match sits inside
+    # a worktree copy at the root is dead, though Path.glob finds the bytes there.
+    case("an applyTo glob matching only a root worktree copy is rejected", False,
+         "applyTo glob '.worktrees/**/*.json' matches no file",
+         ghost_under=".worktrees/wt",
+         instructions_files={"wt.instructions.md":
+                              '---\napplyTo: ".worktrees/**/*.json"\n---\n\nA rule.\n'})
 
     print("SELFTEST PASS" if rc == 0 else "SELFTEST FAIL")
     return rc

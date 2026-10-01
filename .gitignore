@@ -20,3 +20,6 @@ Thumbs.db
 # Python bytecode (validate-catalog.py writes it on import)
 __pycache__/
 *.py[cod]
+
+# the mermaid gate's installed parser (pinned by scripts/mermaid/package-lock.json)
+/scripts/mermaid/node_modules/

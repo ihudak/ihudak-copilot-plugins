@@ -1,0 +1,14 @@
+# Phase handoff (fixture)
+
+### 3.4 Row F delegates
+
+The gate's absent row, per caller: what each command runs `require-on-main` against,
+and what it does when the artifact is on no ref.
+
+| Caller | Input | Pre-existing absent behaviour, preserved |
+|---|---|---|
+| `omega:` | the fixture's `alpha-deliverable.md` | **stops** — the family command's consumer |
+| `sigma:` | the fixture's `elsewhere.md` | **stops** — gated on an artifact no fixture command writes |
+
+Cost attribution for a handoff is `skills/_shared/cost-emission.md`; the offer a
+handoff feeds is `skills/_shared/next-phase-offer.md`.

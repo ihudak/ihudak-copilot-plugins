@@ -191,6 +191,10 @@ Every requirement ID a plugin doc teaches is the bracketed `[PREFIX#N]` form —
 
 This rule applies repo-wide — the gate scans every tracked markdown file, not just `dev-workflows/`'s — so it stays in this tier-1 file rather than moving to a path-scoped one.
 
+## Mermaid diagram gate
+
+Every ```` ```mermaid ```` block in every tracked markdown file must parse — GitHub shows *"Unable to render rich display"* in its place otherwise. **Quote any node or edge label containing `[ ] ( ) { } |` or `#`** — `-->|"covers [AC#n]"|`, never `-->|covers [AC#n]|`. `scripts/mermaid/check-mermaid.mjs` enforces it on every push, after its `--selftest`; run it locally with `npm ci --prefix scripts/mermaid --ignore-scripts` then `node scripts/mermaid/check-mermaid.mjs --root .`. It parses and does not render, so a diagram that parses and then fails at layout still passes. Evidence: `docs/maintainers/rationale.md` § mermaid-gate.
+
 ## Adding a new plugin
 
 1. Create `<plugin-name>/` at the repo root
@@ -206,7 +210,9 @@ This rule applies repo-wide — the gate scans every tracked markdown file, not 
 `scripts/validate-catalog.py` fails this file above 40,000 characters and warns above 36,000,
 and warns on any `.github/instructions/*.instructions.md` file above 20,000 characters; it also
 fails a `.github/instructions/**/*.instructions.md` file with no non-empty `applyTo` frontmatter
-string, or whose `applyTo` has a comma-separated glob matching no file in the repository. Run
+string, or whose `applyTo` has a comma-separated glob matching no file in the repository outside
+`.github/instructions/` itself — an instructions file is opened to edit it, never during the work
+its rule governs, so a glob reaching only such files applies to nothing that matters. Run
 `python3 scripts/validate-catalog.py` locally before pushing; `--selftest` exercises both red and
 green cases and runs in CI immediately before the normal check. Overflow belongs in a narrower
 `.github/instructions/*.instructions.md` file, or, for evidence and history rather than rule,
