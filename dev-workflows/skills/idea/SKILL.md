@@ -120,7 +120,7 @@ choices: ["Re-enter the path (Recommended)", "Read the argument as a prompt — 
 
 **Resolve documentation grounding here, then show its line.** Run `resolve-docs-grounding idea` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` — its step 3.5 index prompt included — and show the `docs grounding:` line from what it returns, in the form that reference fixes — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). It runs here, before any agent is dispatched, because step 3.5 asks its one-time index question before the run's real work; this is the run's one resolution (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`, *Invariants*), and Phase 2.5 dispatches on the state it returns without resolving again.
 
-Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` resolved — `ON <vault-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art idea` per that reference to obtain it; it runs exactly once per run.
+Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prior-art.md` resolved — `ON <specs-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art idea` per that reference to obtain it; it runs exactly once per run.
 
 ---
 
@@ -146,13 +146,13 @@ frontmatter entry in Phase 4, `tracked` seeds `## Prior art`, and `stated_scope`
 
 ---
 
-## Phase 2.5 — Grounding: documentation + vault prior art (optional)
+## Phase 2.5 — Grounding: documentation + prior art (optional)
 
 Dispatch both grounding agents **in a single response** so they run in parallel. Each is independent; either being OFF never suppresses the other.
 
 **Docs.** Phase 1 resolved documentation grounding and showed its line; this phase resolves nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the `idea-reader` digest's problem/outcome, `jira_key` = `vi_key` when set, else the origin key (the git-grep backstop matches the docs repo's commit messages, which cite delivery keys rather than feedback tickets), and `themes` = its signals. When OFF, skip silently.
 
-**Prior art.** Using the `resolve-prior-art idea` result already obtained in Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` with `feature_summary` = the same problem/outcome, `themes` = the digest's signals, and `known_refs` built from the reader's digest: every `wikilinks_followed` path and every filesystem-path `source_refs` ref as `{path, has_summary: true}` (`idea-reader` already summarised them), plus — for a `vi` source — `{jira_key: <KEY>, has_summary: true}`. Passing the key rather than a path is deliberate: the orchestrator does not know which vault directory holds that VI, and resolving it is the finder's job. The supplied VI is then classified and status-resolved by the same code path as a discovered one. When OFF, skip silently.
+**Prior art.** Using the `resolve-prior-art idea` result already obtained in Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prior-art.md` with `specs_root:` = the resolved root, `origin_dir:` = the origin folder resolved in Phase 1, `feature_summary` = the same problem/outcome, `themes` = the digest's signals, and `known_refs` built from the reader's digest: every `wikilinks_followed` path and every filesystem-path `source_refs` ref as `{path, has_summary: true}` (`idea-reader` already summarised them), plus — for a `vi` source — `{jira_key: <KEY>, has_summary: true}`. Passing the key rather than a path is deliberate: the orchestrator does not know which feature folder holds that VI, and resolving it is the finder's job. The supplied VI is then classified and status-resolved by the same code path as a discovered one. When OFF, skip silently.
 
 Carry both digests into Phase 3 with **grill-rank** consumption — challenges from the two compete together for the ≤10 question slots, they do not add slots. Carry the `vi` source's match into Phase 4.
 
@@ -344,8 +344,7 @@ Report: the `idea.md` path + `status` (refined / draft with N open clarification
 or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; the
 `Specs repo:` outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
-with any guard notice repeated in full; any prior art found (keys + statuses), any `status_conflict` a
-match reported (both values and the export's date — it is the signal that catches a broken sync) and any
+with any guard notice repeated in full; any prior art found (keys + statuses) and any
 `notes` the finder returned; the origin folder and `vi_key` (or "no VI yet"); the code grounding outcome — the grounded
 repos with their `scanned_ref`s, any descoped or inconclusive ones, and — first, because it is the most
 consequential thing a run can produce — the **Reframing** line if one was written; or, when no scan ran,

@@ -47,7 +47,7 @@ The gates a written artifact passes through before it counts as done, and the di
 Read-only, advisory context-gathering — never a gate, never a write into the source it reads.
 
 - `docs-grounding.md` — the resolution gate, retrieval procedure, and consumption modes for optional `$DOCS_PATH` documentation grounding; read-only and advisory, never a gate or reviewer BLOCKER.
-- `vault-prior-art.md` — how vault prior-art discovery works for the idea-authoring skills: supplied vs. discovered, the status-resolution ladder, and the container derivation a write-path default shares with it.
+- `prior-art.md` — how prior-art discovery works for the idea-authoring skills: supplied vs. discovered, the specs-repo search scope and exclusions, and status from each folder's own import page.
 - `jira-input-resolution.md` — shared input-resolution mechanics for the Jira-driven skills, including the `resolve-export-for-key` sub-procedure `idea:` also uses on its own.
 
 ## Session artifacts

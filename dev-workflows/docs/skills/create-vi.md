@@ -26,7 +26,7 @@ flowchart TD
     p0["Phase 0 — Resolve inputs"] --> p1["Phase 1 — Configure"]
     p1 --> p15["Phase 1.5 — Classify + model routing"]
     p15 --> p2["Phase 2 — Read the seed"]
-    p2 --> p25["Phase 2.5 — Grounding: documentation + vault prior art (optional)"]
+    p2 --> p25["Phase 2.5 — Grounding: documentation + prior art (optional)"]
     p25 --> p3["Phase 3 — Author via grill"]
     p3 --> p35["Phase 3.5 — Dynatrace style check"]
     p35 --> p36["Phase 3.6 — Structural pre-lint"]
@@ -36,7 +36,7 @@ flowchart TD
     p6 --> p7["Phase 7 — Session maintenance & feedback"]
 ```
 
-`create-vi/SKILL.md` dispatches two subagents directly: `vi-reviewer` (Phase 4, caller-pinned to the strong reasoning tier — see [Gates](#gates)) and `impl-maintenance` (Phase 7, session lessons-learned). Phase 2.5's grounding also reaches two more agents — `docs-grounder` and `vault-prior-art-finder` — dispatched **in a single response** so they run in parallel, but indirectly, through the `dispatch-docs-grounder` and `dispatch-prior-art-finder` procedures in [`skills/_shared/docs-grounding.md`](../../skills/_shared/docs-grounding.md) and [`skills/_shared/vault-prior-art.md`](../../skills/_shared/vault-prior-art.md), rather than being named as a direct dispatch inside `create-vi/SKILL.md` itself. A further agent, `dt-style-guide:dt-style-checker`, runs in Phase 3.5 when the separate `dt-style-guide` plugin is installed — a non-gating quality pass, not counted above because it ships in a different plugin and is skipped gracefully when that plugin is absent.
+`create-vi/SKILL.md` dispatches two subagents directly: `vi-reviewer` (Phase 4, caller-pinned to the strong reasoning tier — see [Gates](#gates)) and `impl-maintenance` (Phase 7, session lessons-learned). Phase 2.5's grounding also reaches two more agents — `docs-grounder` and `prior-art-finder` — dispatched **in a single response** so they run in parallel, but indirectly, through the `dispatch-docs-grounder` and `dispatch-prior-art-finder` procedures in [`skills/_shared/docs-grounding.md`](../../skills/_shared/docs-grounding.md) and [`skills/_shared/prior-art.md`](../../skills/_shared/prior-art.md), rather than being named as a direct dispatch inside `create-vi/SKILL.md` itself. A further agent, `dt-style-guide:dt-style-checker`, runs in Phase 3.5 when the separate `dt-style-guide` plugin is installed — a non-gating quality pass, not counted above because it ships in a different plugin and is skipped gracefully when that plugin is absent.
 
 ## What it needs
 
@@ -47,7 +47,7 @@ flowchart TD
 - **`$SPECS_PATH`** (required) — if unset, the run stops naming `SPECS_PATH` and offers to enter a path or cancel.
 - **An existing VI for `<KEY>`**, checked by a frontmatter glob in the feature folder. `create-vi:` is greenfield-only: if one is found, the run redirects to [`update-vi: <KEY>`](update-vi.md) (or, with `--from-vi`, offers to update the existing VI instead of seeding a fresh one).
 - **The `--from-vi` seed** (optional) — resolved Jira-import-first with a 3-day freshness check; used read-only, never as content to copy.
-- **Documentation grounding and vault prior art** (optional, on by default) — each turned off with `--no-docs` / `--no-prior-art`; a miss of either is always a silent skip, never a gate.
+- **Documentation grounding and prior art** (optional, on by default) — each turned off with `--no-docs` / `--no-prior-art`; a miss of either is always a silent skip, never a gate.
 - **No repos.** `create-vi:` is cwd-agnostic and product-level — it never mounts or scans code.
 
 ## What it produces
@@ -66,7 +66,7 @@ flowchart TD
 
     create-vi: PRODUCT-1234 @idea.md --hybrid
 
-The run resolves the feature folder, reads `idea.md` directly (no `idea-reader` — it is the plugin's own format), grounds it against docs and vault prior art, grills you relentlessly through the spine (Problem, Goal, Target audience, User Stories, Acceptance Criteria, Scope, Success Metrics) plus any adapt-in clusters the idea warrants, runs the style check and pre-lint, then `vi-reviewer`. On a passing verdict it offers to branch, commit, push, and open a pull request, and reminds you to paste the VI into Jira and re-import it.
+The run resolves the feature folder, reads `idea.md` directly (no `idea-reader` — it is the plugin's own format), grounds it against docs and prior art, grills you relentlessly through the spine (Problem, Goal, Target audience, User Stories, Acceptance Criteria, Scope, Success Metrics) plus any adapt-in clusters the idea warrants, runs the style check and pre-lint, then `vi-reviewer`. On a passing verdict it offers to branch, commit, push, and open a pull request, and reminds you to paste the VI into Jira and re-import it.
 
 ## See also
 

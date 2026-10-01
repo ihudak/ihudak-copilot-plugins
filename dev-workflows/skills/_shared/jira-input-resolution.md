@@ -215,8 +215,7 @@ direct_files:     [<abs paths>]
 Locates the export for **one exact key**, in every feature folder's import. Distinct from the
 VI-selector rule above, which deliberately resolves a nested Epic *up to its parent VI*; this one
 never walks upward. Consumed by `idea:` (source typing), `idea-reader` (export
-location for `rfe`/`vi` sources), and `vault-prior-art-finder` (status
-resolution) — none of them wants a parent.
+location for `rfe`/`vi` sources) — neither wants a parent.
 
 1. `candidates` = every `<spec-dirs>/*/jira-import/<KEY>/<KEY>.md` — a key recurs under
    several feature folders, because every import carries the tickets its root links.

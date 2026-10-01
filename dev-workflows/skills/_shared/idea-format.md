@@ -81,7 +81,7 @@ vocabulary is the finder's output, not the author's choice.
 In the discovered shape every slot is **transcribed from the prior-art digest, never invented**:
 `<JIRA-KEY>` and `<status>` from its `jira_key` / `tracked_status`, `<relation>` verbatim from its
 `relation` field (the closed vocabulary lives in
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md`), and `<one line>` a
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prior-art.md`), and `<one line>` a
 plain-language rendering of that entry's `match_reason` — why this initiative bears on the idea.
 
 The **Jira key is the durable identifier**; the feature-folder path is a convenience that dangles once a
