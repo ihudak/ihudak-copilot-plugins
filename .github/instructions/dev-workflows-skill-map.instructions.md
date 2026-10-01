@@ -8,7 +8,7 @@ This file loads only when Copilot works with a file under `dev-workflows/skills/
 
 ```
 Lifecycle (each phase writes a reviewable artifact, offers the next):
-idea:            → idea → idea-reader → [code-scanner×N (--ground-code, cap 4, broad-then-narrow)] → (embedded grilling) → write idea.md → relocate idea.md → [handoff-to-main: idea.md] → commit-artifacts
+idea:            → idea → idea-reader → [code-scanner×N (--ground-code, cap 4, broad-then-narrow)] → (embedded grilling) → write idea.md into its origin folder → [handoff-to-main: idea.md] → commit-artifacts
 create-vi:       → [require-on-main: idea.md] → create-vi → [vi-reviewer@strong] → (Value Increment) → [handoff-to-main: VI] → commit-artifacts
 update-vi:       → update-vi (jira-import-first) → [vi-reviewer@strong] → (refreshed Value Increment) → [handoff-to-main: VI] → commit-artifacts
 create-ard:      → [require-on-main: VI] → create-ard → [ard-reviewer@strong] → (ARD, resolves decisions) → [handoff-to-main: ARD] → commit-artifacts
@@ -66,7 +66,8 @@ the session model: the point of the tier is that the reviewer is not the author.
 Re-measure the seventeen preflight callers from the repo root with ``grep -l '`specs-preflight` entry point' dev-workflows/skills/*/SKILL.md | wc -l`` — the execution phrase, not every bare mention.
 
 Key invariants for the VI-creation flow (`idea:`, `create-vi:`, `create-ard:`, `specify:`, `design:`, `implement:`, `epics:`, `ready:`):
-- `idea:` Phase 5 relocates `idea.md` into `$SPECS_PATH/specifications/<KEY>-<slug>/` and hands it off via `handoff-to-main` (`skills/_shared/phase-handoff.md` §2) behind the §4.3 consent choice; relocation is `idea:`'s alone — `create-vi: <KEY>` finds it there and never moves it
+- `idea:` writes `idea.md` into its origin folder (D1 of the vault-free design) — a PRODFB ticket's, or the VI's — and hands it off via `handoff-to-main` (`skills/_shared/phase-handoff.md` §2) behind the §4.3 consent choice; nothing ever relocates it
+- `idea:` types a Jira source from the export's `issue_type` (`ValueIncrement` → `vi`, `Product Need` or `Account` → `rfe`), never from the project prefix, and resolves it with `resolve-export-for-key` at any depth; a `vi` source is prior art recorded in **both** `sources:` and `## Prior art`
 - `create-vi: <KEY>` derives `idea.md` in-contract from the resolved feature folder and gates it via `require-on-main` (`skills/_shared/phase-handoff.md` §3); an explicit `@<path>` argument is out-of-contract — read where it sits, never relocated, never gated
 - `design:` offers a three-take `interface-designer` fan-out (one take per constraint — minimise the interface, maximise flexibility, optimise for the most common caller) on a contested interface — any `skills/_shared/design-format.md` `## Seams` signal; `--design-twice` forces the fan-out itself, skipping the offer, even with no signal fired (a user who typed the flag has already answered what the offer would ask); the offer's two options carry no `(Recommended)` marker, because the list is only shown once the interface is already contested; declining costs nothing — the interview continues and `design.md`'s unconditional `### Alternatives considered` requirement is satisfied by hand as it would have been anyway
 - `ready:` is **read-only for Jira status** — it verifies status against the ARD/spec/design, never sets it, and never stops on an unmerged artifact (`skills/_shared/phase-handoff.md` §3.3 rows D/E, a readiness finding capping the verdict at `PARTIAL`) or a missing one (row F, delegated per §3.4, recorded as a coverage gap); it commits the deliverable or the `_readiness.md` snapshot only through `phase-handoff.md` §4.3's consent choice via `handoff-to-main` (§2), never automatically

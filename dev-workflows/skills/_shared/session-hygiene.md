@@ -35,7 +35,7 @@ terminal feedback and follow-up steps. Prepare-first is still satisfied: the wri
 happens before the run ends, and therefore before the user can act on the printed
 suggestion.
 
-**Skipped** (no VI anchor to write against): `idea:` (pre-VI, keyless), `implement:`
+**Skipped** (no VI anchor to write against): `implement:`
 **direct** mode, `document:` **doc-edit** mode (Mode B), `vuln:`, `upgrade:`. There the
 durable state is the artifact / branch / PR already on disk; no resume pointer is written.
 
@@ -110,9 +110,9 @@ question never reaches them — while `create-vi:` and `update-vi:` take a manda
 line. The block a command carries is the whole of the test.
 
 **`idea:`, `create-vi:` and `update-vi:` are excluded** from the rename aid, and the reason is the
-phase rather than the key. `idea:` usually does run before a key exists — it is keyless unless its
-source is a `vi` — but `create-vi:` and `update-vi:` each take a mandatory Jira key as their first
-argument and refuse without one (`CREATE_VI_NEEDS_KEY`, `UPDATE_VI_NEEDS_KEY`), so the key is in
+phase rather than the key. `idea:` always has one — its origin key, the VI's or the PRODFB
+ticket's whose folder it writes into, which is also where its pointer goes — and `create-vi:` and
+`update-vi:` each take a mandatory Jira key as their first argument and refuse without one (`CREATE_VI_NEEDS_KEY`, `UPDATE_VI_NEEDS_KEY`), so the key is in
 hand before either writes anything. This section used to give "there is usually no VI-ID to name a
 session after" as the reason for `create-vi:` too, and named no disposition for `update-vi:` at all,
 which writes a resume pointer and so reached §1's template with nothing to decide the line by. The

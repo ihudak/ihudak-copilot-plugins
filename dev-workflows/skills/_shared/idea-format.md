@@ -14,12 +14,13 @@ sources:
     ref: <path | JIRA-KEY | url>
 created: <YYYY-MM-DD>
 status: draft | refined        # refined IFF zero open [NEEDS CLARIFICATION] remain
+vi_key:   <VI-KEY>      # optional — the VI this idea is for; the VI key idea: was given first; read by create-vi:
 ---
 ```
 
 Rules: `status` is `refined` only when the **Open questions & assumptions** section carries zero
 `[NEEDS CLARIFICATION]` markers; otherwise `draft`. `sources` lists every ingested source with its
-provenance (re-running `idea:` for the same `slug` refines the existing file and appends a source).
+provenance (re-running `idea:` for the same origin folder refines the existing file and appends a source).
 **Grounding is not an origin** — a `docs_grounding` digest (Section 7, `## Feasibility grounding`) is
 consulted, not ingested as a source, so it never appears in `sources[]`; `vi-format.md`'s propagated
 `sources` enum carries the same five values with no `doc-grounding` member for the same reason.
@@ -55,19 +56,19 @@ belong in **Feasibility grounding** (Section 7).
 
 ## Section 6 — Prior art (optional)
 
-`## Prior art` — tracked initiatives in the vault that this idea covers, continues, parallels, or
+`## Prior art` — tracked initiatives in the specs repo that this idea covers, continues, parallels, or
 rewrites. **Write it when prior art was discovered *or* the source is a `vi`; omit it entirely
 otherwise.** One bullet per entry, in one of two shapes.
 
 **Discovered** — the finder matched the item, so every slot has a source:
 
 ```
-- [[<work doc>]] (<JIRA-KEY>, <status>) — <relation>: <one line>
+- `<feature-folder path>` (<JIRA-KEY>, <status>) — <relation>: <one line>
 ```
 
-**Supplied only** — a `vi` source the finder did not match (grounding off, or no vault work document
+**Supplied only** — a `vi` source the finder did not match (grounding off, or no feature folder
 for the key). The `tracked` block carries `jira_key`, `status`, and `summary` and nothing else — no
-`relation`, no `match_reason`, no vault path — so the bullet omits the wikilink and the relation
+`relation`, no `match_reason`, no feature-folder path — so the bullet omits the path and the relation
 rather than inventing either:
 
 ```
@@ -83,9 +84,9 @@ In the discovered shape every slot is **transcribed from the prior-art digest, n
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md`), and `<one line>` a
 plain-language rendering of that entry's `match_reason` — why this initiative bears on the idea.
 
-The **Jira key is the durable identifier**; the wikilink is a convenience that dangles once a vault item
-is renamed, so both are carried and a later reader re-resolves by key. An entry with no Jira key carries
-only the wikilink, and that is accepted. Never fabricate a key or a status — an unresolved status is
+The **Jira key is the durable identifier**; the feature-folder path is a convenience that dangles once a
+folder is renamed, so both are carried and a later reader re-resolves by key. An entry with no Jira key
+carries only the path, and that is accepted. Never fabricate a key or a status — an unresolved status is
 written as `status unknown`. A `vi` source appears here **and** in `sources:`: `sources` answers how the
 idea arrived, `## Prior art` answers what it must stay consistent with.
 
