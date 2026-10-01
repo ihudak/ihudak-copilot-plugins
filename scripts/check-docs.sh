@@ -6,6 +6,13 @@
 # in the two restructures this one follows (dynatrace-managed-mcp#214,
 # ai-containers#78).
 #
+# FIFTEEN checks, numbered 1-12, 15, 17 and 18 -- numbers 13, 14, 16 and 19 are deliberately
+# absent (ai-workflows' vendor-neutrality and loader-contract checks; see the edition-config
+# block's notes for why). The number is written here and nowhere else in this file, and
+# nothing gates it -- re-derive it with `grep -oE '\bfail [0-9]+ ' "$0" | awk '{print $2}' |
+# sort -un` -- the numbers a fail() call can actually report -- rather than trusting this
+# sentence, and update it in the commit that adds a check.
+#
 # --selftest mutates a copy of the passing fixture once per check and asserts the
 # gate rejects it. Without that, the fixtures are decorative: a gate that cannot
 # be shown to fail proves nothing when it passes. ai-containers' equivalent gate
@@ -34,6 +41,31 @@ CLI_REQUIRED="marketplace add|update"   # claude: marketplace add|marketplace up
                                      # of CLI_VERBS; differs per edition because Copilot
                                      # updates with `plugin update --all`, not a marketplace verb.
 HAS_COST=0                           # claude: 1 -- no cost subsystem exists here (skills/_shared/specs-repo-git.md:54)
+HAS_CHOICE_CAP=0                     # claude/mgd: 1 -- this edition's ask_user takes any number of
+                                     # choices and its own allowFreeform; AskUserQuestion's 4-option
+                                     # cap does not apply here
+CHANGELOG_GLOB="*/CHANGELOG.md"      # claude/mgd: plugins/*/CHANGELOG.md -- this edition's plugins
+                                     # sit one level shallower (no plugins/ directory)
+
+# Checks 13 (vendor tokens), 14 (foreign identity) and 19 (edition-forbidden denylist) in
+# ai-workflows enforce THAT edition's vendor-neutral, de-branded corpus -- a public mirror
+# that must never print the internal organisation's name or any customer/vendor token. Both
+# editions here are the opposite by design: this plugin is written FOR Dynatrace Managed,
+# names itself, its Jira projects and its container repo throughout its own docs on purpose,
+# and a check enforcing silence about them would be fighting the plugin's own subject matter.
+# Nothing is ported for 13/14/19 -- the gap in the numbering is this comment, not an omission.
+# (For the sibling check this file DOES port under a different number -- "a page under docs/
+# must not name the MARKETPLACE or the CONTAINER REPO it ships from, getting-started.md
+# excepted" -- see check 10 below. That one survives porting because it guards identity
+# LEAKAGE TO A FORK, not vendor neutrality; this edition still must not point a fork at
+# ITS OWN marketplace slug from a page a fork keeps verbatim.)
+#
+# Check 16 (loader contract) in ai-workflows validates a cross-plugin reference-loading
+# skill (workflows-core:reference) that lets a dependent plugin read a shared corpus living
+# in a DIFFERENT plugin. This edition ships exactly one plugin -- its corpus and its call
+# sites are the same tree, reached by ${CLAUDE_PLUGIN_ROOT} path alone -- so there is no
+# loader skill, no cross-plugin boundary, and nothing for that check to assert. Not ported;
+# the gap in the numbering is this comment.
 
 # RUNTIME_VARS is a SILENCER: every name in it kills both directions of check 5 (env-var doc
 # agreement) for that variable, permanently -- no mutation of the fixture tree can reveal a
@@ -550,6 +582,528 @@ check_prose_counts() {
   fi
 }
 
+# ------------------------------------------------------------------ check 10
+# Identity quarantine. No page under docs/ may name the marketplace this plugin ships from
+# or the repository that contains it -- getting-started.md is the single sanctioned
+# exception, because installing the plugin requires naming both. CLAUDE.md has stated this
+# rule in prose since the docs/ split; nothing enforced it until this check.
+#
+# WHY: a fork renames the marketplace and the container repo, and keeps every other docs
+# page verbatim -- that is the whole point of forking. A page elsewhere that hardcodes
+# either name is now wrong in the fork, silently, because nothing short of a full read
+# would catch it. getting-started.md is exempt because a fork edits it anyway (it is where
+# the fork's own marketplace add/install lines live); every other page should never have
+# needed to know either name in the first place.
+#
+# TOKENS are derived from the repo-root README's own `$CLI plugin ...` lines -- the
+# marketplace add target, the install target's `@marketplace` suffix, and the marketplace
+# update target -- never hardcoded, so a fork with a renamed marketplace is checked against
+# ITS OWN name, not this one's. `sed 'p; s|.*/||'` emits the slug and its bare repo name,
+# since a page can name either form.
+#
+# BOUNDARY, not substring: `[A-Za-z0-9_-]` word-boundary match. An unanchored substring
+# search over a short marketplace name fires on every unrelated page that happens to share
+# the string (measured on ai-workflows: renaming its marketplace to `workflows` produced 38
+# failures on correct, unmodified pages, because `dev-workflows` contains it). The boundary
+# class excludes `@`, `/` and `.` deliberately: the marketplace is named as
+# `<plugin>@<marketplace>` and the container repo as `github.com/<owner>/<repo>/...`, and a
+# boundary class containing either character would miss both forms.
+check_identity_quarantine() {
+  local root="$1" d="$1/$PLUGIN_REL/docs" tokens t f hit pat
+  tokens=$( { grep -oE "^$CLI plugin marketplace add [^[:space:]]+" "$root/README.md" 2>/dev/null \
+                | sed -E "s|^$CLI plugin marketplace add ||; s|/+\$||" | sed 'p; s|.*/||'
+              grep -oE "^$CLI plugin install [^[:space:]]+@[^[:space:]]+" "$root/README.md" 2>/dev/null \
+                | sed -E 's/.*@//'
+              grep -oE "^$CLI plugin marketplace update [^[:space:]]+" "$root/README.md" 2>/dev/null \
+                | sed -E "s|^$CLI plugin marketplace update ||"; } \
+            | grep -vE '^[[:space:]]*$' | sort -u)
+  if [ -z "$tokens" ]; then
+    fail 10 "no marketplace or container-repo token could be derived from the repo-root README's '$CLI plugin ...' lines -- this check would examine nothing"
+    return
+  fi
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    [ "$f" = "$d/getting-started.md" ] && continue   # the single sanctioned exception
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      pat=$(printf '%s' "$t" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
+      hit=$(grep -nE "(^|[^A-Za-z0-9_-])$pat([^A-Za-z0-9_-]|\$)" "$f" 2>/dev/null | head -1)
+      [ -n "$hit" ] && fail 10 "${f#$root/}:${hit%%:*} names '$t' -- no page under $PLUGIN_REL/docs/ may name the marketplace this plugin ships from or the repository that contains it (getting-started.md is the only exception); a fork of this repo inherits the wrong one"
+    done <<<"$tokens"
+  done < <(find "$d" -name '*.md' 2>/dev/null | sort)
+}
+
+# ------------------------------------------------------------------ check 11
+# Merge-clause adoption, single-plugin form. ai-workflows binds this rule to a NAMED
+# command family (a `<plugin>:<family>*` glob read off next-phase-offer.md's own scope
+# line) because several plugins there share one corpus and the rule binds only some of
+# each plugin's commands. This edition ships one plugin and its scope line says so in
+# prose -- "every next-step offer this plugin prints" -- naming no glob at all, which is
+# correct for a single-plugin edition and not a defect to fix: $PLUGIN_REL IS the family,
+# so the glob is unconditionally `*` here and `scope_family`'s glob-extraction (and the
+# cross-plugin HANDOFF_PLUGIN_RELS membership check it feeds in ai-workflows, which has no
+# meaning where there is only one plugin to be a member of anything) are both skipped.
+#
+# An offer that names a downstream command whose Phase 0 `require-on-main` gate targets an
+# artifact THIS run writes must carry the `<merge-clause>` placeholder, because that command
+# stops while this phase's pull request is open. The placeholder and its resolution table
+# live in $REF_DIR/next-phase-offer.md; the row-F target table lives in
+# $REF_DIR/phase-handoff.md §3.4.
+#
+# THREE RELATIONS, every one derived:
+#   targets -- what each command runs `require-on-main` against, read out of
+#              phase-handoff.md's §3.4 table (the `Input` column's backticked *.md, by
+#              basename). A prose target with no backticked .md token (e.g. "the ARD") is
+#              not a candidate -- the extractor is selective by construction, not a claim
+#              that every row names a decidable artifact.
+#   writers -- what each command declares it hands off, read out of its own
+#              `deliverable_paths` = ... `title:` span (same basename form).
+#   offers  -- every `choices:` option a command prints, and whether it carries
+#              `<merge-clause>`.
+# An offer is REQUIRED to carry the clause when writers(offerer) and targets(offered)
+# intersect. Any relation coming up empty is a FAILURE, not a skip -- a reworded handoff
+# sentence or a renamed family turns the build red instead of quietly narrowing coverage.
+check_merge_clause() {
+  local root="$1" p="$1/$PLUGIN_REL"
+  local ref="$p/$REF_DIR/next-phase-offer.md" ph="$p/$REF_DIR/phase-handoff.md"
+  local targets writers offers route_n=0 req_n=0
+  local y f ln has t need needt prose_artifact
+
+  [ -f "$ref" ] || { fail 11 "$PLUGIN_REL/$REF_DIR/next-phase-offer.md is missing -- it owns the <merge-clause> placeholder and its resolution table"; return; }
+  [ -f "$ph" ]  || { fail 11 "$PLUGIN_REL/$REF_DIR/phase-handoff.md is missing -- its §3.4 table is where each command's require-on-main target is declared"; return; }
+
+  # targets: one `<command>|<artifact-basename>` line per §3.4 table cell. Column 2 (Input)
+  # only -- column 3 (pre-existing absent behaviour) routinely cites files that are not gate
+  # targets, the same drift ai-workflows' row-F extractor guards against on column 3 there.
+  targets=$(awk -F'|' '
+    /^\| `?[\/a-zA-Z]/ {
+      c1 = $2; c2 = $3; n = 0
+      while (match(c2, /`[^`]*\.md`/)) {
+        t = substr(c2, RSTART + 1, RLENGTH - 2); sub(/.*\//, "", t); tg[++n] = t
+        c2 = substr(c2, RSTART + RLENGTH)
+      }
+      if (n == 0) next
+      # Caller names appear as `/name` (claude/mgd) or `name:` (copilot); strip either marker.
+      while (match(c1, /\/[a-zA-Z][a-zA-Z0-9-]*|[a-zA-Z][a-zA-Z0-9-]*:/)) {
+        cmd = substr(c1, RSTART, RLENGTH); c1 = substr(c1, RSTART + RLENGTH)
+        gsub(/^\/|:$/, "", cmd)
+        for (i = 1; i <= n; i++) print cmd "|" tg[i]
+      }
+    }' "$ph" | sort -u)
+  [ -n "$targets" ] || { fail 11 "$PLUGIN_REL/$REF_DIR/phase-handoff.md's §3.4 table yielded no require-on-main target -- the EXTRACTOR has drifted, not the table; fix the parser, never the rows"; return; }
+
+  # FAMILY, single-plugin form. ai-workflows reads the family off a `<plugin>:<family>*`
+  # glob on next-phase-offer.md's scope line; this edition's scope line names no glob at
+  # all -- it says, in prose, "every next-step offer this plugin prints", and immediately
+  # follows with the one sentence that actually enumerates who that is today: "Six offers
+  # carry it -- `/idea`'s *Handoff: adaptive next-phase offer* phase, `/create-vi`'s and
+  # `/update-vi`'s *Next steps* phases, `/create-ard`'s *Next-step offer (adaptive)* phase,
+  # and the `### Next step` sections of `/specify` and `/design`." (Copilot's edition names
+  # the same six with its own `name:` trigger form.) That sentence, not a glob, IS this
+  # edition's family declaration, and it is read from there rather than hand-copied here so
+  # a future adopter is one sentence edit away from being covered, exactly as adding a glob
+  # would be in the multi-plugin form -- which is how `/idea`, the sixth, was added.
+  local adopt_sentence family
+  adopt_sentence=$(grep -oE '[A-Z][a-z]+ offers? carr(y|ies) it — [^.]*\.' "$ref" | head -1)
+  [ -n "$adopt_sentence" ] \
+    || { fail 11 "$PLUGIN_REL/$REF_DIR/next-phase-offer.md's scope paragraph no longer names its adopting commands in the one sentence this check reads (\"<N> offers carry it — ...\") -- with no family, this check would examine no offer at all"; return; }
+  family=$(printf '%s' "$adopt_sentence" | grep -oE '`/?[a-zA-Z][a-zA-Z0-9-]*:?`' | tr -d '`:/' | sort -u)
+  [ -n "$family" ] \
+    || { fail 11 "$PLUGIN_REL/$REF_DIR/next-phase-offer.md's adopting-commands sentence names no command this check can parse -- the EXTRACTOR has drifted or the sentence was reworded; fix the parser, never the sentence"; return; }
+
+  while IFS= read -r y; do
+    [ -n "$y" ] || continue
+    grep -qxF -- "$y" <<<"$family" || continue
+    f=$(cmd_file "$p" "$y"); [ -f "$f" ] || continue
+    route_n=$((route_n + 1))
+    # offers: one `<line>|<offered-command>|<0|1 carries the placeholder>` per choices option,
+    # scoped to the command's own NEXT-STEP SECTION (the last heading matching
+    # `Next step(s)` or `Next-step offer`, to end of file) -- a mid-run choices array
+    # (an escalation, a validation refusal) routinely NAMES a pipeline command in its option
+    # text without OFFERING it as this run's forward route, and scanning the whole file
+    # mistakes that mention for an offer. Five of this edition's six adopting commands
+    # name their forward route under exactly such a heading; `/idea`'s sits under its
+    # Phase 5 *Handoff: adaptive next-phase offer* heading, which this pattern does not
+    # match, so `/idea` takes the whole-file fallback below. That fallback can only widen
+    # what is examined, never narrow it -- a false positive, never a missed offer.
+    section=$(awk '
+      /^##[#]?[[:space:]]+.*[Nn]ext[-[:space:]][Ss]teps?/ { buf = ""; from = NR; next }
+      { if (from) buf = buf $0 "\n" }
+      END { printf "%s", buf }
+    ' "$f")
+    [ -n "$section" ] || section=$(cat "$f")   # no such heading: fall back to the whole file
+                                                 # rather than silently examining nothing
+    offlineno=$(awk '/^##[#]?[[:space:]]+.*[Nn]ext[-[:space:]][Ss]teps?/{n=NR} END{print n+0}' "$f")
+
+    # writers: the `deliverable_paths` = ... `title:` span's backticked *.md basenames.
+    # Capture begins AFTER the `deliverable_paths` token itself, on the line it appears on:
+    # that line routinely also carries an earlier reference-file citation (e.g.
+    # ``${CLAUDE_PLUGIN_ROOT}/references/phase-handoff.md` `) which is not a deliverable and
+    # must not be read as one. And it ends AT the `title:` token, not at the end of the line
+    # carrying it: this edition writes the declaration on one long unwrapped line whose tail
+    # routinely names the deliverable again in prose, which would keep a reworded
+    # declaration looking extractable.
+    writers=$(awk '
+      /`deliverable_paths`[[:space:]]*=/ {
+        span = 1; k = 0
+        line = $0
+        p = index(line, "`deliverable_paths`"); line = substr(line, p)
+        if ((q = index(line, "`title:")) > 0) line = substr(line, 1, q - 1)
+        while (match(line, /`[^`]*\.md`/)) {
+          w = substr(line, RSTART + 1, RLENGTH - 2); sub(/.*\//, "", w); print w
+          line = substr(line, RSTART + RLENGTH)
+        }
+        if ($0 ~ /`title:/ || ++k > 20) span = 0
+        next
+      }
+      span {
+        line = $0
+        if ((q = index(line, "`title:")) > 0) line = substr(line, 1, q - 1)
+        while (match(line, /`[^`]*\.md`/)) {
+          w = substr(line, RSTART + 1, RLENGTH - 2); sub(/.*\//, "", w); print w
+          line = substr(line, RSTART + RLENGTH)
+        }
+        if ($0 ~ /`title:/ || ++k > 20) span = 0
+      }' "$f" | sort -u)
+
+    # offers: one `<line>|<offered-command>|<0|1 carries the placeholder>` per choices option.
+    # Bracket-depth-bounded, quote-aware -- same discipline as check_choices_arity's parser,
+    # and for the same reason: a naive scan with no closing bound keeps reading past the
+    # array's `]` into unrelated prose later on the same (often very long, unwrapped) line,
+    # and a quoted command mentioned there is misread as an offered option.
+    offers=$(awk -v Y="$y" -v OFF="$offlineno" '
+      {
+        s = $0
+        while ((p = index(s, "choices: [")) > 0) {
+          rest = substr(s, p + 10)
+          depth = 1; inq = 0; buf = ""; opts_n = 0; j = 1; L = length(rest)
+          while (j <= L && depth > 0) {
+            c = substr(rest, j, 1)
+            if (inq) {
+              if (c == "\\") { buf = buf c substr(rest, j+1, 1); j += 2; continue }
+              else if (c == "\"") { inq = 0; opts_n++; opt[opts_n] = buf; buf = "" }
+              else buf = buf c
+            } else {
+              if (c == "\"") inq = 1
+              else if (c == "[") depth++
+              else if (c == "]") depth--
+            }
+            j++
+          }
+          for (k = 1; k <= opts_n; k++) {
+            optv = opt[k]
+            tmp = optv
+            # Two command-reference forms coexist across editions: a leading-slash form
+            # (`/name`, `/plugin:name`) and a bare colon-trigger form with no slash at all
+            # (`name:`, the Copilot edition form) -- both are scanned for in one pass so
+            # the shared body does not need an edition switch here.
+            while (match(tmp, /\/[a-zA-Z][a-zA-Z0-9:_-]*|[a-zA-Z][a-zA-Z0-9-]*:/)) {
+              cand = substr(tmp, RSTART, RLENGTH)
+              gsub(/^\//, "", cand)      # /name or /plugin:name -> name or plugin:name
+              if (cand ~ /:.+/) sub(/^[^:]*:/, "", cand)   # plugin:name -> name (colon NOT at the end)
+              sub(/:$/, "", cand)        # name: -> name (bare trailing colon)
+              tmp = substr(tmp, RSTART + RLENGTH)
+              if (cand != "" && cand != Y) {
+                has = (index(optv, "<merge-clause>") > 0) ? 1 : 0
+                print (NR + OFF) "|" cand "|" has
+              }
+            }
+          }
+          s = substr(rest, j)
+        }
+      }' <<<"$section")
+
+    # writers-empty guard, scoped to avoid a false positive this edition's real tree
+    # actually has: three of the six family members (create-vi, create-ard, update-vi)
+    # declare a `deliverable_paths` = that is DELIBERATELY prose ("the VI file", "the ARD
+    # file(s)", "the canonical VI file ...") because their deliverable's filename is
+    # templated (`<KEY>_<slug>.md`, `*_ARD.md`) and has no fixed basename for an extractor
+    # to find -- and phase-handoff.md's own table names both only as `the VI` / `the ARD`
+    # prose for the same reason, so neither ever appears as a literal target either. That is
+    # a real, inspectable authoring convention (grep the three files for `the (VI|ARD)` in
+    # their own `deliverable_paths` = span), not a guess, and it is what `prose_artifact`
+    # below tests -- a command whose span matches it is exempt from this guard entirely.
+    # A command whose span matches NEITHER convention (a genuine rewording, like replacing
+    # `deliverable_paths` = with `deliverable_paths` lists) still falls through to the fail
+    # below, which is the defect this guard exists to catch: an offer silently dropping out
+    # of coverage because its writer set no longer extracts.
+    prose_artifact=0
+    awk '
+      /`deliverable_paths`[[:space:]]*=/ {
+        line = $0; p = index(line, "`deliverable_paths`"); line = substr(line, p)
+        if (line ~ /= the ([a-zA-Z]+ )?(VI|ARD)( file| dir)?/) { print "prose"; exit }
+      }' "$f" | grep -q prose && prose_artifact=1
+
+    if [ -z "$writers" ] && [ "$prose_artifact" != 1 ]; then
+      fail 11 "$CMD_DIR/$y$CMD_SUFFIX makes a choices: offer but its \`deliverable_paths\` = ... \`title:\` span yields no path -- the EXTRACTOR has drifted or the handoff sentence was reworded, and every offer this command makes has stopped being checked; fix the parser or restore the declaration, never the offers"
+      continue
+    fi
+
+    while IFS='|' read -r ln x has; do
+      [ -n "$ln" ] || continue
+      need=0; needt=""
+      while IFS= read -r t; do
+        [ -n "$t" ] || continue
+        grep -qxF -- "$t" <<<"$writers" && { need=1; needt="$t"; break; }
+      done < <(grep -F "$x|" <<<"$targets" | sed 's/^[^|]*|//')
+      [ "$need" = 1 ] || continue
+      req_n=$((req_n + 1))
+      [ "$has" = 1 ] || fail 11 "$CMD_DIR/$y$CMD_SUFFIX:$ln offers /$x with no <merge-clause>, and this run writes '$needt' -- the artifact /$x's require-on-main gate targets, so that command stops while this phase's pull request is open ($PLUGIN_REL/$REF_DIR/next-phase-offer.md owns the placeholder and its resolution table)"
+    done <<<"$offers"
+  done < <(cmd_names "$p")
+
+  [ "$route_n" -gt 0 ] || fail 11 "$PLUGIN_REL/$REF_DIR/next-phase-offer.md binds the <merge-clause> rule to a family that matches no command in $CMD_DIR/ -- the family was renamed or retired and this check now examines nothing"
+  # NOT a req_n > 0 vacuity guard (unlike the multi-plugin form): on this tree today, every
+  # family offer whose target has a LITERAL filename (specify's and design's `/implement`
+  # family and `/epics`/`/design` targets, and idea's `/create-vi` -> `idea.md`) is prose,
+  # which "a sweep for arrays does not see" by the reference's own words, and every family
+  # offer that IS a `choices:` array
+  # (create-vi's, create-ard's, update-vi's) names a target with no literal filename at all
+  # (the VI, the ARD -- both templated, never a fixed basename). req_n legitimately comes up
+  # 0 under that shape, and asserting it be nonzero would fail a tree with no violation in
+  # it. What is NOT skipped: every offer this loop DOES find with a decidable (literal,
+  # intersecting) target still has its clause checked above, loudly, per-offer.
+}
+
+# ------------------------------------------------------------------ check 12
+# Every `choices:` array the plugin writes is an AskUserQuestion call, and that
+# tool's schema is `minItems: 2, maxItems: 4` with "There should be no 'Other'
+# option, that will be provided automatically". A five-option array is not a long
+# prompt -- it is a tool call rejected at validation, so the run cannot present it
+# at all, while `escalation-rules.md` simultaneously requires the array be shown
+# verbatim. That contradiction shipped here until 2.63.0: a convention stated in
+# fifteen command files ("last choice is always \"Other... (describe)\"") authored
+# 121 duplicate options across 26 files and pushed 29 arrays past the cap.
+#
+# The parser is bracket-matched and quote-aware, NOT a non-greedy regex. A naive
+# `choices:\s*\[(.*?)\]` stops at the first `]` -- including one inside an option
+# string ("Use <dir> [+ <sub>]") -- and silently skips that array. A checker that
+# cannot see the worst offenders is worse than none, so this one matches brackets.
+#
+# CHANGELOG.md is excluded: it quotes retired arrays as history.
+#
+# What this CANNOT see, stated so nobody mistakes green for safe: an array built
+# at run time -- the Epic picker `/specify`, `/design` and `/implement` share, or
+# /idea's write-path gate assembled from a table of rows -- has no literal options
+# to count. Its cap lives in `references/jira-input-resolution.md` (*The cap*) and
+# `references/escalation-rules.md` §0, and is held by review, not by this gate.
+check_choices_arity() {
+  local root="$1" hits
+  [ "$HAS_CHOICE_CAP" = 1 ] || return 0
+  [ "$HAVE_PY" = 1 ] || { note "python3 not found; check 12 (choices arity) skipped"; return 0; }
+  hits=$(python3 - "$root/$PLUGIN_REL" <<'PYEOF'
+import re, sys, io, glob, os
+root = sys.argv[1]
+START = re.compile(r'choices:\s*\[')
+def arrays(text):
+    for m in START.finditer(text):
+        i = m.end() - 1
+        depth = 0; j = i; inq = False; esc = False; opts = []; cur = None
+        while j < len(text):
+            c = text[j]
+            if inq:
+                if esc: esc = False; cur.append(c)
+                elif c == '\\': esc = True
+                elif c == '"': inq = False; opts.append(''.join(cur)); cur = None
+                else: cur.append(c)
+            else:
+                if c == '"': inq = True; cur = []
+                elif c == '[': depth += 1
+                elif c == ']':
+                    depth -= 1
+                    if depth == 0:
+                        yield (m.start(), opts); break
+                elif text[j:j+2] == '\n\n': break
+            j += 1
+for f in sorted(glob.glob(os.path.join(root, '**', '*.md'), recursive=True)):
+    if os.path.basename(f) == 'CHANGELOG.md': continue
+    s = io.open(f, encoding='utf-8').read()
+    rel = os.path.relpath(f, os.path.dirname(root.rstrip('/')))
+    for start, opts in arrays(s):
+        if not opts: continue
+        n = s[:start].count('\n') + 1
+        if len(opts) > 4:
+            print("%s:%d has %d options (AskUserQuestion renders at most 4)" % (rel, n, len(opts)))
+        if len(opts) < 2:
+            print("%s:%d has %d option(s) (AskUserQuestion needs at least 2)" % (rel, n, len(opts)))
+        for o in opts:
+            if o.strip().lower().startswith('other'):
+                print("%s:%d authors its own \"%s\" option (the harness supplies it)" % (rel, n, o[:40]))
+PYEOF
+)
+  [ -n "$hits" ] || return 0
+  local h; while IFS= read -r h; do [ -n "$h" ] && fail 12 "$h"; done <<<"$hits"
+}
+
+# Checks 13 (vendor tokens) and 14 (foreign identity) sit here in ai-workflows' numbering;
+# not ported here -- see the edition-config block's note at the top of this file.
+
+# ------------------------------------------------------------------ check 15
+# Index membership. Every command must be reachable from THREE surfaces: the docs index
+# (docs/README.md), the plugin README's role table, and the workflow diagram
+# (docs/workflow.md's mermaid graph) -- and the diagram is asserted separately from the
+# page's prose, because the prose below a diagram is where a command lands when someone
+# adds it in a hurry. A review once removed a command from all three surfaces at once and
+# the gate passed -- which is the shape every check here protects against: one surface
+# standing in for all three lets a real omission hide behind the two that still mention it.
+#
+# A node may be written bare (`/idea`) or namespaced (`plugin:name`) or as a bare colon
+# trigger (`name:`, the Copilot edition form) -- the boundary class `(/|:)` before the
+# name and `([^a-zA-Z0-9_-]|$)` after it covers all three without matching a longer name
+# that merely starts with this one's (the same prefix hazard check 9 guards elsewhere).
+#
+# DIAGRAM EXEMPTION: a command the diagram's OWN preceding prose (the text above the
+# ```mermaid fence in workflow.md) names as omitted is exempt from the DIAGRAM assertion
+# only. Names are read from the SENTENCE that says they are omitted -- one containing the
+# word "omitted" -- never from the whole intro: an intro routinely mentions pipeline
+# commands too ("`/document` and `/release-notes` close it out"), and reading every
+# backticked name in it exempted exactly the commands the diagram exists to show. Read
+# from there, per edition, rather than from a shared
+# reference, because whether a diagram omits its maintenance/anytime commands at all is
+# itself an edition's own documented choice (mgd's and ai-workflows' own dev-workflows
+# diagrams omit nothing and say so; this edition's diagram is drawn strictly from the
+# pipeline routing graph and says so). A command still must appear in the docs index and
+# the README role table; only diagram membership is relaxed, and only for a name that
+# prose actually names -- never a blanket skip. Two forms are read: a literal backticked
+# name (`vuln:`, `/vuln`) and the generic phrase "guideline reviewer(s)", which resolves to
+# every command whose own name contains `guideline-reviewer` -- this edition's prose names
+# the two reviewers generically rather than by name, and a literal-only reading would miss
+# them both.
+check_index_membership() {
+  local root="$1" p="$1/$PLUGIN_REL" n f diagram notnode intro
+  diagram=$(awk '/^```mermaid/{f=1;next} /^```/{f=0} f' "$p/docs/workflow.md" 2>/dev/null)
+  [ -n "$diagram" ] \
+    || { fail 15 "docs/workflow.md holds no mermaid diagram -- this check would examine nothing"; return; }
+  # The intro's sentences, split at a full stop followed by a space; only those saying
+  # their names are omitted are read. A period inside a code span (`next-phase-offer.md`)
+  # is followed by a letter, not a space, so it does not split a sentence.
+  intro=$(awk '/^```mermaid/{exit} {print}' "$p/docs/workflow.md" 2>/dev/null \
+    | tr '\n' ' ' | awk '{ n = split($0, s, /\. /); for (i = 1; i <= n; i++) if (s[i] ~ /omitted/) print s[i] }')
+  notnode=$(printf '%s' "$intro" | grep -oE '`/?[a-zA-Z][a-zA-Z0-9*-]*:?\*?`' | tr -d '`:*/' | sort -u)
+  if grep -qiE 'guideline reviewers?' <<<"$intro"; then
+    notnode=$(printf '%s\n%s\n' "$notnode" "$(cmd_names "$p" | grep 'guideline-reviewer')" | sort -u)
+  fi
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    # Two name-reference forms coexist across editions: a leading marker (`/name`,
+    # `plugin:name`) and a bare trailing colon trigger with no leading marker at all
+    # (`name:`, the Copilot edition form) -- matched by requiring EITHER a `/` or `:`
+    # immediately before the name OR a `:` immediately after it.
+    grep -qE "((/|:)$n([^a-zA-Z0-9_-]|\$)|(^|[^a-zA-Z0-9_-])$n:)" "$p/docs/README.md" || fail 15 "$n is not listed in docs/README.md"
+    grep -qE "((/|:)$n([^a-zA-Z0-9_-]|\$)|(^|[^a-zA-Z0-9_-])$n:)" "$p/README.md"      || fail 15 "$n is not listed in $PLUGIN_REL/README.md"
+    grep -qxF -- "$n" <<<"$notnode" && continue   # diagram exemption -- see header
+    printf '%s' "$diagram" | grep -qE "((/|:)$n([^a-zA-Z0-9_-]|\$)|(^|[^a-zA-Z0-9_-])$n:)" \
+      || fail 15 "$n does not appear in docs/workflow.md's diagram, which says it shows every command (prose below it does not count -- that is where the last one went missing)"
+  done < <(cmd_names "$p")
+}
+
+# Check 16 (loader contract) sits here in ai-workflows' numbering; not ported here -- see
+# the edition-config block's note at the top of this file.
+
+# ------------------------------------------------------------------ check 17
+# Dispatch authority. Every agent whose tool list grants `Task` must carry a NEVER-dispatch
+# rule naming its one sanctioned subagent -- the anchor sentence "NEVER dispatch any
+# subagent other than `<name>`. That one dispatch is your entire `Task` authority." -- so an
+# agent that CAN dispatch is never silent about what it is allowed to dispatch. The reverse
+# direction matters too: an agent carrying the sentence but granted no `Task` is stale prose
+# claiming an authority the harness would refuse.
+#
+# SCOPE is agents/ only, one flat directory, under $PLUGIN_REL -- commands/skills carry
+# their own `allowed-tools:` frontmatter but are outside this check's finding. The tool-list
+# key is read as either `tools:` or `allowed-tools:`, whichever the frontmatter uses.
+#
+# VACUITY GUARD: if the scan finds not one agent carrying `Task`, that is the frontmatter
+# parsing having silently stopped matching, not a tree with nothing to dispatch -- fail
+# loudly rather than pass.
+check_dispatch_authority() {
+  local root="$1" p="$1/$PLUGIN_REL/agents" f frontmatter toolsline has_task has_rule seen=0 rp
+  # The anchor sentence and the tool-list token are both case-sensitive to the EDITION's own
+  # frontmatter convention: Claude/mgd quote capitalised tool names (`"Task"`) and the
+  # anchor's own prose says "Task"; Copilot's `tools: [...]` list is bare and lower-case
+  # (`task`) and its own anchor prose says "task" to match. Both are matched
+  # case-insensitively so the one shared regex covers either convention without an edition
+  # switch.
+  local anchor='NEVER dispatch any subagent other than `[^`]+`\. That one dispatch is your entire `[Tt]ask` authority\.'
+  [ -d "$p" ] || { fail 17 "$PLUGIN_REL/agents does not exist -- this check would examine nothing"; return; }
+  for f in "$p"/*.md; do
+    [ -e "$f" ] || continue
+    rp="${f#$root/}"
+    frontmatter=$(awk 'NR==1 && $0=="---"{infm=1;next} infm && $0=="---"{exit} infm{print}' "$f")
+    toolsline=$(grep -E '^(tools|allowed-tools):' <<<"$frontmatter" | head -1)
+    has_task=0
+    case "$toolsline" in
+      *'"Task"'*|*'"task"'*) has_task=1 ;;
+      *)
+        # Bare, unquoted bracket-list form (`tools: [view, glob, grep, bash, task]`): a
+        # whole array ELEMENT equal to "task", word-bounded so a tool named e.g. "tasker"
+        # does not match.
+        case ",$(printf '%s' "$toolsline" | tr -d '[:space:][]')," in
+          *,[Tt]ask,*) has_task=1 ;;
+        esac
+      ;;
+    esac
+    has_rule=0
+    grep -qiE -- "$anchor" "$f" && has_rule=1
+
+    if [ "$has_task" = 1 ]; then
+      seen=$((seen + 1))
+      [ "$has_rule" = 1 ] \
+        || fail 17 "$rp carries \`Task\`/\`task\` in its tool list but no NEVER-dispatch rule naming its sanctioned subagent (the anchor sentence: \"NEVER dispatch any subagent other than \`<name>\`. That one dispatch is your entire \`Task\` authority.\") -- a Task-carrying agent with no sanctioned set stated is exactly how a mis-dispatch happens"
+    fi
+    if [ "$has_rule" = 1 ] && [ "$has_task" != 1 ]; then
+      fail 17 "$rp carries a NEVER-dispatch rule naming a sanctioned subagent but its tool list grants no \`Task\`/\`task\` -- it declares a dispatch authority the harness would refuse, which is stale and will mislead a reader"
+    fi
+  done
+  [ "$seen" -gt 0 ] \
+    || fail 17 "no agent under $PLUGIN_REL/agents carries \`Task\`/\`task\` in its tool list -- this check would examine nothing, which means the frontmatter scan has drifted rather than the tree having nothing left to dispatch"
+}
+
+# ------------------------------------------------------------------ check 18
+# CHECK 18 gates the one claim a changelog makes about ITSELF: a section headed `— Unreleased`
+# says that it "has not been published yet" (dev-workflows' changelog header states that
+# convention; no other plugin's changelog here carries such a section today). On the
+# default branch that is false by construction -- the CLI fetches from main, so everything on
+# main IS what users install. The section is published the moment the push lands.
+#
+# WHY IT IS NOT ON BY DEFAULT: on a feature branch an `— Unreleased` section is the CORRECT
+# authoring state. So it runs only where the claim is actually false: ASSERT_PUBLISHED=1,
+# which .github/workflows/validate-catalog.yml sets on a push to the default branch and
+# nowhere else. The env var rather than a flag composes with the selftest's expect_*_env
+# helpers, so the case that proves the gate STAYS QUIET without it can be written at all.
+#
+# SCOPE is every `plugins/*/CHANGELOG.md` in this edition's layout (one directory level
+# above each plugin) -- every plugin in the catalog publishes from the same ref.
+#
+# WHAT IT DOES NOT MATCH: the bare Keep-a-Changelog `## [Unreleased]` form, nor a labelled
+# historical section such as `### [Unreleased] (pre-plugin-split)`, which is correct content
+# recording work predating a restructure.
+check_published_changelog() {
+  local root="$1" f rp seen=0 hit line n
+  [ "${ASSERT_PUBLISHED:-}" = 1 ] || return 0
+  for f in "$root"/$CHANGELOG_GLOB; do
+    [ -e "$f" ] || continue
+    seen=$((seen + 1))
+    rp="${f#$root/}"
+    # `##`-or-deeper heading, a bracketed version, an em dash or hyphen, then Unreleased.
+    # An alternation, never a bracket expression: `[—-]` is a set of BYTES in a C/POSIX
+    # locale (a container with LANG unset), where the three-byte em dash can never match it
+    # and the check went silently inert on the form this repo actually writes.
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      n="${line%%:*}"
+      hit="${line#*:}"
+      fail 18 "$rp:$n is headed \`${hit# }\` on a ref that publishes it -- an \`— Unreleased\` section says it \"has not been published yet\", and everything on the default branch is what gets installed. Date it with the day of the push that publishes it"
+    done <<EOF
+$(grep -nE '^#{2,}[[:space:]]+\[[^]]+\][[:space:]]*(—|-)[[:space:]]*Unreleased[[:space:]]*$' "$f" || true)
+EOF
+  done
+  [ "$seen" -gt 0 ] \
+    || fail 18 "no $CHANGELOG_GLOB found at all -- this check would examine nothing, which means the glob has drifted rather than the marketplace having shipped no changelog"
+}
+
+# Check 19 (edition-forbidden denylist) sits here in ai-workflows' numbering; not ported
+# here -- see the edition-config block's note at the top of this file.
+
 # ------------------------------------------------------------------ selftest
 # One passing fixture tree; each check gets a mutation of a fresh copy. Asserting
 # the exit code alone would let a mutation that trips a DIFFERENT check register
@@ -559,6 +1113,12 @@ selftest() {
   here=$(cd "$(dirname "$0")" && pwd)
   fixture="$here/fixtures/docs/pass"
   [ -d "$fixture" ] || { echo "SELFTEST FAIL: fixture tree missing at $fixture" >&2; exit 2; }
+  # Check 18's arming flag is neutralised here so each case controls it explicitly, and the
+  # two that need it armed set it through expect_fail_env / expect_pass_after_env. Without
+  # this the selftest inherits the caller's own value, and the case proving the gate STAYS
+  # QUIET off a publishing ref fails spuriously for whoever runs --selftest with
+  # ASSERT_PUBLISHED=1 already exported -- found by doing exactly that.
+  export ASSERT_PUBLISHED=""
 
   expect_pass() {
     tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
@@ -577,11 +1137,32 @@ selftest() {
     tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
     ( cd "$tmp" && eval "$3" )
     local out; out=$("$0" --root "$tmp" 2>&1); local got=$?
-    if [ "$got" -eq 1 ] && grep -q "FAIL check $2" <<<"$out"; then
+    # The colon is load-bearing: fail() prints "FAIL check <n>: <message>", and without it
+    # "FAIL check 1" would also match a "FAIL check 10" line, letting a check-10 failure
+    # satisfy a check-1 case. Every check number past 9 makes that collision reachable.
+    if [ "$got" -eq 1 ] && grep -q "FAIL check $2:" <<<"$out"; then
       printf 'ok    %s (check %s fired)\n' "$1" "$2"
     else
       printf 'FAIL  %s: expected exit 1 with "FAIL check %s", got exit %s\n' "$1" "$2" "$got"; rc=1
     fi
+    rm -rf "$tmp"
+  }
+  expect_fail_env() { # <description> <check-number> <env-assignments> <mutation-shell>
+    tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
+    ( cd "$tmp" && eval "$4" )
+    local out; out=$(eval "export $3"; "$0" --root "$tmp" 2>&1); local got=$?
+    if [ "$got" -eq 1 ] && grep -q "FAIL check $2:" <<<"$out"; then
+      printf 'ok    %s (check %s fired)\n' "$1" "$2"
+    else
+      printf 'FAIL  %s: expected exit 1 with "FAIL check %s", got exit %s\n' "$1" "$2" "$got"; rc=1
+    fi
+    rm -rf "$tmp"
+  }
+  expect_pass_after_env() { # <description> <env-assignments> <mutation-shell>
+    tmp=$(mktemp -d); cp -R "$fixture/." "$tmp/"
+    ( cd "$tmp" && eval "$3" )
+    if ( eval "export $2"; "$0" --root "$tmp" ) >/dev/null 2>&1; then printf 'ok    %s\n' "$1"
+    else printf 'FAIL  %s: expected exit 0\n' "$1"; rc=1; fi
     rm -rf "$tmp"
   }
 
@@ -609,7 +1190,7 @@ selftest() {
   expect_fail "a documented-but-unread env var is rejected"    5 "printf '\n**\`\$PHANTOM_VAR\`** — never read anywhere.\n' >> $PLUGIN_REL/docs/reference/environment.md"
   expect_fail "an over-long cell in the ROOT README is rejected" 6 "awk 'BEGIN{s=\"\"; while(length(s)<260) s=s \"x\"; printf \"\n| a | %s |\n|---|---|\n| b | c |\n\", s}' >> README.md"
   # ${CLI_VERBS##*|} is the LAST verb in the alternation -- every edition has one by
-  # construction (canonical "reinstall", copilot "update") -- so this is extracted by
+  # construction ("update" in both editions) -- so this is extracted by
   # check 7 in every edition, regardless of which verbs exist there. The target names
   # a line absent from the root README, so it is extracted AND counts as extra.
   expect_fail "an install line absent from the root README is rejected" 7 "printf '\n$CLI plugin ${CLI_VERBS##*|} ${PLUGIN_REL##*/}@extra-fixture-target\n' >> $PLUGIN_REL/docs/getting-started.md"
@@ -633,6 +1214,49 @@ selftest() {
   expect_fail "a missing marketplace-add line is rejected"     7 "sed -i.bak '/$CLI plugin marketplace add/d' $PLUGIN_REL/docs/getting-started.md"
   expect_fail "a missing second required-verb line is rejected" 7 "sed -i.bak '/$CLI plugin ${CLI_REQUIRED##*|}/d' $PLUGIN_REL/docs/getting-started.md"
   expect_fail "getting-started not installing the plugin itself is rejected" 7 "sed -i.bak '/$CLI plugin install ${PLUGIN_REL##*/}@/d' $PLUGIN_REL/docs/getting-started.md"
+
+  # Check 10 -- identity quarantine. Both mutations derive the offending token from the
+  # fixture's own repo-root README, so the cases port to a fixture with a different
+  # marketplace name rather than pinning this one.
+  expect_fail "a container-repo URL on a docs page is rejected" 10 \
+    "slug=\$(grep -oE '^$CLI plugin marketplace add [^ ]+' README.md | awk '{print \$NF}' | head -1); printf -- '\n[sibling plugin](https://github.com/%s/tree/main/plugins/extra-plugin)\n' \"\$slug\" >> $PLUGIN_REL/docs/reference/hooks.md"
+  expect_fail "a marketplace name on a docs page is rejected" 10 \
+    "mkt=\$(grep -oE '^$CLI plugin install [^ ]+@[^ ]+' README.md | sed 's/.*@//' | head -1); printf -- '\nInstall the sibling with \`$CLI plugin install extra-plugin@%s\`.\n' \"\$mkt\" >> $PLUGIN_REL/docs/reference/agents.md"
+  # ...and the boundary itself: a LONGER identifier that merely contains the marketplace
+  # name is not naming it, and must stay green.
+  expect_pass_after "a longer identifier merely containing the marketplace name is accepted" \
+    "mkt=\$(grep -oE '^$CLI plugin install [^ ]+@[^ ]+' README.md | sed 's/.*@//' | head -1); printf -- '\nThe mirror repository is called sub-%s-mirror and is not this marketplace.\n' \"\$mkt\" >> $PLUGIN_REL/docs/reference/agents.md"
+  # ...and the vacuity guard: with no install block to derive from, check 10 has no token
+  # set and must go RED rather than pass every page. (Check 7 fires on this mutation too;
+  # the case asserts check 10 specifically.)
+  expect_fail "an underivable identity token set is rejected" 10 \
+    "sed -i.bak '/^$CLI plugin /d' README.md"
+
+  # Check 11 -- merge-clause adoption, single-plugin form. The fixture's one family command
+  # (`alpha`, named in next-phase-offer.md's adopting-commands sentence) offers
+  # `/dev-workflows:omega`, whose phase-handoff.md row gates `alpha-deliverable.md` --
+  # which alpha's own `deliverable_paths` declares.
+  expect_fail "an offer that drops <merge-clause> is rejected" 11 \
+    "sed -i.bak 's| <merge-clause>||' $(cmd_file $PLUGIN_REL alpha)"
+  expect_fail "a family command whose handoff declares no path is rejected" 11 \
+    "sed -i.bak 's|\`deliverable_paths\` = |\`deliverable_paths\` lists |' $(cmd_file $PLUGIN_REL alpha)"
+  # The span ends AT `title:`, not at the end of the line carrying it. This edition writes
+  # the declaration on one long unwrapped line whose tail routinely names the deliverable
+  # again in prose (`/idea`: "`idea.md` is relocated but not on the default branch"); read
+  # to end of line, that mention kept a reworded declaration looking extractable.
+  expect_fail "a path named only after the title: token is not a declared path" 11 \
+    "sed -i.bak 's|\`deliverable_paths\` = \`alpha-deliverable.md\`,|\`deliverable_paths\` = the fixture file, \`title: fixture handoff\`, which writes \`alpha-deliverable.md\`,|' $(cmd_file $PLUGIN_REL alpha)"
+  # ...and it STARTS at the `deliverable_paths` token, not at the start of its line: the line
+  # routinely cites a reference file first, which is not a deliverable.
+  expect_fail "a path cited before the deliverable_paths token is not a declared path" 11 \
+    "sed -i.bak 's|with \`deliverable_paths\` = \`alpha-deliverable.md\`,|per \`alpha-deliverable.md\`, with \`deliverable_paths\` = the fixture file,|' $(cmd_file $PLUGIN_REL alpha)"
+  # The two vacuity guards. Each leaves the tree otherwise valid and makes the check examine
+  # nothing, which must be RED.
+  expect_fail "a reworded adopting-commands sentence is rejected" 11 \
+    "sed 's|One offer carries it — .*section\\.|Nothing in this file names an adopter.|' $PLUGIN_REL/$REF_DIR/next-phase-offer.md > np.tmp && mv np.tmp $PLUGIN_REL/$REF_DIR/next-phase-offer.md"
+  expect_fail "a row-F table with no gated artifact is rejected" 11 \
+    "sed '/alpha-deliverable.md/d; /elsewhere.md/d' $PLUGIN_REL/$REF_DIR/phase-handoff.md > ph.tmp && mv ph.tmp $PLUGIN_REL/$REF_DIR/phase-handoff.md"
+
   # The cost subsystem (check 8, and check 9's cost-emitting-commands sentence) does not
   # exist in every edition -- check_cost_attribution and that half of check_prose_counts
   # both return immediately when HAS_COST=0, so a mutation that only a cost check can see
@@ -651,6 +1275,80 @@ selftest() {
   else
     printf 'skip  6 cost cases (this edition has no cost subsystem)\n'
   fi
+
+  # Check 10 -- one case per failure mode, plus the bracket-matching pair that is the whole
+  # reason this check parses rather than regexes: a naive non-greedy `\[(.*?)\]` stops at the
+  # `]` inside the option text and skips the array, so it passes the over-long case and the
+  # legal case below for the same wrong reason.
+  if [ "$HAS_CHOICE_CAP" = 1 ]; then
+    expect_fail "a five-option choices array is rejected" 12 \
+      "printf -- '\nchoices: [\"One\", \"Two\", \"Three\", \"Four\", \"Five\"]\n' >> $(cmd_file $PLUGIN_REL alpha)"
+    expect_fail "a one-option choices array is rejected" 12 \
+      "printf -- '\nchoices: [\"Only one\"]\n' >> $(cmd_file $PLUGIN_REL alpha)"
+    expect_fail "an authored Other option is rejected" 12 \
+      "printf -- '\nchoices: [\"One\", \"Two\", \"Other… (describe)\"]\n' >> $(cmd_file $PLUGIN_REL alpha)"
+    expect_fail "an over-long array whose option text contains brackets is rejected" 12 \
+      "printf -- '\nchoices: [\"Use <dir> [+ <sub>]\", \"Two\", \"Three\", \"Four\", \"Five\"]\n' >> $(cmd_file $PLUGIN_REL alpha)"
+    expect_pass_after "a four-option array whose option text contains brackets is accepted" \
+      "printf -- '\nchoices: [\"Use <dir> [+ <sub>]\", \"Two\", \"Three\", \"Four\"]\n' >> $(cmd_file $PLUGIN_REL alpha)"
+  else
+    printf 'skip  5 choices-arity cases (this edition'"'"'s prompt tool has no option cap)\n'
+  fi
+
+  # Check 15 -- index membership. The fixture ships one command (`alpha`), listed in
+  # docs/README.md, the plugin README's role table, and docs/workflow.md's diagram. Each
+  # mutation deletes or renames the line/token naming it, by matching the bare word rather
+  # than a hardcoded leading-slash or trailing-colon form, so the cases port unchanged
+  # across editions.
+  expect_fail "a command missing from the plugin README is rejected" 15 \
+    "sed -i.bak '/alpha/Id' $PLUGIN_REL/README.md"
+  expect_fail "a command missing from the docs index is rejected" 15 \
+    "sed -i.bak '/alpha/Id' $PLUGIN_REL/docs/README.md"
+  expect_fail "a command missing from the workflow DIAGRAM is rejected" 15 \
+    "sed -i.bak 's|alpha|removed|I' $PLUGIN_REL/docs/workflow.md"
+  expect_fail "a workflow page with no diagram at all is rejected" 15 \
+    "sed -i.bak 's|^\`\`\`mermaid\$|text|' $PLUGIN_REL/docs/workflow.md"
+  # ...and the diagram exemption: a command the diagram's own intro prose names as omitted
+  # must NOT be required in the diagram, but still must appear in the other two surfaces
+  # (already true for alpha without any mutation, so the green case names alpha itself
+  # rather than inventing a second command -- which would also have to be registered in
+  # check 9's count sentence, a different check's surface this case is not about).
+  expect_pass_after "a command the diagram's own intro prose exempts is not required in it" \
+    "sed -i.bak 's|alpha|zzz-placeholder|I; s|Every command shown here\\.|Every command shown here, except \`/alpha\` (\`alpha:\`), which is not a pipeline node and is omitted below.|' $PLUGIN_REL/docs/workflow.md"
+  # ...and its red twin: naming a command in the intro is not exempting it. Only the
+  # sentence that says its names are omitted counts -- an intro that merely mentions a
+  # command ("`/document` and `/release-notes` close it out") exempted both until this
+  # case existed.
+  expect_fail "a command the intro merely mentions is still required in the diagram" 15 \
+    "sed -i.bak 's|alpha|zzz-placeholder|I; s|Every command shown here\\.|Every command shown here. \`/alpha\` (\`alpha:\`) opens the pipeline.|' $PLUGIN_REL/docs/workflow.md"
+
+  # Check 17 -- dispatch authority. `beta` carries Task + the NEVER-dispatch rule naming
+  # `eta`; `eta` carries neither.
+  expect_fail "an agent granted Task with no NEVER-dispatch rule is rejected" 17 \
+    "sed -i.bak '/NEVER dispatch any subagent other than/d' $PLUGIN_REL/agents/beta.md"
+  expect_fail "an agent carrying the NEVER-dispatch rule without Task is rejected" 17 \
+    "printf -- '\n- NEVER dispatch any subagent other than \`beta\`. That one dispatch is your entire \`Task\` authority.\n' >> $PLUGIN_REL/agents/eta.md"
+  # THE DISCRIMINATOR: a decoy paragraph naming both "dispatch" and a literal quoted
+  # \`"Task"\` must not be misread as a tools: grant by a whole-file grep.
+  expect_pass_after "prose naming dispatch and a quoted \"Task\" grants no authority" \
+    "printf -- '\nA reviewer might dispatch this agent expecting it to \`\"Task\"\` itself out eventually; it never does, and it invokes no subagent either.\n' >> $PLUGIN_REL/agents/eta.md"
+  expect_fail "no agent carrying Task at all is rejected" 17 \
+    "sed -i.bak 's|\"Task\"|\"Read\"|; s/, task]/, view]/' $PLUGIN_REL/agents/beta.md"
+
+  # Check 18. The RED case and its GREEN TWIN are the whole point: the identical mutation
+  # is a failure with ASSERT_PUBLISHED=1 and a PASS without it.
+  expect_fail_env "an Unreleased changelog section on a publishing ref is rejected" 18 \
+    "ASSERT_PUBLISHED=1" \
+    "sed -i.bak 's|^## \[1.1.0\] — 2026-09-22|## [1.1.0] — Unreleased|' $PLUGIN_REL/CHANGELOG.md"
+  expect_pass_after "the same Unreleased section is accepted off a publishing ref" \
+    "sed -i.bak 's|^## \[1.1.0\] — 2026-09-22|## [1.1.0] — Unreleased|' $PLUGIN_REL/CHANGELOG.md"
+  # A dated tree must still PASS with the gate armed.
+  expect_pass_after_env "a fully dated changelog passes with the gate armed" \
+    "ASSERT_PUBLISHED=1" \
+    "true"
+  expect_fail_env "a tree with no changelog at all is rejected when armed" 18 \
+    "ASSERT_PUBLISHED=1" \
+    "rm -f $PLUGIN_REL/CHANGELOG.md"
 
   if [ "$rc" -eq 0 ]; then echo "SELFTEST PASS"; else echo "SELFTEST FAIL"; fi
   exit "$rc"
@@ -677,6 +1375,12 @@ check_table_cells       "$ROOT"
 check_install_block     "$ROOT"
 check_cost_attribution  "$ROOT"
 check_prose_counts      "$ROOT"
+check_identity_quarantine "$ROOT"
+check_merge_clause      "$ROOT"
+check_choices_arity     "$ROOT"
+check_index_membership  "$ROOT"
+check_dispatch_authority "$ROOT"
+check_published_changelog "$ROOT"
 
 if [ "$FAILURES" -gt 0 ]; then
   echo "FAIL: $FAILURES problem(s) under $PLUGIN_REL" >&2

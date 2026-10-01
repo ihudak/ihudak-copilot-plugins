@@ -16,9 +16,9 @@ Takes no argument. Apply it against whichever `dynatrace/_content/**` or `manage
 
 - **A dynatrace-docs content page** — a `.md` file under `dynatrace/_content/**` (SaaS) or `managed/_content/**` (Managed) that you are creating or have just changed.
 - **Whether the page is brand-new or a changed existing page** — a first publish uses the `published` timestamp instead of a changelog entry; only a changed existing page gets a new `changelog:` entry.
-- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/changelog-guidelines.md` — the changelog entry rules and worked examples, read directly rather than restated here.
-- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/managed-owners.txt` — the required owner IDs for a `managed/_content/**` page, one per line.
-- `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/dynatrace-docs/frontmatter-guidelines.md` — the full field rules for `title`, `description`, `meta.content-type`, `meta.i18n-priority`, `meta.generation`, and `published`.
+- [`skills/_shared/dynatrace-docs/changelog-guidelines.md`](../../skills/_shared/dynatrace-docs/changelog-guidelines.md) — the changelog entry rules and worked examples, read directly rather than restated here.
+- [`skills/_shared/dynatrace-docs/managed-owners.txt`](../../skills/_shared/dynatrace-docs/managed-owners.txt) — the required owner IDs for a `managed/_content/**` page, one per line.
+- [`skills/_shared/dynatrace-docs/frontmatter-guidelines.md`](../../skills/_shared/dynatrace-docs/frontmatter-guidelines.md) — the full field rules for `title`, `description`, `meta.content-type`, `meta.i18n-priority`, `meta.generation`, and `published`.
 
 ## What it produces
 
