@@ -56,7 +56,7 @@ The bookkeeping every long-running skill emits around its actual work — feedba
 
 - `run-flags.md` — the run flags every applicable skill accepts (`--skip-feedback`, `--enforce-model`), their `$WORKFLOWS_*` environment defaults, the model-value table, and the `strip-run-flags` entry point. `--skip-costs` is deliberately **not** a flag of this edition — there is no cost subsystem to skip.
 - `feedback-emission.md` — the session-feedback emitter the thirteen workflow skills' automatic maintenance phase (and `feedback:`/`prompt:*`) cites to capture friction about the plugin itself.
-- `followup-emission.md` — the follow-up task and journal emitter a terminal "Emit follow-up tasks" phase cites in `document:`, `release-notes:`, `epics:`, `implement:`, and `ready:`.
+- `followup-emission.md` — the follow-up checklist emitter a terminal "Emit follow-up tasks" phase cites in `document:`, `release-notes:`, `epics:`, `implement:`, and `ready:`.
 - `next-phase-offer.md` — the plugin-wide contract for the next-phase offer every pipeline skill surfaces at the end of its run, naming the natural next skill(s).
 - `session-hygiene.md` — the plugin-wide contract for session-hygiene suggestions: flush resume-critical state to disk, then suggest the right context action, after a big skill finishes or a long run checkpoints.
 - `context-management.md` — strategies for an implementation run whose step list is too long to complete in one context window without degrading.

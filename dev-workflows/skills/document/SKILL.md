@@ -1313,20 +1313,20 @@ Guidance only — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-w
 
 Terminal phase — runs AFTER the Phase 9 Final Report is composed; NEVER
 interrupts an earlier phase. Persist the run's out-of-scope / manual-step
-follow-ups as durable Obsidian tasks (and notes) by citing
+follow-ups as a plain checklist in the specs repo by citing
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/followup-emission.md` and executing its steps
 inline.
 
 1. **Collect** the follow-up items already aggregated in the Phase 9 report:
    `### Screenshots to upload manually`, `### Implementation gaps (Jira vs source)`,
    `### Skipped items`, and `### Deferred items`.
-2. **Filter** them with the reference's §6 qualifying predicate — emit only
+2. **Filter** them with the reference's §4 qualifying predicate — emit only
    out-of-scope / manual-step signals; drop in-scope items the report already
    tracks.
-3. **Resolve** the write target via the §4 vault-availability ladder using the
-   run's `jira_key` and `source`; render + place tasks and verbose notes per
-   §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+3. **Resolve** the write target via the §2 `$SPECS_PATH`-first ladder using the
+   run's `jira_key` and `source`; render + place tasks per §1 (verbose detail
+   inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 9 report (today's behaviour).
 This phase NEVER fails the run, NEVER commits (still true — this phase only
@@ -1756,11 +1756,11 @@ its steps inline.
 1. **Collect** the follow-up items from the Phase 5 `### Deferred items` section
    (direct edits rarely produce out-of-scope work; this phase is usually a
    no-op).
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder. Direct mode usually has no
-   `jira_key` (`source = none`), so tasks land in `Tasks.md # Irregular` when the
-   vault is writable, else the phase degrades to report-only.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder. Direct mode usually has no
+   `jira_key` (`source = none`), so there is no VI dir and the phase degrades to
+   report-only.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 5 report. This phase NEVER
 fails the run, NEVER commits (still true — the user manages git manually for the

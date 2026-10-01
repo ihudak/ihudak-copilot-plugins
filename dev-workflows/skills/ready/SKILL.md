@@ -505,11 +505,11 @@ the run's manual-step / out-of-scope follow-ups by citing
    `PARTIAL` / `NOT-SUPPORTED` verdict surfaced (each gap → one follow-up: "resolve <gap>, see
    `_readiness.md`"), plus a standing **"update the Jira status to match the artifacts (or vice versa)"**
    reminder whenever the verdict is not a clean `SUPPORTED` at the declared status.
-2. **Filter** them with the reference's §6 qualifying predicate — a `SUPPORTED` run with no gaps
+2. **Filter** them with the reference's §4 qualifying predicate — a `SUPPORTED` run with no gaps
    qualifies **nothing**; this phase is then a silent no-op (byte-identical to a run without it).
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`; render + place tasks
-   and verbose notes per §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`; render + place tasks
+   per §1 (verbose detail inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 Emit this phase's own short output:
 

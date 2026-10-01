@@ -30,17 +30,15 @@ copilot plugin update --all
 
 ## What you set on your machine
 
-`dev-workflows` resolves its inputs and outputs through five environment variables. Export them in your shell profile:
+`dev-workflows` resolves its inputs and outputs through four environment variables. Export them in your shell profile:
 
 ```bash
-export VAULT_PATH="$HOME/obsidian"        # personal store: Jira imports + idea/project files
 export SPECS_PATH="/workspace/specs"      # shared store: specifications, designs, ARDs
 export REPOS_PATH="/workspace"            # where your code clones live (default: /workspace)
 export DOCS_PATH="/workspace/docs"        # optional, read-only: product docs for grounding (default: /workspace/docs)
 export GIT_USER_INITIALS="iv-gu"          # optional: identity segment for branch names
 ```
 
-- **`VAULT_PATH`** — your personal store. Holds `jira-products/<KEY>/` (produced by `jira-workitem-import`) and `Projects/<area>/<slug>/` (idea and project files).
 - **`SPECS_PATH`** — the shared, team-visible store for a ticket's `specification.md` / `design.md` / ARD under `specifications/<KEY>-<slug>/…`. Required by the specs-authoring skills (`create-vi:`, `create-ard:`, `specify:`, `design:`, `ready:`); advisory for `implement:`; additive for `document:`.
 - **`REPOS_PATH`** — where code clones live; a single directory or a colon-separated list. Defaults to `/workspace`. Repos are matched by their `git remote get-url origin` slug, not by directory name.
 - **`DOCS_PATH`** *(optional)* — a read-only clone of the product documentation (default `/workspace/docs`). When it is an existing directory containing markdown, `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, and `release-notes:` automatically ground on the existing shipped docs, and `document:` prefers it as a docs-repo discovery hint. Never written to; every miss is a silent, non-blocking skip.
@@ -56,13 +54,13 @@ Persistent defaults for this edition's two **run flags** — `--skip-feedback` a
 
 ## Your first run
 
-Start with `idea:` — it writes only to your vault, touches no Jira, no code, and no specs repo, so there is nothing to undo:
+Start with `idea:` — it touches no Jira and no code. It needs the Value Increment the idea is for, typed first — create the VI in Jira before you start (a prompt with no key stops and asks for one). For customer feedback, pass the feedback ticket itself, for example `idea: PRODFB-929`:
 
 ```
-idea: <describe the thing you want to build>
+idea: PRODUCT-12345 <describe the thing you want to build>
 ```
 
-`idea:` asks up to 10 questions, one at a time (`--deep` makes the grill relentless instead of bounded), then writes a lean one-page `idea.md`. Once you create an empty Jira workitem to get an ID, `create-vi: <JIRA-KEY>` picks the idea up from there and turns it into a reviewed Value Increment.
+`idea:` asks up to 10 questions, one at a time (`--deep` makes the grill relentless instead of bounded), then writes a lean one-page `idea.md` into that VI's feature folder under `SPECS_PATH` (for `PRODFB-929` it goes into the feedback ticket's folder instead), and never moves it afterwards. When the brief is `refined` rather than `draft`, `idea:` offers to branch, commit, push and open a pull request for it, so it reaches the specs repo's default branch, where `create-vi: <JIRA-KEY>` finds it and turns it into a reviewed Value Increment.
 
 ## superpowers — recommended, not required
 

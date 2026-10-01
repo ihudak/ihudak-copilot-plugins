@@ -1,6 +1,6 @@
 # Environment reference
 
-[Getting started](../getting-started.md) says what each variable is *for* and what to export before your first run. This page says what each variable **is** — its default, where that default comes from, what happens when it is unset, what happens when it points somewhere the plugin cannot read or write, and the directory layout it expects underneath it. The plugin reads 7 user-settable variables — the five that name a path or an identity, plus the two run-flag defaults `skills/_shared/run-flags.md` owns. (The Claude edition reads nine; the difference is `--skip-costs`, which is not a flag of this edition at all, and its `$DEV_WORKFLOWS_COST_PRICES`, since there is no cost subsystem here.) The rest of the names the plugin's own inventory check encounters while scanning for `$VAR` reads are never user-settable and stay out of scope here — and, unlike the Claude edition, neither of the two that might look like configuration is: `MODEL_ROUTING` is a **hook-local shell variable** assigned inside `hooks/preload-context.sh:52` (it just points at the bundled `model-routing.md` path for that hook invocation, and nothing outside the hook script ever reads it), and `PLUGIN_ROOT` is **host-injected** — the Copilot CLI equivalent of Claude Code's `CLAUDE_PLUGIN_ROOT`, set by the host for every plugin invocation, never by you. `OSTYPE`, `BASH_SOURCE`, `BASH_REMATCH`, `ROOT`, and `OWNER_REPO` are shell built-ins or internal template/hook-local names for the same reason. This edition reads no `$ARGUMENTS` variable at all.
+[Getting started](../getting-started.md) says what each variable is *for* and what to export before your first run. This page says what each variable **is** — its default, where that default comes from, what happens when it is unset, what happens when it points somewhere the plugin cannot read or write, and the directory layout it expects underneath it. The plugin reads 6 user-settable variables — the four that name a path or an identity, plus the two run-flag defaults `skills/_shared/run-flags.md` owns. (The Claude edition reads nine; the difference is `--skip-costs`, which is not a flag of this edition at all, and its `$DEV_WORKFLOWS_COST_PRICES`, since there is no cost subsystem here.) The rest of the names the plugin's own inventory check encounters while scanning for `$VAR` reads are never user-settable and stay out of scope here — and, unlike the Claude edition, neither of the two that might look like configuration is: `MODEL_ROUTING` is a **hook-local shell variable** assigned inside `hooks/preload-context.sh:52` (it just points at the bundled `model-routing.md` path for that hook invocation, and nothing outside the hook script ever reads it), and `PLUGIN_ROOT` is **host-injected** — the Copilot CLI equivalent of Claude Code's `CLAUDE_PLUGIN_ROOT`, set by the host for every plugin invocation, never by you. `OSTYPE`, `BASH_SOURCE`, `BASH_REMATCH`, `ROOT`, and `OWNER_REPO` are shell built-ins or internal template/hook-local names for the same reason. This edition reads no `$ARGUMENTS` variable at all.
 
 ## `$SPECS_PATH`
 
@@ -8,21 +8,9 @@
 
 **Resolution.** Read straight from the shell environment — there is no config file, CLI flag, or derived fallback that feeds it. Every skill that writes into it validates it at its own gating step (Phase 0 in most skills, Step 0 in `vuln:`) before doing any expensive work.
 
-**When unset.** The six skills that gate on it — `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `ready:` — stop immediately, name `SPECS_PATH` explicitly, and offer `choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`. `epics:` and `release-notes:` instead degrade: `epics:` skips the artifact steps that need it, and `release-notes:` falls back to `run_phase: pm` and writes its draft to the vault project folder instead of the VI's specs folder. No skill silently substitutes the vault, the current working directory, or any other path.
+**When unset.** The six skills that gate on it — `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`, `ready:` — stop immediately, name `SPECS_PATH` explicitly, and offer `choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`. `epics:` and `release-notes:` instead degrade: `epics:` skips the artifact steps that need it, and `release-notes:` falls back to `run_phase: pm` and writes its draft beside the imported directory (`<parent-of-jira_export_root>/`), since there is no `$SPECS_PATH` feature folder to use; with `$SPECS_PATH` set, it writes into the VI folder or the ticket's own feature folder there. No skill silently substitutes the current working directory or any other path.
 
 **When it points somewhere unreadable.** Two separate gates apply, and they differ in strictness. The bookkeeping entry point, `specs-preflight`, requires `$SPECS_PATH` to be an existing directory, `git -C "$SPECS_PATH" rev-parse --git-dir` to succeed, **and** the resolved `.git` directory to be **writable** (tested specifically rather than the worktree, since a read-only specs mount is a normal state in this container setup); a gate that fails on **writability** is a silent no-op (a read-only specs mount is a normal state here, and there is nothing to fix), while a gate that fails because `$SPECS_PATH` is set to something that is not a directory or not a git repository emits a one-line notice naming the variable and the path — that state is never supported, and it used to be indistinguishable from the read-only one — and because the terminal `commit-artifacts` step applies the same writability gate, the feedback/follow-up bookkeeping never gets committed either — `specs-preflight` only declines to prepare for a commit that step would then decline to make. The deliverable-verification entry point, `require-on-main`, needs only the first two conditions — a **readable** git dir is enough, writability is not required, since this gate only reads; a failed gate here returns the state `unmanaged`, and the caller proceeds exactly as it did before this handoff machinery existed — no artifact is verified, and nothing is reported as a stop. [Roles](../roles.md) covers the two states you meet more often mid-pipeline — an artifact stuck on an unmerged branch, and one that is simply absent from the default branch — but not `unmanaged`, since that is this environment condition (an unset or unmanageable `$SPECS_PATH`), not a workflow state.
-
-**Directory layout.** See the layout block at the end of this page.
-
-## `$VAULT_PATH`
-
-- **`$VAULT_PATH`** — your personal, markdown-backed store; required for `idea:` and for any skill resolving `jira-products/<KEY>/`, with no built-in default.
-
-**Resolution.** Read straight from the shell environment, exactly like `$SPECS_PATH` — no derived fallback exists.
-
-**When unset.** Behavior depends on the skill. `idea:` validates it must be set, an existing directory, and writable before doing anything else; if any of that fails it stops and offers a choice to enter a different directory to write `idea.md` into, or cancel — a user-supplied directory is validated the same way and used as the write root for that run — it never falls back to the current working directory, since that may be a code repository. Jira-driven skills that accept an already-imported export directory as their input (`epics:`, `release-notes:`) degrade gracefully instead: with `$VAULT_PATH` unset, `epics:` writes Epic drafts to a derived `epic-drafts/<jira_key>/` directory beside the import rather than under `jira-drafts/<VI-KEY>/`, and `release-notes:`, where the VI has no folder under `$SPECS_PATH` either, writes its draft beside the import the same way.
-
-**When it points somewhere unreadable.** The same validation that catches "unset" catches "exists but not writable" — both trip the same stop-and-offer path in `idea:`; a skill with the graceful-degradation behavior above treats an invalid `$VAULT_PATH` the same way it treats an unset one.
 
 **Directory layout.** See the layout block at the end of this page.
 
@@ -48,7 +36,7 @@
 
 **When it points somewhere unreadable, or the gate otherwise fails.** Every miss — unset, missing, unreadable, or no markdown file found — is a **silent, non-blocking skip**: `docs_grounding: OFF` with a one-line internal reason, never an error. Within these seven grounding consumers the plugin never writes into `$DOCS_PATH` under any circumstance.
 
-**Directory layout.** Unlike `$VAULT_PATH` and `$SPECS_PATH`, the plugin imposes no expected substructure here — it searches whatever markdown it finds under the root (for example, a full documentation-site checkout).
+**Directory layout.** Unlike `$SPECS_PATH`, the plugin imposes no expected substructure here — it searches whatever markdown it finds under the root (for example, a full documentation-site checkout).
 
 ## `$GIT_USER_INITIALS`
 
@@ -90,17 +78,12 @@
 
 ## Directory layout
 
-The four directory-valued variables above expect this layout. `$GIT_USER_INITIALS` holds a string, not a path, so it does not appear here.
+The three directory-valued variables above expect this layout. `$GIT_USER_INITIALS` holds a string, not a path, so it does not appear here.
 
 ```
-$VAULT_PATH/                        # personal store (e.g. an Obsidian vault; any markdown-backed store works)
-  jira-products/<KEY>/              # Jira hierarchy from jira-workitem-import (input; regenerated on each import)
-  Projects/<area>/<slug>/           # idea.md and other project working files
-  jira-drafts/<VI-KEY>/             # Epic drafts written by epics:
-
 $SPECS_PATH/                        # shared, team-visible store
   specifications/<KEY>-<slug>/      # the Value Increment, the ARD, specification.md, design.md
-    dev-workflows/                  # bookkeeping: feedback, resume.md; follow-ups only with no vault
+    dev-workflows/                  # bookkeeping: feedback, resume.md, follow-ups
 
 $REPOS_PATH/                        # code clones, one directory or a colon-separated list (default /workspace)
   <repo>/                           # discovered by directory name; matched by origin slug for PR-URL resolution

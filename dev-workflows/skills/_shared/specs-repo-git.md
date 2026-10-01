@@ -67,7 +67,7 @@ expects committed needs a shape here first.
 
 **`jira-import/` and `epic-drafts/` are directory shapes, and that is safe for the reason the release-notes shape is a file.** Neither directory ever holds a phase deliverable: `jira-import/` is written only by `jira-workitem-import` and regenerated on every re-import, and `epic-drafts/` only by `epics:`. A fresh import is therefore committed by the next run's `specs-preflight` flush, prompt-free — the import is shared team state, not one machine's cache. **A screenshot `document:` stages is not a shape**: it is a temporary copy kept until the operator uploads it, so `document:` keeps it out of `git status` through the repository's local exclude file instead (its Phase 6 writer step).
 
-Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §4 (the
+Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §2.1 (the
 shared per-VI area), `session-hygiene.md` §1 (resume tier 1), `jira-input-resolution.md` (the import), `epics:` (drafts), `source-truth.md` §7.5 (gaps draft), `finish-and-handoff.md` §5 (pull-request draft). This edition has
 **no cost subsystem** — there is no `cost-emission.md`, no `emit-cost`, and no
 `dev-workflows-cost/` path shape.
@@ -308,7 +308,7 @@ condition here:
   or operator halt by its own predicate — which every Phase 0 refusal is.
 
 - **Follow-ups are a no-op.** No signal qualifies, so that phase resolves no
-  target, writes nothing and ends silently (`followup-emission.md` §6).
+  target, writes nothing and ends silently (`followup-emission.md` §4).
 
 - **`resume.md` is NOT written.** `session-hygiene.md` §1 defines it as the
   last *completed* position — the phase just finished and the exact next

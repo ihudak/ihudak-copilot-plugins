@@ -63,7 +63,7 @@ Resolve, then confirm with the user in one grouped prompt (last choice always
   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`.
 
 Also resolve `jira_key` (from recent context, or `null`) and `source`
-(`vault | directory | none`).
+(`specs | directory | none`).
 
 ## Phase 3 — Persist
 

@@ -677,10 +677,10 @@ and executing its steps inline.
 1. **Collect** the qualifying follow-ups: the manual publish step ("create these
    drafted Epics in Jira manually" — the drafts are vault/dir files, not Jira
    tickets) and the Phase 9 `### Deferred items` that are out-of-scope refinement.
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`;
-   render + place tasks and verbose notes per §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`;
+   render + place tasks per §1 (verbose detail inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 9 report. This phase NEVER
 fails the run, NEVER commits (still true — this phase only writes follow-up

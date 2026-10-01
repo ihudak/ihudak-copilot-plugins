@@ -440,11 +440,11 @@ inline.
 1. **Collect** the qualifying follow-ups: the mandatory manual publish step
    ("paste this release-notes draft into the ticket's Jira release-notes field")
    and any implementation-gap signals surfaced during the run.
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`;
-   render + place tasks and verbose notes per §1–§3; dedupe per §5. The task
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`;
+   render + place tasks per §1 (verbose detail inlined as a section of the file); dedupe per §3. The task
    references the draft file written in Phase 8 rather than duplicating it.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 8 report. This phase NEVER
 fails the run, NEVER commits (still true — this phase only writes follow-up

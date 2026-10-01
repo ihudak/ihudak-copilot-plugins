@@ -39,13 +39,12 @@ suggestion.
 **direct** mode, `document:` **doc-edit** mode (Mode B), `vuln:`, `upgrade:`. There the
 durable state is the artifact / branch / PR already on disk; no resume pointer is written.
 
-**Location** (mirror `followup-emission.md` §4 resolution):
+**Location** (mirror `followup-emission.md` §2 resolution):
 
 1. `$SPECS_PATH` resolvable + writable + the VI dir exists → `<VI-dir>/dev-workflows/resume.md`. *[primary]*
 2. `$SPECS_PATH` writable but no VI dir matched → skip the file; rely on the printed `### Next step`.
-3. No `$SPECS_PATH`; `$VAULT_PATH` writable → `$VAULT_PATH/dev-workflows/resume/<KEY>-resume.md`.
-4. Neither writable → skip the file; the suggestion still fires with a one-line
-   `⚠ could not persist a resume pointer — set $SPECS_PATH or $VAULT_PATH`.
+3. No writable `$SPECS_PATH` → skip the file; the suggestion still fires with a one-line
+   `⚠ could not persist a resume pointer — set $SPECS_PATH`.
 
 `resume.md` is a **"last known position" pointer, OVERWRITTEN each run** (NOT an append
 log). It is intentionally tiny:
@@ -137,7 +136,7 @@ names the session manually if they want one.
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 3. **Role-aware via a single graph** — the compact/clear split reads
    `next-phase-offer.md`'s role labels; the role graph is not duplicated here.
-4. **Mode-aware** — direct / doc-edit / non-pipeline / pre-VI runs (no VI anchor) → no
+4. **Mode-aware** — direct / doc-edit / non-pipeline runs (no VI anchor) → no
    `resume.md`, no `/rename`, and the suggestion degrades to a plain optional `/compact`
    note (or is omitted, consistent with `next-phase-offer`'s mode-aware omission).
 5. **Never blocks** — a nudge appended to the Final Report, exactly like the next-phase offer.

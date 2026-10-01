@@ -774,15 +774,15 @@ and executing its steps inline.
    out-of-scope maintenance items surfaced in the Phase 5 `### Session
    learnings` section (e.g. an impl-maintenance suggestion that touches
    another repo or team, or a manual post-merge step). **Do NOT** collect the
-   report's `### Deferred items (from review or tests)` or skipped tests — §6
+   report's `### Deferred items (from review or tests)` or skipped tests — §4
    explicitly excludes those as in-scope work already carried by the current
    task.
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`
-   (jira-driven runs carry a key; direct-prompt runs usually do not, so tasks
-   land in `Tasks.md # Irregular` when the vault is writable, else report-only);
-   render + place tasks and verbose notes per §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`
+   (jira-driven runs carry a key; direct-prompt runs usually do not, so they
+   degrade to report-only);
+   render + place tasks per §1 (verbose detail inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 5 report. This phase NEVER
 fails the run, NEVER commits (still true — this phase only writes follow-up
