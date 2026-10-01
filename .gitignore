@@ -3,6 +3,9 @@
 /.ai-containers/
 /.agent-discovery/
 
+# git worktrees (isolated workspaces for subagent-driven development)
+/.worktrees/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
