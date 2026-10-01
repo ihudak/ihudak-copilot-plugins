@@ -19,7 +19,16 @@ Each token is one component and an optional target: `component:1.2.3` (exact), `
 ```mermaid
 flowchart TD
     p0["Phase 0 — Specs-repo preflight"] --> p1["Phase 1 — Compatibility Planning (no files changed)"]
-    p1 --> p2["Phase 2 — Execution (after user confirms)"]
+    p1 --> d1{"Planner result, per component?"}
+    d1 -->|READY| p2["Phase 2 — Execution (after user confirms)"]
+    d1 -->|CONFLICT| conflict["Resolve conflict or skip"]
+    d1 -->|NOT_FOUND| skip["Warn and skip"]
+    p2 --> d2{"SIGNIFICANT / HIGH-RISK component?"}
+    d2 -->|Yes| rv["review-tier code-review → triage → review-fixer"]
+    d2 -->|No| tv["Verify against baseline directly"]
+    rv -->|Non-BLOCK| resume["upgrade-executor: verify-resume — verify against baseline"]
+    resume --> done["Collect results → Post-batch maintenance"]
+    tv --> done
 ```
 
 `upgrade/SKILL.md` carries three `## Phase` headings, shown above — Phase 2 internally splits into a one-time `### Phase 2 prep` (branch + baseline capture) and a `### Per-component loop`, both H3-level and folded into the single Phase 2 node since they aren't their own `## Phase` heading. It dispatches seven subagents directly, all real (`agents/*.md` exists for each): `upgrade-planner` (Phase 1, one per requested component, batched in a single agent message), `risk-planner` (Phase 1, SIGNIFICANT/HIGH-RISK components only, before execution begins), `test-baseliner` (Phase 2 prep, captured once and reused across the whole batch — every suite its [detection table](../reference/test-suite-detection.md) covers), `upgrade-executor` (Phase 2, per component, sequential), `code-review` (Phase 2, SIGNIFICANT/HIGH-RISK only, before tests run), `review-fixer` (Phase 2, for surviving BLOCKER/MAJOR findings after triage), and `impl-maintenance` (Phase 2, post-batch session lessons-learned). Only `upgrade-planner`, `risk-planner`, `test-baseliner`, and `upgrade-executor` appear as literal `task(agent_type: "dev-workflows:…")` calls in the file; `code-review`, `review-fixer`, and `impl-maintenance` are invoked by bare name in prose ("Invoke `code-review` using…", "invoke `review-fixer` with model: …", "invoke `impl-maintenance` with…") without repeating the `dev-workflows:` prefix — a citation-style inconsistency inside the file itself, not an indirection through a `skills/_shared/` procedure, so all seven are direct dispatches. No `dispatch-*`/`resolve-*` indirection appears anywhere in this skill.

@@ -192,12 +192,12 @@ The caller must provide:
    - **gone since the baseline** — in the baseline, not detected now. Whatever baseline tests it holds fall out of step 5 as **Missing from run**, which is already regression-severity; a row the baseline marked `RUN_FAILED`, `not run` or `NO_TESTS` holds none, so nothing falls out and the status comes from the other suites, exactly as in step 3. `### Notes` records that the suite is gone either way.
    - **left out by this call's `command_hint`** — where the baseline's own row for it reads `not run` as well, it has no baseline tests and contributes `PARTIAL`. Where the baseline **ran** it, the hint has narrowed the scope between the two calls: that is not like-for-like, so its baseline tests are **Missing from run** and `### Notes` says the hint narrowed the run.
 
-   Only where **no** detected suite matches any baseline suite is there nothing to compare. Then run nothing and return the step-7 structure with `Status: RUN_FAILED`, every count 0, and:
+   Only where **no suite row pairs** with any baseline row — counting detected, hinted and declared suites alike — is there nothing to compare. A matching `command_hint#<n>` or `declared#<n>` row is a pair even when this call detects no marker-based suite; the detected-only restriction above belongs to the moved-marker fallback, not this refusal. Then run nothing and return the step-7 structure with `Status: RUN_FAILED`, every count 0, and:
    ```
    Comparison status: invalid
-   Reason: no detected suite matches the baseline — [baseline frameworks] became [current frameworks]. Manual comparison required.
+   Reason: no suite row matches the baseline — [baseline frameworks and markers] became [current frameworks and markers]. Manual comparison required.
    ```
-   A baseline reading `Framework: not detected` names no suite at all, so nothing can pair with it and every verify call against it returns `invalid`. That baseline is what a `command_hint` on the **capture** call can prevent; a hint supplied here for the first time cannot repair it.
+   A baseline with no covered suite was already refused by the pre-step coverage gate. A hint supplied here for the first time cannot repair that missing baseline.
 
 3. **Run** — Execute each matched or new suite's command **from that suite's own run directory**, settled by capture step 2's four sources — its marker's directory, a folded suite's `Makefile` directory, the candidate's own directory for a `--workspace` row of a workspaces division or a member row of a Cargo one, or the scan root for a hinted command that matched no candidate and for a declared suite — **stated here rather than imported by number**, because a bare "capture step 2" read in this mode resolves to step 2 above, which pairs and issues no command. Then the same **per-suite** 10-minute bound as capture and the same run order. Capture stdout and stderr combined per suite.
 
@@ -261,4 +261,3 @@ The caller must provide:
 ### Current passing tests
 [one test identifier per line — for chaining further verify calls against the same original baseline]
 ```
-

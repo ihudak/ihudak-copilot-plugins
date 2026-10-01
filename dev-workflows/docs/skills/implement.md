@@ -33,10 +33,13 @@ flowchart TD
     p2b --> prep3
     prep3 --> prep35["Pre-Phase 3.5 — Capture test baseline"]
     prep35 -- "SIMPLE / MODERATE" --> p3a["Phase 3A — Implementation (SIMPLE / MODERATE)"]
-    prep35 -- "SIGNIFICANT / HIGH-RISK" --> p3b["Phase 3B — Implementation + review-tier review (SIGNIFICANT / HIGH-RISK)"]
+    prep35 -- "SIGNIFICANT / HIGH-RISK" --> p3b["Phase 3B — Implementation"]
+    p3b --> tw["Phase 3B step 4a — test-writer"]
+    tw --> rv["Phase 3B — review-tier review → triage → review-fixer"]
     p3a --> p35["Phase 3.5 — Write and verify tests (SIMPLE / MODERATE)"]
     p35 --> p4["Phase 4 — Post-implementation maintenance (both branches)"]
-    p3b --> p4
+    rv -->|Non-BLOCK| verify["Phase 3.5 post-review — lint/build + verify + fix loop"]
+    verify --> p4
     p4 --> p45["Phase 4.5 — Escalation handoff (spec/design conformance notes)"]
     p45 --> p46["Phase 4.6 — Code-repo handoff"]
     p46 --> p5["Phase 5 — Final Report"]
@@ -46,6 +49,8 @@ flowchart TD
 `implement/SKILL.md` carries 17 `## Phase` headings — plus two `Pre-Phase` steps, `Pre-Phase 3 — Create feature branch` and `Pre-Phase 3.5 — Capture test baseline`, sitting between plan approval and coding; the diagram above includes them as their own nodes because two of this repo's Key invariants name them explicitly (a branch created before any file is touched; a test baseline captured before any source edit). It dispatches eight subagents directly: `jira-reader` and `code-scanner` (both Phase 1.7, one `code-scanner` per repo in a single response capped at 4 concurrent — only when `fan_out = true`), `risk-planner` (Phase 2B, SIGNIFICANT/HIGH-RISK only, caller-pinned to the strong reasoning tier — see [Gates](#gates)), `test-writer` (Phase 3.5 / Phase 3B step 4a, writing tests for the diff), `test-baseliner` (Pre-Phase 3.5's capture, then Phase 3.5 / 3B's verify), `code-review` (Phase 3B, SIGNIFICANT/HIGH-RISK only, caller-pinned to the strong reasoning tier — see [Gates](#gates)), `review-fixer` (Phase 3B's BLOCK / PASS WITH RECOMMENDATIONS fix cycle), and `impl-maintenance` (Phase 4, session lessons-learned). No indirect dispatch reaches a ninth agent. Phase 2A/2B's codebase exploration and Phase 4's documentation/knowledge-base/instructions maintenance sweep additionally spawn `general-purpose` agents — a Copilot CLI built-in agent type, not a `dev-workflows:` one, so they sit outside both counts.
 
 ## What it needs
+
+The risky path writes tests **before** capturing the review diff, then executes verification only after the review clears. Both paths honor the pre-edit test decision: a recorded skip still runs lint/build, not verification.
 
 - **The description** — a spec file, spec folder, Jira ticket folder, code repo, or free text, classified by inspection at Phase 0. A referenced `@dir` that's missing or unrecognized is surfaced immediately, never silently skipped.
 - **A design-doc open-question guard** — when the primary description is a `design.md` (or `*-design.md`) carrying any unresolved `- [ ]` under its own `## Open questions` heading, the run refuses to proceed by default; overriding is logged in the Phase 5 report. A `specification.md`-level open question is exempt.

@@ -64,6 +64,8 @@ Final Report (guidance-only prose). A command MAY additionally present a richer 
 `choices:` offer (the reference commands `idea:`, `create-vi:`, `create-ard:` do) — compatible,
 not required.
 
+**Filter before rendering a conditional offer.** When no forward route survives its artifact/outcome conditions, state that no applicable next step was found and omit the interactive picker; continue the skill's remaining housekeeping. Never ask only `Stop here` or `Stop here` plus `Other…`. Otherwise show every surviving route with the skill's native stop/free-text options; do not import Claude's four-option cap.
+
 ## The routing graph (role-aware)
 
 **PM — ideation & framing**
@@ -73,11 +75,7 @@ not required.
 - `create-vi: <JIRA-KEY>` — after the paste-into-Jira + re-import round-trip:
   `release-notes: <VI>` (PM — draft the release note; recommended clear next step); hand to PA
   *(optional)* → `create-ard: <VI>`; or hand to PE → `epics: <VI>` (or `specify: <VI>`).
-- `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an
-  existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira +
-  re-import round-trip it offers the same forward paths as `create-vi:`: `release-notes: <VI>`
-  (PM), `create-ard: <VI>` (PA, if one exists), `epics: <VI>` (PE), `specify: <VI>` (PE, if one
-  exists).
+- `update-vi: <KEY>` — re-entry, not a linear node: reached when `create-vi:` redirects an existing-VI call, or when a later phase forces a VI refresh. After the paste-into-Jira + re-import round-trip it offers conditional re-runs of `release-notes: <VI>` (PM), `create-ard: <VI>` (PA), `epics: <VI>` (PE), and `specify: <VI>` (PE). Every route requires its downstream artifact to exist; changed dependencies are flagged and recommended first, and no surviving route means no picker.
 
 **PA — architecture (optional)**
 

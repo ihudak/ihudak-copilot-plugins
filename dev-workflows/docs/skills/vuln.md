@@ -20,8 +20,12 @@ Each argument token is either `JIRA-ID:CVE-ID` (e.g. `MGD-2423:CVE-2023-46604`) 
 flowchart TD
     s0["Step 0 — Classify & Route (mandatory)"] --> s1["Step 1 — Prepare"]
     s1 --> s2["Step 2 — Research (parallel)"]
-    s2 --> s3["Step 3 — Fix (sequential)"]
-    s3 --> s4["Step 4 — Summarise"]
+    s2 --> d1{"Finalized per-CVE class?"}
+    d1 -->|"SIMPLE / MODERATE"| s3a["Step 3 — Fix: vuln-fixer"]
+    d1 -->|"SIGNIFICANT / HIGH-RISK"| s3b["Step 3 — Fix: vuln-fixer, review-tier review → triage → review-fixer"]
+    s3a --> verify["Step 3 — Verify tests against baseline"]
+    s3b -->|"Non-BLOCK: verify-resume"| verify
+    verify --> s4["Step 4 — Summarise"]
 ```
 
 `vuln/SKILL.md` uses `## Step` headings, not `## Phase` — five of them, shown above. It dispatches six subagents directly, all real (`agents/*.md` exists for each): `vuln-research` (Step 2, one per CVE, batched in a single agent message), `vuln-fixer` (Step 3, sequential per `READY` CVE), `test-baseliner` (Step 3, capturing the run's one baseline before the first CVE is worked, on both paths), `code-review` (Step 3, SIGNIFICANT/HIGH-RISK only, before tests run), `review-fixer` (Step 3, for surviving BLOCKER/MAJOR findings after triage), and `impl-maintenance` (Step 4, session lessons-learned). Only `vuln-research` and `vuln-fixer` appear as literal `task(agent_type: "dev-workflows:…")` calls in the file; `test-baseliner`, `code-review`, `review-fixer`, and `impl-maintenance` are invoked by bare name in prose ("using the existing `test-baseliner` agent", "Invoke `code-review` with…", "invoke `review-fixer` with model: …", "invoke `impl-maintenance` with…") without repeating the `dev-workflows:` prefix — a citation-style inconsistency inside the file itself, not an indirection through a `skills/_shared/` procedure, so all six are direct dispatches. No `dispatch-*`/`resolve-*` indirection appears anywhere in this skill.

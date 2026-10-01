@@ -152,7 +152,7 @@ Without these steps the update silently diverges from Jira again.
 
 ## Phase 6 — Next steps
 
-Offer these — guidance only, never auto-invoke — per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`:
+Build this candidate offer — guidance only, never auto-invoke — per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`. The array is a template: apply the artifact conditions below before rendering it.
 
 ```
 choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run architecture — create-ard: <KEY> (PA, if one exists) <merge-clause>", "Re-run epics — epics: <KEY> (PE)", "Re-run the spec — specify: <KEY> (PE, if one exists) <merge-clause>", "Stop here", "Other… (describe)"]
@@ -168,6 +168,7 @@ choices: ["Re-draft the release note — release-notes: <KEY> (PM)", "Re-run arc
 
 **Whether an update "changed something the artifact depends on" is judged, not grepped** — the run has both the artifact's text and its own diff in context. Where the answer is genuinely unclear, treat it as changed: the cost of an unnecessary re-draft is one command, and the cost of a missed one is a false published claim.
 
+**Render after filtering.** With **no surviving route**, say that no downstream artifact exists to re-run, show no picker — neither `Stop here` alone nor `Stop here` plus `Other…` — and continue to Context hygiene and Phase 7. Otherwise render **every surviving route** plus `Stop here` and `Other… (describe)`, preserving the authored wording, recommendation and `<merge-clause>`. Copilot's native menu needs no Claude four-option cap or overflow demotion. The zero-route case skips only this picker, never terminal maintenance, feedback or `commit-artifacts`.
 
 ### Context hygiene
 

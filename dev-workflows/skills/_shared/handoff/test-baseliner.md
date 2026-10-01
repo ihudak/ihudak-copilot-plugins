@@ -310,8 +310,8 @@ Maven | pom.xml | `./mvnw test -q` | OK | Total 47, Passing 46, Failing 1, Skipp
   before the run rather than by the ladder**: the supplied baseline covers no
   suite at all — its `### Suites` marks none `OK` or `NO_TESTS`, so there is
   nothing to diff against and the call returns without running anything
-  (**Comparison status**: `invalid`, verify's pre-step gate); no detected suite
-  matches the baseline (`invalid` as well); or no suite produced counts in this
+  (**Comparison status**: `invalid`, verify's pre-step gate); no suite row
+  matches the baseline (`invalid` as well — detected, hinted and declared rows all count); or no suite produced counts in this
   run at all. The third is tested **after** `REGRESSIONS`, so a run in which every
   suite aborted is a regression where the baseline had run them, and what reaches
   it is a baseline holding no passing test that could go missing. **A caller

@@ -8,7 +8,7 @@ flowchart TD
         idea["idea:"] --> createvi["create-vi:"]
         createvi -.->|VI exists| updatevi["update-vi:"]
         createvi --> rnearly["release-notes: early draft"]
-        updatevi --> rnearly
+        updatevi -.->|existing release-note draft| rnearly
     end
 
     subgraph PA["PA (architecture, optional)"]
@@ -36,17 +36,23 @@ flowchart TD
     createvi -->|VI optional| createard
     createvi -->|VI| epics
     createvi -->|VI level spec direct| specify
-    createard -->|ARD| epics
+    createard -->|VI ARD, no Epics yet| epics
+    createard -->|VI or Epic ARD| specify
+    createard -.->|Epic ARD, merged spec required| design
     epics -->|Epic drafts| specify
     epics -.->|optional Epic ARD| createard
-    specify -->|specification.md| design
+    updatevi -.->|existing ARD| createard
+    updatevi -.->|existing Epic drafts| epics
+    updatevi -.->|existing specification| specify
+    specify -->|Epic-level specification.md| design
+    specify -.->|VI-level specification, optional input| epics
 ```
 
 `create-vi: <JIRA-KEY> → specify: <VI>` is a real path, not a simplification: a VI can go straight to a VI-level specification instead of through `epics:` first — `next-phase-offer.md`'s PM section offers "hand to PE → `epics: <VI>` (or `specify: <VI>`)" as alternatives on the very same menu. A VI-level `create-ard:` offers the same direct choice on its own next-step menu, once it exists.
 
-The diagram draws `create-ard:` reaching `epics:`, but that is one edge among several this edition's architecture flow supports, and the ARD it produces is consulted by six callers, not one: `create-ard:`, `design:`, `implement:`, `specify:`, `epics:`, and `ready:` all resolve the applicable ARD once it exists ([`skills/_shared/ard-resolution.md`](../skills/_shared/ard-resolution.md)). A VI-level ARD's own next-step menu offers `epics:` (recommended) or the direct `specify: <VI>` path; an Epic-level ARD offers `specify: <VI> <Epic>` (recommended) or a direct hand to `design: <VI> <Epic>`. The edge above is drawn once to keep the diagram readable, not because the others do not consult it.
+Arrows show next-step offers, not automatic execution; dashed arrows mark conditional or optional routes. A VI-level specification is an optional input to `epics:`, not a prerequisite. A VI-level ARD offers `epics:` when no Epics exist, or `specify:`; an Epic-level ARD offers `specify:` or `design:`, whose merged-spec gate still applies. ARDs are also consulted by consumers whose artifact reads are not drawn here, including `implement:` and `ready:` ([`skills/_shared/ard-resolution.md`](../skills/_shared/ard-resolution.md)).
 
-`update-vi: <KEY>` is a re-entry node, not a linear step: it is reached when `create-vi:` redirects an existing-VI call, or when a later phase forces a refresh. After its own paste-into-Jira and re-import round-trip it offers the same forward paths as `create-vi:` — `release-notes: <VI>` (PM), `create-ard: <VI>` (PA, if one exists), `epics: <VI>` (PE), and `specify: <VI>` (PE, if one exists).
+`update-vi: <KEY>` is a re-entry node, not a linear step: it is reached when `create-vi:` redirects an existing-VI call, or when a later phase forces a refresh. After its own paste-into-Jira and re-import round-trip it offers conditional re-runs of `release-notes: <VI>` (PM), `create-ard: <VI>` (PA), `epics: <VI>` (PE), and `specify: <VI>` (PE). Every route requires its downstream artifact to exist; an artifact invalidated by the update is named and recommended first. With none, the run omits the next-step picker and continues housekeeping.
 
 `ready: <VI> [<Epic>]` is a read-only gate, not a pipeline step: `SUPPORTED` recommends `implement:`; `PARTIAL` or `NOT-SUPPORTED` recommends resolving the named gaps and re-running `ready:` rather than proceeding. `implement: <VI> <Epic>` itself fans out by Epic — finish the remaining Epics before `document:` runs, which is VI-level and runs once, after every in-scope Epic is implemented.
 

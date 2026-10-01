@@ -19,7 +19,7 @@ release-notes:   → release-notes → release-notes-writer: resolve destination
 ready:           → [require-on-main: spec/design paths — gates as a finding capping PARTIAL, never stops] → ready → [readiness-reviewer@strong] → [handoff-to-main: _readiness.md] → impl-maintenance → commit-artifacts
 
 Implementation & maintenance:
-implement:       → [require-on-main: in-scope specification.md/design.md] → implement → [risk-planner@strong plan critique] → [code-review@strong] → [triage: verify each finding] → review-fixer → test-writer → tests → impl-maintenance → [handoff-to-main: escalated spec/design notes, when any] → [finish-code-branch: commit + consent-gated push/PR in the code repo] → commit-artifacts
+implement:       → [require-on-main: in-scope specification.md/design.md] → [risk-planner@strong plan critique] → implementation → test-writer → [code-review@strong] → [triage: verify each finding] → review-fixer → tests → impl-maintenance → [handoff-to-main: escalated spec/design notes, when any] → [finish-code-branch: commit + consent-gated push/PR in the code repo] → commit-artifacts
 document:        → document (dual-mode)
                     ├─ doc-edit mode → writing → [docs-style-checker] → [doc-fixer] → impl-maintenance → [maintenance proposals: apply/skip] → commit-artifacts   (no doc-reviewer gate in this mode)
                     └─ jira mode → jira-reader → [diff-summarizer×N (parallel)] → [doc-location-finder] → [image review: add-list + existing-page staleness] → [counterpart-finder (space-constrained runs)] → [doc-planner] → writing → [docs-style-checker → dt-style-checker fallback] → [doc-fixer] → [doc-reviewer] → [triage: verify each finding] → [doc-fixer] → impl-maintenance → squash → [maintenance proposals: apply/skip] → commit-artifacts
@@ -62,6 +62,8 @@ implementation, fixes) take `model-routing.md` §2, Anthropic-first — Opus
 `gpt-6.1-sol` → `gpt-6-sol`, falling back to the whole of §2. A review never prefers
 the session model: the point of the tier is that the reviewer is not the author.
 ```
+
+Re-measure the seventeen preflight callers from the repo root with ``grep -l '`specs-preflight` entry point' dev-workflows/skills/*/SKILL.md | wc -l`` — the execution phrase, not every bare mention.
 
 Key invariants for the VI-creation flow (`idea:`, `create-vi:`, `create-ard:`, `specify:`, `design:`, `implement:`, `epics:`, `ready:`):
 - `idea:` Phase 5 relocates `idea.md` into `$SPECS_PATH/specifications/<KEY>-<slug>/` and hands it off via `handoff-to-main` (`skills/_shared/phase-handoff.md` §2) behind the §4.3 consent choice; relocation is `idea:`'s alone — `create-vi: <KEY>` finds it there and never moves it

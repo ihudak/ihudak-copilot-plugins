@@ -28,10 +28,15 @@ flowchart TD
     p0["Phase 0 — Resolve input"] --> p1["Phase 1 — Configure"]
     p1 --> p15["Phase 1.5 — Classify"]
     p15 --> p2["Phase 2 — Read Jira"]
-    p2 --> d1{"Epic count for this VI? (Phase 2 Step A)"}
-    d1 -- "stand-alone Epic, or exactly 1 child Epic → auto-resolved" --> p25["Phase 2.5 — Resolve applicable ARD (optional)"]
+    p2 --> focus{"Focus Epic already resolved?"}
+    focus -->|Yes: skip Step A| p25["Phase 2.5 — Resolve applicable ARD (optional)"]
+    focus -->|No| d1{"Item type / child Epic count? (Phase 2 Step A)"}
+    d1 -- "stand-alone Epic, or exactly 1 child Epic → auto-resolved" --> p25
     d1 -- "≥2 child Epics → pick one, or author one broad VI-level spec" --> p25
-    d1 -- "0 child Epics → split via epics:, or author one broad VI-level spec" --> p25
+    d1 -->|0 child Epics| zero{"Split first, author broad spec, or cancel?"}
+    zero -->|Author one broad VI-level spec| p25
+    zero -->|Split via epics:| split["Stop — create Epics in Jira, re-import, then re-run"]
+    zero -->|Cancel| stop["Stop current run"]
     p25 --> p3["Phase 3 — Derive repos + soft gate"]
     p3 --> p4["Phase 4 — Light code scan"]
     p4 --> p5["Phase 5 — Author via grill"]

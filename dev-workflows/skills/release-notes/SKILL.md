@@ -225,7 +225,7 @@ Do not add a question for it.
   > model_routing:       [the block from Phase 1.5]
   > code_repos:          [the Phase-4 resolved {slug, path} map when diff grounding is on; omit otherwise]"
 
-If `status: PARTIAL`, surface each `gaps` entry with `recommended_action: "ask user"` and let the user supply the label/prose or accept a `<!-- TODO -->` marker.
+If `status: PARTIAL`, resolve each `gaps` entry with `recommended_action: "ask user"` once, using its dedicated handler below. Only a gap with no dedicated handler offers supplied label/prose or a `<!-- TODO -->` marker; discrepancy gaps use their own evidence and choices, not that generic fallback.
 
 For a `field: change_type` gap, the destination was inferred with low confidence — and the
 destination decides the draft's whole shape. Confirm it by **consequence**, never by enum label.
@@ -271,14 +271,22 @@ On a supplied date, replace the `<!-- TODO: end-of-life date -->` placeholder wi
 end-of-life date (and end-of-support date when given), formatted per the dt-style-guide
 (e.g. `November 30, 2026`).
 
-When `release-notes-writer` returns `gaps[]` entries that have `jira_phrasing` and `source_phrasing` (source-truth discrepancies), present the discrepancy table and per-claim prompt as in `document:` (Jira mode) Phase 5.8:
+**Acceptance-criteria discrepancies first.** For each `kind: acceptance-criteria` gap, show `draft_phrasing`, `criteria_phrasing` and `criteria_location` under those labels, then ask:
+
+```
+choices: ["Use the acceptance criteria (Recommended)", "Enter corrected wording", "Omit this claim", "Other… (describe)"]
+```
+
+On the first choice, correct the claim to match the cited criterion. On the second, ask for the wording and check it against that criterion; if it still contradicts the criterion, surface the remaining contradiction and re-ask rather than publishing it as Jira intent. On the third, remove the claim. Re-render `release_notes_block.prose` and `combined_rendered` together in the selected destination's shape. Record the disposition in the run report; **do not write `<KEY>-implementation-gaps.md` for this gap**, because it establishes an authoring discrepancy and says nothing about the code. A free-text answer is resolved to one of these actions or clarified, never treated as permission to relabel the draft as Jira intent.
+
+**Code discrepancies second.** For `kind: source-truth` gaps carrying `jira_phrasing`, `source_phrasing` and a verified code `source_location`, present the discrepancy table and per-claim prompt as in `document:` (Jira mode) Phase 5.8. If the criteria handler omitted the same claim, exclude it from this table and record the omission plus its code evidence in the run report; do not restore it, ask about it again, or treat that earlier omission as a `skip-and-report` decision. Apply the following steps to the remaining code gaps only; with none, skip this prompt and report-writing step:
 
 1. Show the analysis table (claim, Jira phrasing, source phrasing, location).
 2. Ask:
    ```
    choices: ["Decide per discrepancy (Recommended)", "Document ALL as actual (code)", "Document ALL as intended (Jira)", "Skip ALL and report (drafts a bug report)", "Cancel", "Other… (describe)"]
    ```
-3. Apply the decision to the draft prose: `document-as-code` → use source phrasing; `document-as-spec` → use Jira phrasing (no marker in release notes prose — the gap is recorded only in the gaps file); `skip-and-report` → omit the claim.
+3. Apply the decision to the draft prose and re-render `combined_rendered`: `document-as-code` → use source phrasing; `document-as-spec` → use Jira phrasing supported by the Jira content (no marker in release notes prose — the gap is recorded only in the gaps file); `skip-and-report` → omit the claim.
 4. For `document-as-spec` or `skip-and-report`: resolve `bug_report_destination` the same way as the release-notes destination — `$VAULT_PATH` set → the `find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*"` project folder; `$VAULT_PATH` unset → `<parent-of-jira_export_root>/`. Write/append `<bug_report_destination>/<jira_key>-implementation-gaps.md` using the §7.5 format from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/source-truth.md`, setting `Spec phrasing:` to `(no spec)` (this flow has no spec).
 
 Pass `code_repos` (the Phase-4 resolved map) to the writer when diff-grounding is on.
