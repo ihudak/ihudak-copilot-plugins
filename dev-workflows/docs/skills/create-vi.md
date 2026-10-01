@@ -8,13 +8,14 @@ Turns a refined `idea.md` plus a user-supplied Jira key into a high-quality, pro
 
 ## Synopsis
 
-    create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--lean|--hybrid|--full] [--no-docs] [--no-prior-art] [--skip-feedback] [--enforce-model=<model>]
+    create-vi: <JIRA-KEY> [@idea.md] [--from-vi <VI-KEY|path>] [--idea <KEY>] [--lean|--hybrid|--full] [--no-docs] [--no-prior-art] [--skip-feedback] [--enforce-model=<model>]
 
 [Run flags](../reference/run-flags.md): both of this edition's run flags apply. Each has an environment default (`$WORKFLOWS_SKIP_FEEDBACK`, `$WORKFLOWS_ENFORCE_MODEL`) that an explicit flag overrides. `--skip-costs` is a Claude-edition flag only — this edition has no cost subsystem, so it is not parsed here at all.
 
 - **`<JIRA-KEY>`** (mandatory) — the key of an empty Jira workitem the user already created to get the ID. Format-validated only (`^[A-Z][A-Z0-9_]*-\d+$`); zero Jira API means its existence on the tracker is never checked.
 - **`[@idea.md]`** (optional) — an explicit path to the idea source; see [What it needs](#what-it-needs) for how this differs from the default resolution.
 - **`[--from-vi <VI-KEY|path>]`** (optional) — seed a **new** VI (still under the positional `<JIRA-KEY>`) with another VI's structure, read read-only as grounding and adapted, never copied wholesale.
+- **`[--idea <KEY>]`** (optional) — an idea held in another key's feature folder — a PRODFB ticket's; see [What it needs](#what-it-needs).
 - **`[--lean|--hybrid|--full]`** — the profile controlling which adapt-in clusters are available; default `--hybrid`. `--full` is required for `[FR#N]` Functional Requirements; `--hybrid`/`--full` for `[UC#N]` Use Cases.
 - **`[--no-docs]`** / **`[--no-prior-art]`** — each turns off one optional grounding source (Phase 2.5).
 
@@ -40,10 +41,9 @@ flowchart TD
 ## What it needs
 
 - **`<JIRA-KEY>`** — mandatory; absent or malformed stops the run with `CREATE_VI_NEEDS_KEY`, naming the required `create-vi: <KEY> @<idea.md>` form.
-- **`idea.md`**, resolved by a five-rung ladder that stops at the first hit (Phase 0). **The first two rungs gate differently, and the difference is easy to miss:**
-  - **In-contract — `<KEY>`'s own feature folder.** This is the default when no `@path` is given. It is gated via `require-on-main`: absent falls through to the next rung without stopping (`idea:` is not a prerequisite for `create-vi:`); present and merged onto the specs repo's default branch is used as-is, never relocated again (`idea:` already did that); present on an unmerged plugin branch is a hard stop, naming the branch and any open pull request.
-  - **Out-of-contract — an explicit `@<path>` argument.** Read exactly where it sits — never relocated, never gated via `require-on-main` at all — and reported once as out-of-contract.
-  - The remaining rungs (a same-session `idea:` output, a picker over recently-discovered `idea.md` files under `$VAULT_PATH/Projects`, or a manual path) are all out-of-contract, handled the same way as `@<path>`. If every rung is exhausted, the run proceeds with no idea and grills the VI from scratch.
+- **`idea.md`**, resolved by a seven-rung ladder that stops at the first rung that yields one (Phase 0): `--idea <KEY>` (that key's feature folder; when it yields nothing the run says so and points at `@<path>`, never silently using a different idea); the VI's own feature folder; every `idea.md` whose frontmatter `vi_key` names this VI; every `PRODFB-` key linked in the VI's `jira-import/<KEY>-index.md` relationship table (a linked idea whose `vi_key` names a different VI is flagged); an explicit `@<path>`; a same-session [`idea:`](idea.md) output; then a manual path or no idea at all. A key's folder is found by the naming rule alone, so a missing folder is a miss at that rung. Several candidates at the `vi_key` or Jira-link rungs are printed, then offered as a picker ending in "None of them — continue down the ladder"; exactly one idea is chosen, and the final report names every candidate not chosen. **The rungs gate differently, and the difference is easy to miss:**
+  - **By key — the first four rungs.** Each is gated via `require-on-main`: absent falls through to the next rung without stopping ([`idea:`](idea.md) is not a prerequisite for `create-vi:`); present and merged onto the specs repo's default branch is used in place, never relocated; present on an unmerged `idea/*` branch is a hard stop, naming the branch and any open pull request. A working-tree miss is not yet absent: the run looks for the file on local and remote `idea/*` branches first, so an idea that was never merged stops the run rather than vanishing.
+  - **Out-of-contract — `@<path>` and the same-session output.** Read exactly where they sit — never relocated, never gated via `require-on-main` at all — and reported once as out-of-contract. If every rung is exhausted, the run proceeds with no idea and grills the VI from scratch.
 - **`$SPECS_PATH`** (required) — if unset, the run stops naming `SPECS_PATH` and offers to enter a path or cancel.
 - **An existing VI for `<KEY>`**, checked by a frontmatter glob in the feature folder. `create-vi:` is greenfield-only: if one is found, the run redirects to [`update-vi: <KEY>`](update-vi.md) (or, with `--from-vi`, offers to update the existing VI instead of seeding a fresh one).
 - **The `--from-vi` seed** (optional) — resolved Jira-import-first with a 3-day freshness check; used read-only, never as content to copy.
@@ -71,7 +71,7 @@ The run resolves the feature folder, reads `idea.md` directly (no `idea-reader` 
 ## See also
 
 - [Roles](../roles.md) — what the PM role owns and hands off at the seam.
-- [`idea:`](idea.md) — the upstream skill that authors and relocates the `idea.md` this skill consumes.
+- [`idea:`](idea.md) — the upstream skill that authors the `idea.md` this skill consumes, in its origin's feature folder.
 - [`update-vi:`](update-vi.md) — where an already-existing VI for `<KEY>` is refreshed instead.
 - [`create-ard:`](create-ard.md) and [`epics:`](epics.md) — the two role handoffs Phase 6 offers.
 - [`model-routing.md`](../../skills/_shared/model-routing.md) — the classification and model-fallback chain `vi-reviewer` runs under.
