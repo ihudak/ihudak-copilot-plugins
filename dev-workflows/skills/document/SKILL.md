@@ -22,7 +22,7 @@ For small one-off doc edits, use direct mode (below). For writing child Epic dra
 
 `document:` has **two modes**, selected by the first argument token:
 
-- **Jira mode (Mode A)** — the input resolves `jira-driven` via the shared front-end (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`): a first token matching a JiraID (`^[A-Z][A-Z0-9]+-[0-9]+`), optionally followed by `saas` | `managed`, **or** a directory that inspects as a Jira-export (contains `<KEY>-index.md`). The front-end's Fallback B handles a JiraID-shaped token with no `jira-products/<KEY>` folder.
+- **Jira mode (Mode A)** — the input resolves `jira-driven` via the shared front-end (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`): a first token matching a JiraID (`^[A-Z][A-Z0-9]+-[0-9]+`), optionally followed by `saas` | `managed`, **or** a directory that inspects as a Jira-export (contains `<KEY>-index.md`). The front-end's Fallback B handles a JiraID-shaped token with no import found for the key.
 - **Direct mode (Mode B)** — the input resolves `direct` (a leading `@file` token, free-text prose, or a non-Jira-export directory, which Mode B handles via its existing "anything else" path).
 
 **Specs-repo preflight.** Cite
@@ -51,9 +51,9 @@ Echo the detected mode, then proceed to that mode's phases. The two modes share 
 1. **Resolve the Jira input via the shared front-end.** Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against
    `the argument (text following the `document:` trigger)`. For Mode A the result is `mode: jira-driven` with `jira_key`,
-   `jira_export_root` (the ticket export dir — `$VAULT_PATH/jira-products/<KEY>`
+   `jira_export_root` (the ticket export dir — `<feature-folder>/jira-import`
    for a JiraID, or the passed directory), `source`, and `specs`. The front-end
-   owns the `$VAULT_PATH`/`jira-products` validation and Fallbacks A/B. Carry
+   owns the import-location validation and Fallbacks A/B. Carry
    `jira_key`, `jira_export_root`, `focus_key`, and `specs` forward.
 
 2. **Resolve the docs repo (cwd-preferred).** This command writes feature documentation into a product docs repository; running it outside such a repository is almost always a mistake. The **docs signals** checked throughout this step are:
@@ -486,7 +486,7 @@ Build this list only when `new_images_wanted` is `true` (Phase 1); when `false`,
      -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.webp" \) 2>/dev/null
    ```
    When `specs_dir` is `none`, this source contributes nothing.
-2. **`jira-reader` `attachments[]`** — the image paths enumerated under the VI's `attachments/` dirs (Phase 3 handoff `attachments[].path`; these live under `jira-products/<VI-dir>/…`, so this covers screenshots developers attached in Jira). May be empty.
+2. **`jira-reader` `attachments[]`** — the image paths enumerated under the VI's `attachments/` dirs (Phase 3 handoff `attachments[].path`; these live under `jira_export_root/…`, so this covers screenshots developers attached in Jira). May be empty.
 3. **Recursive scan of `<project_dir>`** — when Phase 1 resolved a `<project_dir>` (the persistent Obsidian project folder under `$VAULT_PATH/Projects`), recursively scan it for image files:
    ```bash
    find "<project_dir>" -type f \
@@ -544,7 +544,7 @@ When both lists are empty, skip presenting this prompt — there is nothing to s
 
 For any **manual** free-text paths, accept any absolute filesystem path (vault, `/tmp`, home, the docs repo); accept multiple (one per line or space-separated). Validate each path exists and has an image extension (`.png|.jpg|.jpeg|.gif|.svg|.webp`); drop and report any that don't.
 
-When you need to **add a new image** for this feature (a screenshot the docs should have but no source yet holds — including a replacement source for an accepted existing-image entry), place it in the **Projects VI-dir** — `<project_dir>` (i.e. `$VAULT_PATH/Projects/<VI-dir>/…`, e.g. its `Doc screenshots/` subfolder). **Never** put it under `jira-products/`: that directory is regenerated on every Jira import, so a manually-added image there is lost on the next import. `jira-products` is a read-only source (developer-attached Jira screenshots, via source 2); authored/curated images belong in the Projects folder.
+When you need to **add a new image** for this feature (a screenshot the docs should have but no source yet holds — including a replacement source for an accepted existing-image entry), place it in the **Projects VI-dir** — `<project_dir>` (i.e. `$VAULT_PATH/Projects/<VI-dir>/…`, e.g. its `Doc screenshots/` subfolder). **Never** put it under `jira-import/`: that directory is regenerated on every Jira import, so a manually-added image there is lost on the next import. `jira-import` is a read-only source (developer-attached Jira screenshots, via source 2); authored/curated images belong in the Projects folder.
 
 The selected add-list paths populate the existing **`screenshots[]`** passed to `doc-planner` in Phase 5.7 — the downstream placement machinery (per-screenshot `dest`/`staging`/`upload_note`, `image_policy`) is unchanged. An accepted item — from either list — carries into Phase 6.1 for its CDN URL. The outcome is recorded as `existing_image_decisions[]` (schema above; matches `doc-writer`'s input contract) and carried in the Phase 6.3 handoff file alongside `cdn_urls`.
 
@@ -1361,7 +1361,7 @@ in full.
 - NEVER call Bitbucket REST APIs for Cloud or self-hosted Server — Bitbucket URLs are identifiers only; all resolution is pure local git
 - GitHub URLs may use the `gh` CLI for head/base SHA resolution; no direct REST calls outside `gh`
 - NEVER write inside `_archive/` — that path is read-only by convention
-- NEVER write inside `jira-products/` — that path is re-created from scratch on every Jira import; writes there will be lost
+- NEVER write inside `jira-import/` — that path is re-created from scratch on every Jira import; writes there will be lost
 - NEVER write product documentation outside the resolved `docs_repo_path` (Phase 0); the only other writes are to the ticket's vault project folder under `$VAULT_PATH` (the `<JIRA_KEY>-implementation-gaps.md` bug-report draft, the `<JIRA_KEY>-pr-draft.md`, and screenshot staging) and this run's own temporary files — Phase 6.3's handoff file and Phase 7's claims file, each made by `command mktemp` and removed at the top of Phase 8 — never anywhere else.
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `docs-style-checker` (Phase 6.4) before `doc-reviewer` (Phase 7)

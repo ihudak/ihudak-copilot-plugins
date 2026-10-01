@@ -24,10 +24,10 @@ Usage: `update-vi: <KEY> [@transcript-or-notes ...] [--no-docs | --docs <path>]`
 1. **`KEY` (mandatory).** Strip every recognised flag first — `--no-docs` and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never mistaken for the key or a transcript path. Parse the first remaining non-flag token; validate `^[A-Z][A-Z0-9_]*-\d+$`. If absent or malformed, stop: `UPDATE_VI_NEEDS_KEY: update-vi: needs the VI's Jira key — 'update-vi: <KEY>'.`
 2. **`$SPECS_PATH` (required).** If unset, stop naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
 3. **Feature folder.** `<SPECS_PATH>/specifications/<KEY>-<slug>/` — honor an existing dir matched by key-number (tolerate a stray `-`/`_` and a human-adjusted slug).
-4. **Resolve the base VI — Jira-import-first.** Execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi <KEY>`): the re-imported `$VAULT_PATH/jira-products/<KEY>` VI (body + `-comments.md`) is the **authoritative base**; not imported → stop and ask to import; stale (>3 days) → offer re-import.
+4. **Resolve the base VI — Jira-import-first.** Execute `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vi-source-resolution.md` (`resolve-existing-vi <KEY>`): the re-imported VI in `<feature-folder>/jira-import/` (body + its inlined `## Comments` section) is the **authoritative base**; not imported → stop and ask to import; stale (>3 days) → offer re-import.
 5. **Secondary grounding (read-only).** Discover in the feature folder: the frozen specs draft (glob `<KEY>_*.md`, `issue_type: ValueIncrement`), any `*_ARD.md`, `specification.md`; plus any `@transcript` / notes path(s) passed in the argument.
 
-5a. **Downstream-artifact discovery (read-only) — what this update may INVALIDATE.** Step 5 finds what grounds the update; this step finds what the update could falsify. Glob for artifacts a **later** phase already produced from the document you are about to change, in every place one can land: `<feature-folder>/<KEY>-release-notes.md`, `${VAULT_PATH}/**/<KEY>-release-notes.md`, plus the `*_ARD.md`, `specification.md` and `design.md` step 5 already found. Read-only, never gated, and **never a reason to stop**.
+5a. **Downstream-artifact discovery (read-only) — what this update may INVALIDATE.** Step 5 finds what grounds the update; this step finds what the update could falsify. Glob for artifacts a **later** phase already produced from the document you are about to change, in the feature folder — `<feature-folder>/<KEY>-release-notes.md`, plus the `*_ARD.md`, `specification.md` and `design.md` step 5 already found. Read-only, never gated, and **never a reason to stop**.
 
    Report every hit in the Phase 1 confirmation as a **downstream artifact that may be invalidated by this update**, naming its path and its mtime. Carry the list into the next-phase offer.
 
@@ -79,7 +79,7 @@ The grill + authoring run inline on `current_model` (the §2 Opus chain — inte
 
 ## Phase 2 — Read the base + grounding
 
-Read the Jira-import VI **body + `-comments.md`** (the authoritative base and the signal for *what to change*), then the secondary artifacts (specs draft, ARD, spec, transcript). Do NOT treat the frozen specs draft as authoritative where it disagrees with the Jira import — the import wins; surface a notable divergence to the user. **No code scan; no repos.**
+Read the Jira-import VI **body + its `## Comments` section** (the authoritative base and the signal for *what to change*), then the secondary artifacts (specs draft, ARD, spec, transcript). Do NOT treat the frozen specs draft as authoritative where it disagrees with the Jira import — the import wins; surface a notable divergence to the user. **No code scan; no repos.**
 
 Then dispatch on the documentation grounding Phase 1 resolved, resolving nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the VI goal + the change signal from comments, `jira_key` = `<KEY>`. Carry the digest into the Phase 3 grill with **grill-rank** consumption. When OFF, skip silently.
 
@@ -144,7 +144,7 @@ Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER fin
 ### Jira round-trip (document to the user — they will otherwise miss it)
 
 1. **Paste** the updated VI body (below the frontmatter) back into the Jira workitem `<KEY>`.
-2. **Re-import** the VI to `$VAULT_PATH/jira-products/<KEY>` (via `https://github.com/ivan-gudak/jira-workitem-import`) so the downstream pipeline and the next `update-vi:` see the current text.
+2. **Re-import** the VI into its feature folder — `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` in a `jira-workitem-import` checkout (its stock `runme.sh` unsets `SPECS_PATH`) (via `https://github.com/ivan-gudak/jira-workitem-import`) so the downstream pipeline and the next `update-vi:` see the current text.
 
 Without these steps the update silently diverges from Jira again.
 

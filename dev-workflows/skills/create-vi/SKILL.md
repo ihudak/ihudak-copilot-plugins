@@ -233,7 +233,7 @@ On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ih
 ### Jira round-trip (document to the user — they will otherwise miss it)
 
 1. **Paste** the VI body (below the frontmatter) into the Jira workitem `<KEY>`.
-2. **Re-import** the VI to `$VAULT_PATH/jira-products/<KEY>` (via `https://github.com/ivan-gudak/jira-workitem-import`) so the downstream pipeline sees it.
+2. **Re-import** the VI into its feature folder — `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` in a `jira-workitem-import` checkout (its stock `runme.sh` unsets `SPECS_PATH`) (via `https://github.com/ivan-gudak/jira-workitem-import`) so the downstream pipeline sees it.
 
 Without these steps the pipeline cannot read the VI.
 

@@ -35,8 +35,8 @@ Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-b
 
 1. **Resolve the Jira input via the shared front-end.** Classify the argument (text following the `design:` trigger) **minus every recognised flag** (`--design-twice`) before resolving — strip it first, exactly as `skills/idea/SKILL.md`'s Phase 1 strips its own flags: an unstripped `--design-twice` is parsed as part of the Jira key and the run resolves the wrong feature, or fails. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument. `design:` is
-   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
+   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the
+   import-location validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward:
    - `jira_key` — the resolved **top-level** key: the **VI** when a focus Epic is present, or the
      stand-alone top-level item's own key otherwise. Define `<VI>` = `jira_key`.

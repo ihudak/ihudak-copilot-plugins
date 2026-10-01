@@ -31,8 +31,8 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
    and `--docs <path>` (consumes the token after it) — so an unstripped flag or its value is never
    mistaken for part of the Jira grammar. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument (text following the `specify:` trigger). `specify:` is
-   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
+   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the
+   import-location validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward:
    - `jira_key` — the resolved **top-level** key: the **VI** when a focus Epic is present, or the
      stand-alone top-level item's own key otherwise.
@@ -450,7 +450,7 @@ On **"Next Epic"**, **re-render the Phase 2 Step A progress-aware picker minus t
 The end-to-end flow:
 1. `epics: <VI>` drafts child Epic definitions.
 2. **You create those Epics in Jira** (manual — `specify:`/`epics:` never call Jira).
-3. **You re-import** the VI to `$VAULT_PATH/jira-products/<KEY>` so the new Epics appear in the export.
+3. **You re-import** the VI into its feature folder — `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` in a `jira-workitem-import` checkout (its stock `runme.sh` unsets `SPECS_PATH`) so the new Epics appear in the import.
 4. `specify: <each Epic>` reads the Epic from the refreshed export and authors its `specification.md`.
 
 Steps 2–3 are the round-trip; without them `specify:` cannot see the Epics.

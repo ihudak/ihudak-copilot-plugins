@@ -32,8 +32,8 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
 
 1. **Resolve the Jira input via the shared front-end.** Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the argument (text following the `ready:` trigger). `ready:` is
-   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
+   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the
+   import-location validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward `jira_key`, `focus_key`, `jira_export_root`, `source`.
 
    Define **`<VI>` = `jira_key`** and **`<EPIC>` = `focus_key`** (may be `null`) — the two-key grammar.
@@ -376,7 +376,7 @@ plugin-gap halt (see Invariants).
    Guidance only — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`.
    ```
 
-`ready:` **NEVER** writes to Jira, `jira-products/`, or the vault. It commits and hands off
+`ready:` **NEVER** writes to Jira, `jira-import/`, or the vault. It commits and hands off
 `_readiness.md` only through step 3's `phase-handoff.md` §4.3 consent choice — declining leaves it
 uncommitted; that handoff is independent of the terminal `commit-artifacts` step, which stages ONLY the
 run's bounded session-artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) and
@@ -490,7 +490,7 @@ Emit this phase's own short output:
 ADDITIVE — this phase NEVER fails the run and NEVER commits its own output (still true — it writes only
 the maintenance/feedback artifacts, which the terminal `commit-artifacts` step in Phase 7 commits, per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4; the only commit this run makes before Phase 7 is
-Phase 5 step 3's `_readiness.md` handoff, which is unrelated), and NEVER writes into `jira-products/`,
+Phase 5 step 3's `_readiness.md` handoff, which is unrelated), and NEVER writes into `jira-import/`,
 `jira_export_root`, or the current working directory.
 
 ---
@@ -522,7 +522,7 @@ ADDITIVE — the follow-ups also remain in the Phase 5 report's Findings/coverag
 NEVER fails the run and NEVER commits its own output (still true — it only writes follow-up
 files, which the terminal `commit-artifacts` step at the end of this phase commits, per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4; unrelated to Phase 5 step 3's `_readiness.md`
-handoff, the only commit this run makes before this phase), and NEVER writes into `jira-products/`, `jira_export_root`, or the current working directory.
+handoff, the only commit this run makes before this phase), and NEVER writes into `jira-import/`, `jira_export_root`, or the current working directory.
 
 **Then write the resume pointer.** Cite
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 and
@@ -541,14 +541,14 @@ re-emitting that notice. Because the Phase 5 report was composed before this pha
 outcome line here**, as the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
 
-ADDITIVE — this phase itself NEVER fails the run and touches neither `_readiness.md`'s commit nor its branch (whichever of those happened, happened earlier, in Phase 5 step 3, behind the §4.3 consent choice — `ready/<KEY>-<slug>` is the only branch `ready:` ever creates, and this terminal step neither creates it nor undoes it; it only commits the bounded session-artifact paths in `$SPECS_PATH` onto whatever branch Phase 5 left checked out), and NEVER writes to Jira or into `jira-products/`, `jira_export_root`, or the current working directory; no user name is ever written.
+ADDITIVE — this phase itself NEVER fails the run and touches neither `_readiness.md`'s commit nor its branch (whichever of those happened, happened earlier, in Phase 5 step 3, behind the §4.3 consent choice — `ready/<KEY>-<slug>` is the only branch `ready:` ever creates, and this terminal step neither creates it nor undoes it; it only commits the bounded session-artifact paths in `$SPECS_PATH` onto whatever branch Phase 5 left checked out), and NEVER writes to Jira or into `jira-import/`, `jira_export_root`, or the current working directory; no user name is ever written.
 
 ---
 
 ## Invariants (always enforced)
 
 - NEVER set or write Jira status — status is read-only input (Phase 2), never output
-- NEVER write inside `jira-products/` or the vault
+- NEVER write inside `jira-import/` or the vault
 - Branches only via the Phase 5 step 3 `phase-handoff.md` §4.3 consent choice, creating
   `ready/<KEY>-<slug>` — `specs-preflight` itself still creates no branch, a hard invariant: it only
   switches `$SPECS_PATH` between branches that already exist, and only plugin-created ones, per

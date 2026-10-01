@@ -37,9 +37,9 @@ This command makes **zero external API calls** and **never writes into the docs 
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against
    the stripped argument (text following the `release-notes:` trigger). `release-notes:` is **jira-driven only**: expect
    `mode: jira-driven` with `jira_key`, `jira_export_root` (the ticket export
-   dir — `$VAULT_PATH/jira-products/<KEY>` for a JiraID, or the passed
-   directory), and `source`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation and Fallbacks A/B. Carry `jira_key`,
+   dir — `<feature-folder>/jira-import` for a JiraID, or the passed
+   directory), and `source`. The front-end owns the
+   import-location validation and Fallbacks A/B. Carry `jira_key`,
    `jira_export_root`, and `focus_key` forward.
 
    If the front-end returns `mode: direct` (no Jira input), stop with
@@ -98,7 +98,7 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
      find "$VAULT_PATH/Projects" -maxdepth 5 -type d -name "<jira_key>*" 2>/dev/null | head -1
      ```
      Default = `<project-dir>/<jira_key>-release-notes.md` (the durable home — NOT
-     `jira-products/`, regenerated on every import). State in the plan why the specs folder was
+     `jira-import/`, regenerated on every import). State in the plan why the specs folder was
      not used. **Never create a VI folder here**: one this command named would carry a guessed
      slug and fork the VI's real folder the day `create-vi:` writes it.
   3. **Neither** (`$VAULT_PATH` unset, directory input) → `<parent-of-jira_export_root>/<jira_key>-release-notes.md`.
@@ -109,7 +109,7 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
   Print-to-screen and Skip remain available but are **never** the default. The
   default is persistent (host-mounted; survives container restart, unlike
   `/tmp`). NEVER offer or accept a path inside a docs repo or under
-  `jira-products/`. A different path the user chooses is written and **never committed** by this
+  `jira-import/`. A different path the user chooses is written and **never committed** by this
   run; one inside `$SPECS_PATH` but outside §2.1's shapes is the user's to commit, and the
   next run's `specs-preflight` reports it as a file it does not own — say so when the path
   is chosen.

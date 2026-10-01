@@ -26,7 +26,7 @@ the argument (text following the `implement:` trigger) may contain free-text pro
 **Jira-input resolution (shared front-end).** Before the per-`@path`
 classification above, run `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`
 against the argument (text following the `implement:` trigger). It unifies the input grammar with `document:`: a **JiraID**
-token (`^[A-Z][A-Z0-9]+-[0-9]+`) is discovered under `$VAULT_PATH/jira-products/`
+token (`^[A-Z][A-Z0-9]+-[0-9]+`) is resolved to its feature folder's `jira-import/`
 (Fallbacks A/B on miss); a directory that inspects as a **jira-export** is used as
 `jira_export_root`; a **spec-folder** contributes to `specs`; everything else is
 `direct` (free-text/`@file`, this command's existing flow). The classification
