@@ -14,6 +14,7 @@ pr_refs:
     branch_from: <feature branch from jira-reader>
     branch_to:   <target branch from jira-reader>
     title:       <link text>
+    source_item: <Jira key of the item the PR link was found in, from jira-reader>
     status:      MERGED | OPEN | DECLINED | UNKNOWN
 context: |
   <what this repo's PRs relate to — for documentation focus>
@@ -70,7 +71,7 @@ unresolved_prs:
   - pr_id:      <id>
     url:        <url>
     candidates: [<"<sha> <first line of commit message>", ...>]   # from Strategy 4 if any; else []
-    reason:     <e.g. "no PR ref; branch not found; multiple merge candidates">
+    reason:     <e.g. "no PR ref; branch not found; no merge-commit candidate qualified">
 
 aggregate_summary: |
   <1–2 paragraphs: what this repo contributed to the feature>
@@ -87,4 +88,4 @@ aggregate_summary: |
 | `DIRTY_TREE`        | Working tree is dirty and refresh was requested, on a **writable** mount; orchestrator must escalate. A read-only mount never returns this. |
 | `REFRESH_BLOCKED`   | `git fetch` or `git pull` genuinely failed (auth, network, non-fast-forward); orchestrator escalates. A read-only mount is NOT a cause — resolution proceeds at `prep.scanned_ref` with `prep.read_only: true`. |
 | `NO_PRS_RESOLVED`   | None of the provided PRs could be resolved; `unresolved_prs` lists all of them.|
-| `PARTIAL`           | Some PRs resolved, some unresolved; both `per_pr` and `unresolved_prs` populated. |
+| `PARTIAL`           | Some PRs resolved, some unresolved (both `per_pr` and `unresolved_prs` populated), **or** Strategy 4 was the only path that worked for at least one PR, whose content correctness is reduced. |

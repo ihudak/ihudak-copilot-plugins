@@ -371,7 +371,7 @@ Handle per-repo status after the batch returns:
 
 ## Phase 5 — Author via grill
 
-**Interview technique (grilling — embedded; no runtime dependency).** Conduct each stage as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — **rounds** rhythm (per that file's `## Rhythm`): map the stage's design tree, ask the whole settled frontier as one numbered round, recompute from the answers, repeat until that stage's frontier is empty. Recommend each answer, explore the Phase 4 code scan / Jira content to self-answer (fact-vs-decision), and clear the confirmation gate before writing that stage's section.
+**Interview technique (grilling — embedded; no runtime dependency).** Conduct each stage as a **relentless** interview per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — **rounds** rhythm (per that file's `## Rhythm`): map the stage's decision tree, ask the whole settled frontier as one numbered round, recompute from the answers, repeat until that stage's frontier is empty. Recommend each answer, explore the Phase 4 code scan / Jira content to self-answer (fact-vs-decision), and clear the confirmation gate before writing that stage's section.
 
 Walk the stages in order, authoring `specification.md` live against `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specification-format.md`, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 
