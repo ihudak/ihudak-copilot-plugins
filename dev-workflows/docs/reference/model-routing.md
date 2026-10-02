@@ -48,7 +48,7 @@ This is the sharpest edition difference from the Claude version of this page. In
 3. `gpt-6-sol`
 4. the whole work tier above
 
-Two different models looking at one artifact catch more than one model looking twice, and a reviewer with no stake in the authoring is the point of a gate. A session with no version-6 model reachable reviews on Anthropic exactly as it did before, and that is **not** reported as a degradation — it is row 4, a documented branch of the policy.
+The order is capability tier first — Astra above Sol — then the newer version within a tier. Two different models looking at one artifact catch more than one model looking twice, and a reviewer with no stake in the authoring is the point of a gate. A session with no version-6 model reachable reviews on Anthropic exactly as it did before, and that is **not** reported as a degradation — it is row 4, a documented branch of the policy.
 
 **A review never prefers the session model.** The work tier does prefer whichever of its rows the orchestrator is already running under, as an economy — it avoids paying to switch when the session already qualifies. The review tier deliberately does not: a GPT-6 session and an Opus session both review on `gpt-6-astra`, because the whole purpose of the tier is that the reviewer is not the author.
 

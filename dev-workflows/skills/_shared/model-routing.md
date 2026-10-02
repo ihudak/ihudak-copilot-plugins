@@ -143,17 +143,14 @@ cheap tier buys nothing a Sonnet row does not already give.
 If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
 
----
+**`defect-reporter` runs on this chain too**, under `--skip-feedback` (`run-flags.md` §4),
+recorded as `defect_model:`. Telling a defect from friction and locating the wrong line in
+the plugin's source is judgement, not throughput; it takes this chain because it is the tier
+`impl-maintenance`, the agent it replaces, runs on. No chain in this file names Haiku;
+`run-flags.md` §2 carries the Haiku rows the `haiku` value resolves against.
 
-## 2.2 Cheap ("bugs-only") fallback chain
-
-Dispatched only for `defect-reporter` under `--skip-feedback` (`run-flags.md` §4); also
-resolves `run-flags.md` §2's `haiku` value. Use the first available:
-
-1. `claude-haiku-4.5`
-2. the §2.1 chain
-
-Record it as `defect_model:` in the `model_routing` block when used.
+§2.2, the Haiku-first chain `defect-reporter` used to run on, is retired. Its number is not
+reused, so every citation of §2.3 stays valid.
 
 ---
 
@@ -172,18 +169,16 @@ Rows 1–3 are the version-6 OpenAI models; row 4 is the whole of §2, so a sess
 version-6 model reachable reviews on Anthropic exactly as it did before this split, and that
 is **not announced as a degradation** — it is a documented branch of the policy.
 
-**`gpt-6-astra` leads by house preference**, not by measurement in this repository. GitHub
-describes Astra as built for "long-horizon, autonomous coding and agentic tasks" and Sol as "a
-balanced model for interactive and agentic coding, and a strong all-round choice for
-development tasks that benefit from careful, multistep validation" — and *multistep validation*
-is arguably the better description of a review gate. The order here is the one the house asked
-for; if a measured comparison ever disagrees, change it here and say so, rather than quietly
-re-ranking at a call site.
+**The order is capability tier first, then version within a tier** — the house's rule.
+`gpt-6-astra` is the stronger tier, so it leads even though `gpt-6.1-sol` carries the higher
+version number; GitHub describes Astra as built for "long-horizon, autonomous coding and agentic
+tasks" and Sol as "a balanced model for interactive and agentic coding". The tier ranking is the
+house's, not a measurement made in this repository; if a measured comparison ever disagrees,
+change it here and say so, rather than quietly re-ranking at a call site.
 
-**`gpt-6.1-sol` sits ahead of `gpt-6-sol`** because it is the newer Sol: GitHub's changelog
-(2026-09-29) records it completing tasks with "noticeably fewer tokens and steps than earlier
-models in the GPT-6 and GPT-5.6 families". Newest-within-a-codename is the rule; Astra-before-Sol
-is the house preference above it.
+**`gpt-6.1-sol` sits ahead of `gpt-6-sol`** because it is the newer model of the same tier:
+GitHub's changelog (2026-09-29) records it completing tasks with "noticeably fewer tokens and
+steps than earlier models in the GPT-6 and GPT-5.6 families".
 
 **The selection rule of §2 does NOT apply here.** A review does not prefer the session model,
 because the whole purpose of this tier is that the reviewer is not the author. A GPT-6 session
@@ -276,7 +271,7 @@ model_routing:
                                              # SIGNIFICANT/HIGH-RISK.
   implementation_model: <e.g. claude-sonnet-5.5 or current_model>
   detection_model: <e.g. claude-sonnet-5.5>  # mid-tier steps (§2.1); never the session model
-  defect_model:   <e.g. claude-haiku-4.5>    # §2.2 cheap chain; set only under --skip-feedback
+  defect_model:   <e.g. claude-sonnet-5.5>   # §2.1 chain; set only under --skip-feedback
   fixes_model:    <same as implementation_model>
   opus_available: true | false             # true if any §2 row 1-6 (Opus 5.5/5/4.8/4.7/4.6/4.5) is available
   review_tier_vendor: openai | anthropic   # which branch of §2.3 the review_model came from
@@ -319,7 +314,7 @@ Sub-agents that receive a `model_routing` block:
   `design-reviewer`, `readiness-reviewer`), the §2 work tier for `risk-planner`,
   the §2.1 detection chain for `jira-reader`, `code-scanner`, `diff-summarizer`,
   `doc-location-finder`, `docs-style-checker`, `doc-fixer`, `test-baseliner`,
-  `test-writer` and `impl-maintenance`, and by classification for the writers
+  `test-writer`, `impl-maintenance` and `defect-reporter` (under `--skip-feedback`), and by classification for the writers
   (`doc-planner`, `doc-writer`, `epic-writer` — strong tier for
   SIGNIFICANT/judgment authoring, detection chain for MODERATE; see §9) — and
   the orchestrator's own `model_routing` record names the chain it resolved.
@@ -608,7 +603,7 @@ escalate a single oversized repo slice's `code-scanner` to the strong tier (§8.
 
 `run_flags.enforced_model` (`run-flags.md`) lets a run pin every subagent dispatch to one model, bypassing this policy's own per-step selection. Classification and the routing rules above are unchanged in what they select — this section changes only which model each selection resolves to.
 
-- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1, §2.2 and §2.3 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
+- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1 and §2.3 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
 - **Every dispatch.** Every `task` dispatch passes `model: <enforced>` explicitly, in §5's dispatch form, including agents whose frontmatter pins a tier: the dispatch's `model:` argument overrides the frontmatter pin. Every "frontmatter-pinned … no override" statement at a dispatch site reads "no override unless §10 enforces a model".
 - **Nested dispatch.** An agent that itself dispatches another (`docs-style-checker` → `dt-style-checker`; `upgrade-executor` / `vuln-fixer` → `test-baseliner`) receives `enforced_model` in its prompt and passes it on its own dispatch, so enforcement reaches every model a run touches.
 - **Steps unchanged.** Classification still runs and still selects the §3 sequence for the task's class. Enforcement changes which model each selected step runs on, never whether the step runs.

@@ -62,8 +62,8 @@ task(
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
     enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
-    defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
-    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    defect_model: <§2.1 detection chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer; impl-maintenance
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -152,8 +152,8 @@ task(
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
     enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
-    defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
-    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    defect_model: <§2.1 detection chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer; impl-maintenance
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -211,8 +211,8 @@ task(
     reason: <one-line>
     current_model: <the model this orchestrator is running under>
     enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
-    defect_model: <§2.2 cheap chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
-    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer
+    defect_model: <§2.1 detection chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
+    detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # vuln-research; vuln-fixer (SIMPLE/MODERATE); review-fixer; impl-maintenance
     planning_model: <§2 Opus chain>   # vuln-fixer escalates here only if HIGH-RISK
     review_model:  <§2.3 review tier>    # code-review (dispatch-pinned to this chain; recorded, no override unless §10 enforces a model)
     opus_available: <true if a §2 Opus model resolved, else false>
@@ -300,9 +300,9 @@ Append a `### Model Routing` section summarising the per-CVE classification, why
 
 Append a `### Review triage` section with one line per CVE that went through review-tier review: - **Review triage:** [N findings reviewed, M survived] — dismissals: [one line per dismissal, `finding — reason`; or "none"] — or "N/A (SIMPLE / MODERATE path, no review-tier review)" for CVEs that never reached review.
 
-Then invoke `impl-maintenance` with a compact session handoff covering the CVEs fixed, notable regressions, workarounds, and overall outcome. **Always pass `Command run: vuln:`** in that handoff — omitting it makes `impl-maintenance` default to `implement:`, mislabeling the run.
+Then invoke `impl-maintenance` (agent_type: `"dev-workflows:impl-maintenance"`, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`) with a compact session handoff covering the CVEs fixed, notable regressions, workarounds, and overall outcome. **Always pass `Command run: vuln:`** in that handoff — omitting it makes `impl-maintenance` default to `implement:`, mislabeling the run.
 
-**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.2 cheap chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
+**Under `--skip-feedback`** (`run_flags.skip_feedback`, `_shared/run-flags.md` §4), this step dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance` — the same compact handoff, plus `Plugin root:` — on `run_flags.enforced_model` when set, else the `_shared/model-routing.md` §2.1 detection chain. Only when it returns at least one defect, persist them through `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, `feedback-emission.md` is not read at all. Report `Session feedback: bugs-only (--skip-feedback) — N defect(s) persisted`, or `— no defects`. The in-session Lessons Learned report is what the flag costs. `emit-block` is unaffected and fires exactly as it would without the flag.
 
 **Context hygiene.** This was a large run — consider **`/compact`** to free context before your next task (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §3 — non-pipeline, so `/compact` only; guidance only).
 

@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
+## [2.34.4] — 2026-10-02
+
+Ported from the Claude edition's 2.65.4: `ai-workflows`' retirement of the Haiku-first chain for `defect-reporter` (`workflows-core` 1.9.1).
+
+### Changed
+
+- **`defect-reporter` runs on the §2.1 detection chain, the tier of the `impl-maintenance` it replaces, instead of a cheap chain headed by Haiku.** Under `--skip-feedback` it is the run's only post-session feedback capture (`emit-block` still fires on a halt), and its work is judgement: it applies the defect predicate and its exclusions, then tries to confirm the wrong line in the plugin's source. Haiku saved little on one dispatch per run. `model-routing.md` §2.2 is retired, its `defect-reporter` rule now sits in §2.1, and `defect_model` records a §2.1 resolution. Every skill's `--skip-feedback` dispatch, `run-flags.md` §4, `defect-reporter`'s description and `dev-workflows-shared.instructions.md` say the same.
+- **`run-flags.md` §2 now carries the Haiku rows itself.** The `haiku` value used to resolve against `model-routing.md` §2.2; no chain there names Haiku any longer, so `--enforce-model=haiku` resolves exactly as before, against `run-flags.md` §2's own rows, which its family-only reachability rule now names for Haiku too. §2.2's number is not reused, so citations of §2.3 stay valid.
+
+### Fixed
+
+- **`implement:`, `ready:`, `upgrade:`, `vuln:` and `document:`'s direct mode dispatched `impl-maintenance` with no `model:`**, and `implement:`, `ready:` and `document:`'s direct mode dispatched the three maintenance agents beside it (Documentation, Knowledge base, Instructions) with none either, so all of them ran on whatever the session ran on, where every other skill pins them to the §2.1 detection chain as §9 requires. All of them are now pinned, and the `detection_model` comments of `implement:`, `ready:`, `upgrade:` and `vuln:` name them. `document:`'s direct mode also re-dispatched Agent 2 or 3 in Phase 4.5 without naming a model, and dispatched its Phase 2A exploration agent with none; the re-dispatch now reuses Phase 4's model, and the exploration agent is pinned to the §2.1 detection chain, as `implement:`'s Phase 2A exploration is. `docs/skills/upgrade.md` and `docs/skills/vuln.md` no longer list `impl-maintenance` among the agents those skills invoke by bare name, and `vuln.md` quotes `test-baseliner`'s dispatch as `vuln/SKILL.md` now words it.
+- **`run-flags.md` §2's family-only rule named only "any older row" as refused**, leaving a version-specific id on no chain, and a Fable id, undefined there; it now refuses all three, as the Claude edition does.
+- **`docs-profile:`'s `planning_model` line left out §2's Gemini floor**; it now ends at `gemini-3.1-pro-preview`, as §2 does.
+- **`model-routing.md` §2.3 called `gpt-6-astra`'s lead a house preference and argued that Sol suited a review gate better**, which left the order open to re-ranking at a call site. It now states the rule the order follows: capability tier first, Astra above Sol, then the newer version within a tier. `docs/reference/model-routing.md` and `dev-workflows-shared.instructions.md` say the same.
+- **`docs-profile:`'s `notes` example said synthesis fell back to `claude-sonnet-4.6`**, skipping the two newer Sonnet rows §2 tries first; it now names `claude-sonnet-5.5`.
+
 ## [2.34.3] — 2026-10-02
 
 Ported from the Claude edition's 2.65.3: `ai-workflows`' fix for a `$SPECS_PATH` set inside the specs tree (its issue #70), adapted to this plugin's four specs directories, its Jira-key folder names and its shared Jira front-end. Not ported: that release's trailer fix, since this edition signs a deliverable commit as the fixed Copilot identity, and every part that touches the cost subsystem, which this edition does not have.

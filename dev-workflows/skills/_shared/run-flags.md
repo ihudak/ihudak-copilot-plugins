@@ -31,17 +31,21 @@ Single source of truth for the run flags every applicable skill accepts, their e
 |---|---|
 | `opus` | the highest reachable Opus row of `model-routing.md` §2 |
 | `sonnet` | the highest reachable Sonnet row of `model-routing.md` §2.1 |
-| `haiku` | the highest reachable Haiku row of `model-routing.md` §2.2 |
+| `haiku` | the highest reachable of the Haiku rows below |
 | `fable` | the reachable `claude-fable-…` id highest by version number — no chain names one |
 | `<family><major>` / `<family><major>.<minor>` | `claude-<family>-<major>` / `claude-<family>-<major>.<minor>` |
 | any full model id | itself, unchanged — `claude-opus-5.5`, `gpt-6-astra`, `gemini-3.1-pro-preview` |
 
 `family` ∈ `opus | sonnet | haiku | fable`. The alias rows are matched case-insensitively; a full id is taken as written. **Note this edition's id form uses dots, not dashes** (`claude-opus-5.5`, not `claude-opus-5-5`) — matching what the CLI's `model:` parameter accepts. Anything matching none of the rows above stops the run with `RUN_FLAGS_BAD_MODEL`, naming the rejected value verbatim (or `(missing)`) together with its source — `(from --enforce-model)` or `(from WORKFLOWS_ENFORCE_MODEL)` — and listing the accepted forms. **Where the rejected value is itself a run-flag token the pair form consumed**, the message also says so: `--enforce-model took '<token>' as its value; write --enforce-model=<model>, or put <token> before it`.
 
+**The Haiku rows**, newest first — what the `haiku` value resolves against, and what Reachability below reads for a Haiku value. No `model-routing.md` chain names Haiku (`defect-reporter` runs on `model-routing.md` §2.1), so these rows serve an enforced Haiku value only, and wherever this file speaks of a family's chain or its newest chain row, these rows are Haiku's:
+
+1. `claude-haiku-4.5`
+
 **Reachability** is read the way `model-routing.md` §2 already reads it — from the `task` tool's `model` parameter documentation, never assumed — and what it can prove depends on what that parameter enumerates.
 
 - **Where the parameter accepts model ids** — which is what this edition's CLI does today — a resolved id that is not reachable stops the run with `RUN_FLAGS_MODEL_UNAVAILABLE`, naming the resolved id with its source tag and the reachable peers. A bare `fable` against a parameter listing no `claude-fable-…` id stops the same way.
-- **Where a parameter enumerates only family names** (`opus`, `sonnet`, `haiku`, `fable` — a **family-only harness**, which this edition's CLI is *not*, but a future one could be), no id is ever listed, so reachability is decided per family and the harness picks the version: a bare family alias is reachable iff its family is listed and is recorded as the family; a version-specific form is honoured only when its resolved id is its family's newest chain row, and is then passed as the family name; any older row stops `RUN_FLAGS_MODEL_UNAVAILABLE` saying `this harness selects models by family only; use --enforce-model=<family>`. **A non-Claude peer (`gpt-*`, `gemini-*`) has no family at all**, so on such a harness it is unreachable by construction, and the message lists the families the parameter enumerates instead.
+- **Where a parameter enumerates only family names** (`opus`, `sonnet`, `haiku`, `fable` — a **family-only harness**, which this edition's CLI is *not*, but a future one could be), no id is ever listed, so reachability is decided per family and the harness picks the version: a bare family alias is reachable iff its family is listed and is recorded as the family; a version-specific form is honoured only when its resolved id is its family's newest chain row (for Haiku, the first of the Haiku rows above), and is then passed as the family name; any other version-specific form — an older row, an id on no chain, or a Fable id, since `fable` has no chain — stops `RUN_FLAGS_MODEL_UNAVAILABLE` saying `this harness selects models by family only; use --enforce-model=<family>` (the resolved id's own family; for a `claude-…` id naming none of the four families, the message lists the families the parameter enumerates instead). **A non-Claude peer (`gpt-*`, `gemini-*`) has no family at all**, so on such a harness it is unreachable by construction, and the message lists the families the parameter enumerates instead.
 
 **Every validation in this section applies only to an `--enforce-model` that §3's applicability step has already found applicable.** An inapplicable one is never parsed, never reachability-checked and never stopped on.
 
@@ -85,7 +89,7 @@ Return `run_flags` and the stripped argument string — every later parsing step
 
 ## 4. Skip-feedback
 
-Under `run_flags.skip_feedback`, the skill's maintenance phase dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance`, with the same compact session handoff, plus `Plugin root:`, on `model: run_flags.enforced_model` when set, else the `model-routing.md` §2.2 cheap chain. When `defect-reporter` returns at least one defect, persist them with `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, load `feedback-emission.md` not at all. `emit-block` is unaffected. **What the user loses under this flag: the in-session Lessons Learned report** — `defect-reporter` returns defects only, never workflow advice, agent/skill suggestions, or target-project tooling notes.
+Under `run_flags.skip_feedback`, the skill's maintenance phase dispatches `dev-workflows:defect-reporter` in place of `impl-maintenance`, with the same compact session handoff, plus `Plugin root:`, on `model: run_flags.enforced_model` when set, else the `model-routing.md` §2.1 detection chain, the tier `impl-maintenance` runs on. When `defect-reporter` returns at least one defect, persist them with `feedback-emission.md`'s `emit-bugs` entry point in place of `emit-auto`; when it returns none, load `feedback-emission.md` not at all. `emit-block` is unaffected. **What the user loses under this flag: the in-session Lessons Learned report** — `defect-reporter` returns defects only, never workflow advice, agent/skill suggestions, or target-project tooling notes.
 
 ## 5. Reporting
 
