@@ -1,7 +1,7 @@
 ---
 name: idea
 description: >
-  Idea-refinement workflow (PM phase, front of the VI-creation flow). Takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an exported Jira ticket (product feedback, or an existing Value Increment the idea extends, parallels, or rewrites) — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a well-refined idea.md: a lean one-page brief that seeds the future create-vi:. Writes to the vault (keyless); no Jira, no code; once a Jira key resolves it relocates `idea.md` into `$SPECS_PATH/specifications/<KEY>-<slug>/`, and on a completed handoff also opens a pull request for it (`phase-handoff.md` §2) — declining leaves it relocated but not on the default branch; its session artifacts are committed by `commit-artifacts`.
+  Idea-refinement workflow (PM phase, front of the VI-creation flow). `idea: [<VI-KEY>] <source>` — the VI first — takes one source — an inline prompt, a markdown file (with wikilinks/images), a community post, or an imported Jira ticket (PRODFB product feedback, or an existing Value Increment the idea extends, parallels, or rewrites) — and, through a bounded one-question-at-a-time grill (--deep for relentless), authors a lean one-page idea.md that seeds the future create-vi:. Writes idea.md into its origin's feature folder under $SPECS_PATH — the PRODFB ticket's or the VI's — and never moves it; no Jira write, no code; on a completed handoff opens a pull request for it (`phase-handoff.md` §2).
   Activated when the user prompt starts with "idea:".
 allowed-tools: view, edit, create, bash, glob, grep, task, web_fetch, ask_user
 ---
@@ -11,8 +11,8 @@ Refine an idea into `idea.md`: the argument (text following the `idea:` trigger)
 `idea:` is the **front door of the VI-creation flow** (PM phase) — upstream of `create-vi:` and
 the existing pipeline. It ingests one source, refines it through a grill, and writes a lean one-page
 `idea.md` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md`) that seeds the Value Increment. It is
-**not** a VI: no Jira write, no code change. Output lands keyless in the vault;
-`idea:` relocates it under `$SPECS_PATH` itself once a Jira key exists (Phase 5); `create-vi: <KEY>` then finds it there and does not move it.
+**not** a VI: no Jira write, no code change. It writes `idea.md` straight into its origin's feature folder
+under `$SPECS_PATH` — a PRODFB feedback ticket's, or the VI's (Phase 1) — and never moves it; `create-vi:` reads it there.
 
 Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless (until convergence).
 `--no-docs` and `--no-prior-art` each turn off one grounding source (see Phase 1).
@@ -24,15 +24,11 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
 
 **Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
-1. **Validate `$VAULT_PATH`.** It must be **set**, an **existing directory**, and **writable** — the
-   env var is the user's explicit declaration of their personal store; the plugin trusts it and does
-   NOT require an Obsidian `.obsidian/` marker. If any check fails, STOP and offer:
+1. **Validate `$SPECS_PATH`.** It must be **set**, an **existing directory** holding one of `specs/`, `specifications/`, `vis/`, `ideas/`, and **writable** — `idea.md` is written into a feature folder there, never moved afterwards. If any check fails, STOP and offer:
    ```
-   choices: ["Enter a directory to write idea.md into", "Cancel", "Other… (describe)"]
+   choices: ["Set SPECS_PATH (enter the path)", "Cancel", "Other… (describe)"]
    ```
-   On a user-supplied directory, validate it exists and is writable, then use it as the **write root**
-   for this run. **NEVER** write into the current working directory (it may be a code repo). This is an
-   environment halt, **not** a plugin-gap halt — do NOT `emit-block`.
+   Validate an entered path the same way. **NEVER** write into the current working directory (it may be a code repo). This is an environment halt, **not** a plugin-gap halt — do NOT `emit-block`.
 
 2. **Resolve model routing.** Load and follow the model-routing policy at
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then record:
@@ -71,24 +67,46 @@ run — the terminal `commit-artifacts` step skips on it.
 
 Classify the argument (text following the `idea:` trigger) **minus every recognised flag** (`--deep`, `--no-docs`, `--no-prior-art`, `--docs <path>` with its value, and `--ground-code` with its optional comma-separated repo value) by precedence. Strip them all before classifying: an unstripped flag lands inside the `prompt` branch's raw idea text and is handed to `idea-reader` as if the user had written it. The token after `--ground-code` is its value **only** when it contains no whitespace and every comma-separated part matches a top-level directory basename under `${REPOS_PATH:-/workspace}`; otherwise the flag is bare and the token is idea text — strip only the flag itself.
 
+**The VI comes first.** The grammar is `idea: [<VI-KEY>] <source>`. When the first remaining token matches the Jira-key regex **and more tokens follow**, it is the Value Increment the idea is for — record it as `vi_key` — and everything after it is the source, classified by the rules below. A key anywhere else is part of the source: a prompt ending "see how we did it in PRODUCT-2345" names no target. When the first token is a key **and the only token**, it is the source itself and `vi_key` comes from the origin rule below (an existing VI is its own target; a PRODFB ticket has none yet).
+
+**The grammar, by example** — carry this table verbatim in Phase 1 (it is the documented form; the docs page and changelog repeat it):
+
+| You type | Meaning | `idea.md` goes to |
+|---|---|---|
+| `idea: PRODUCT-12345 <long prompt>` | an idea for that VI, from a prompt | `PRODUCT-12345…/` |
+| `idea: PRODUCT-12345 @notes/thing.md` | the same, from a file | `PRODUCT-12345…/` |
+| `idea: PRODFB-929` | customer feedback, no VI yet | `PRODFB-929…/` |
+| `idea: PRODUCT-17753 PRODFB-929` | feedback, VI known | `PRODFB-929…/`, with `vi_key: PRODUCT-17753` |
+| `idea: PRODUCT-12345` | rewrite of an existing VI | `PRODUCT-12345…/` |
+| `idea: PRODUCT-NEW PRODUCT-OLD` | a new VI extending or paralleling an old one | `PRODUCT-NEW…/` |
+| `idea: <prompt>` (no key) | stops and asks for the VI key | — |
+
+**Validate `vi_key`.** When its import exists and its `issue_type` is not `ValueIncrement`, it is not a target: when the source is a key whose import *is* a `ValueIncrement` — the order typed the old way round, `idea: PRODFB-929 PRODUCT-17753` — say so in one line and swap them; otherwise ask `choices: ["Re-enter the VI key", "Cancel", "Other… (describe)"]` (a prompt with no VI key stops anyway, so reading the whole argument as one is no way out). When `vi_key` has no feature folder — a VI just created in Jira, a typo, a prompt that happens to open with a key, or a VI seen only inside another ticket's import — confirm before creating a folder for it; this fires whenever the origin rule below is about to create a folder, whether or not an import exists: `choices: ["Create <root>/<vi_key>-<candidate_slug>/ for this idea (Recommended)", "Re-enter the VI key", "Cancel", "Other… (describe)"]`. **An `rfe` source creates no folder for `vi_key`** — the idea goes into the PRODFB folder — so there is no array there, but an unresolved `vi_key` (no folder, no import) is still named in the one-line confirmation below, as "`<vi_key>` has no folder or import yet — recorded in `idea.md`'s frontmatter only", so a typo is caught before it is written.
+
+`vi_key`'s import is found with `resolve-export-for-key <vi_key>`, and its feature folder by the **matching rule only** of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 — an immediate child of `<spec-dirs>` named `<vi_key>` or starting `<vi_key>-` / `<vi_key>_`, case-insensitive. No match means no folder, and the folder is created after the confirmation above; step 2's *None* branch (the nested scan) does not apply, because `idea:` writes into a folder and never into another ticket's import. In the last array `<root>` is `$SPECS_PATH/specifications/` — a `vi_key` is a Value Increment, never a `PRODFB-` ticket, so it is where the importer puts it, and so a later import of `vi_key` lands in this folder rather than beside it — and `<candidate_slug>` is a kebab-case slug of the source's subject: for a key source (`PRODUCT-NEW PRODUCT-OLD`), its import's `summary`; for a prompt, its gist; for a file, its name. Phase 4 creates the folder under exactly the name confirmed here, and frontmatter `slug:` records that slug — `idea-reader`'s own `candidate_slug` does not override it.
+
 1. Matches the Jira-key regex `^[A-Z][A-Z0-9_]*-\d+$` → resolve it with `resolve-export-for-key <KEY>`
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`), then type it from the export's
    **`issue_type` frontmatter** — never from the project prefix, which is a coincidence of Jira
    configuration:
    - `ValueIncrement` → **vi** — an existing VI. Prior art the user supplied.
-   - `Product Need` → **rfe** — product feedback, handled as demand evidence exactly as today.
+   - `Product Need` or `Account` → **rfe** — product feedback (a PRODFB ticket carries either type), handled as demand evidence exactly as today.
    - anything else → name the actual `issue_type` in the confirmation below and let the user choose;
      **default vi**, since a tracked delivery item is closer to prior art than to demand evidence.
 
-   `NOT_FOUND` from the entry point is handled as today (an environment/user halt, never `emit-block`).
-2. An existing `.md` path or an `@wikilink` → **markdown** (a community post is just a markdown file,
-   typically under `Projects/Products/…` — the reader tags it `community-post`; an existing `idea.md`
-   passed back for re-refinement is detected here too).
+   **Not imported.** `NOT_FOUND` from the entry point — the key has no import anywhere, whether it is the only token or follows a `vi_key` — takes Fallback B of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`, with `idea:`'s own array. Say in prose that the ticket has not been imported into the specs repo and give B's SPECS-mode import command, `SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` in a `jira-workitem-import` checkout (its stock `runme.sh` unsets `SPECS_PATH` and writes elsewhere), then ask `choices: ["I've imported it — check again (Recommended)", "Re-enter the key", "Cancel", "Other… (describe)"]` — B's generic array offers a directory source and a direct-edit mode `idea:` does not have. On *check again*, resolve the key again from the top of this rule. An environment/user halt, never `emit-block`.
+2. An existing `.md` path (absolute, or relative to the working directory) → **markdown** (a community post is just a markdown file — the reader tags it `community-post`; to re-refine an existing `idea.md`, re-run with the same keys — Phase 4's existing-file branch refines it in place). A leading `@` (`@notes/thing.md`, the file-mention form) is dropped before the path is tested.
 3. Otherwise → **prompt** (the argument text is the raw idea).
+
+**Resolve the origin folder (D1)** — once the type stands, which for a key that case A below asks about means after its answer. It is fixed here and never changes, and the key that names it is the run's **origin key** (the PRODFB key, or `vi_key`):
+- **rfe** → the source key's own feature folder (the import created it), with `vi_key` recorded when one was given. No folder of its own — the ticket seen only inside another key's import — → rule 1's **Not imported** prompt, saying where it was seen (`<KEY>` appears in `<K>`'s import, but has no import of its own).
+- **vi** as the only token → `vi_key` = the source key — a rewrite in place — and its folder resolves as in the next bullet.
+- **vi** after a `vi_key`, **markdown**, **prompt** → `vi_key`'s feature folder; when none exists, create `<root>/<vi_key>-<candidate_slug>/` on the first write (after the confirmation above). **markdown/prompt with no `vi_key` → STOP**: an idea without a Jira origin needs the VI key it is for, typed first — `choices: ["Enter the VI key (create it in Jira first)", "Cancel", "Other… (describe)"]`.
+Several folders matching one key → print every one as prose and ask which, in the run-time picker shape of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` (§ Fallback prompts, *Run-time pickers*): every folder plus "Cancel" — `ask_user` has no option cap in this edition. Mark and recommend the folder holding the key's import, per § JiraID token step 2. Show `idea.md → <origin folder>/idea.md` in the confirmation line.
 
 **Confirm the classification — conditionally.** Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` ("When a choice list fires"), a list is shown only where the answer genuinely varies. Two cases here do; the rest do not.
 
-**A — the key resolved but its `issue_type` is neither `ValueIncrement` nor `Product Need`.** Name the actual `issue_type` in prose beside the list, never inside an option:
+**A — the key resolved but its `issue_type` is none of `ValueIncrement`, `Product Need`, `Account`.** Name the actual `issue_type` in prose beside the list, never inside an option:
 ```
 choices: ["Read this as a vi — an existing Value Increment (Recommended)", "Read this as an rfe — product feedback", "Cancel", "Other… (describe)"]
 ```
@@ -98,11 +116,11 @@ choices: ["Read this as a vi — an existing Value Increment (Recommended)", "Re
 choices: ["Re-enter the path (Recommended)", "Read the argument as a prompt — the literal text is the idea", "Cancel", "Other… (describe)"]
 ```
 
-**Everything else** — a `.md` path or `@wikilink` that resolves, a key typed `ValueIncrement` or `Product Need`, and plain prose — is unambiguous. State the resolution in one line that invites correction and **proceed without waiting**; the list would have one plausible answer. (A dedicated `--as prompt|markdown|rfe|vi` override is future work — this inline confirmation covers a mis-detection.)
+**Everything else** — a `.md` path that resolves, a key typed `ValueIncrement`, `Product Need` or `Account`, and plain prose — is unambiguous. State the resolution in one line that invites correction and **proceed without waiting**; the list would have one plausible answer. (A dedicated `--as prompt|markdown|rfe|vi` override is future work — this inline confirmation covers a mis-detection.)
 
 **Resolve documentation grounding here, then show its line.** Run `resolve-docs-grounding idea` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md` — its step 3.5 index prompt included — and show the `docs grounding:` line from what it returns, in the form that reference fixes — `ON <root> (retrieval: …)` or `OFF (<reason>)` — verbatim, including any index-build, staleness, or shadowing clause it carries (off switch: --no-docs). It runs here, before any agent is dispatched, because step 3.5 asks its one-time index question before the run's real work; this is the run's one resolution (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`, *Invariants*), and Phase 2.5 dispatches on the state it returns without resolving again.
 
-Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` resolved — `ON <vault-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art idea` per that reference to obtain it; it runs exactly once per run.
+Show the `prior art:` line in the form `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prior-art.md` resolved — `ON <specs-root>` or `OFF (<reason>)` — verbatim (off switch: --no-prior-art). Run `resolve-prior-art idea` per that reference to obtain it; it runs exactly once per run.
 
 ---
 
@@ -113,30 +131,30 @@ Dispatch `idea-reader` to read the source and return a structured digest:
 → task(agent_type: "dev-workflows:idea-reader", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Ingest this idea source and return the structured digest:
   >
-  > argument:        [the resolved argument]
+  > argument:        [the source — the argument after vi_key, with any leading @ dropped]
   > provenance_hint: [prompt | markdown | community-post | rfe | vi from Phase 1]
-  > vault_path:      [resolved $VAULT_PATH]"
+  > vi_key:          [vi_key or null]"
 
-Wait for the digest. If `status: NOT_FOUND` (invalid key / missing file), surface:
+Wait for the digest. If `status: NOT_FOUND` for a **markdown** source (the file could not be read), surface:
 ```
 choices: ["Re-enter the source", "Cancel", "Other… (describe)"]
 ```
-This is an environment/user halt — do NOT `emit-block`. On `OK`, carry forward `raw_context`,
+This is an environment/user halt — do NOT `emit-block`. A key source never takes this halt: Phase 1 resolved it or took its **Not imported** prompt, and a `NOT_FOUND` the reader still returns for a key goes back to that prompt. On `OK`, carry forward `raw_context`,
 `stated_scope`, `signals`, `images`, `candidate_title`, `candidate_slug`, `source_refs`, `provenance`, `tracked` (a
 `vi` source only), and the followed/broken wikilinks — `source_refs`/`provenance` feed the `sources:`
 frontmatter entry in Phase 4, `tracked` seeds `## Prior art`, and `stated_scope` is the settled scope Phase 3 grills against.
 
 ---
 
-## Phase 2.5 — Grounding: documentation + vault prior art (optional)
+## Phase 2.5 — Grounding: documentation + prior art (optional)
 
 Dispatch both grounding agents **in a single response** so they run in parallel. Each is independent; either being OFF never suppresses the other.
 
-**Docs.** Phase 1 resolved documentation grounding and showed its line; this phase resolves nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the `idea-reader` digest's problem/outcome, `themes` = its signals; **omit `jira_key`** (idea is keyless, so the git-grep backstop is skipped). When OFF, skip silently.
+**Docs.** Phase 1 resolved documentation grounding and showed its line; this phase resolves nothing again. Where it resolved `docs_grounding: ON`, `dispatch-docs-grounder` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/docs-grounding.md`) with `feature_summary` = the `idea-reader` digest's problem/outcome, `jira_key` = `vi_key` when set, else the origin key (the git-grep backstop matches the docs repo's commit messages, which cite delivery keys rather than feedback tickets), and `themes` = its signals. When OFF, skip silently.
 
-**Prior art.** Using the `resolve-prior-art idea` result already obtained in Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md` with `feature_summary` = the same problem/outcome, `themes` = the digest's signals, and `known_refs` built from the reader's digest: every `wikilinks_followed` path and every filesystem-path `source_refs` ref as `{path, has_summary: true}` (`idea-reader` already summarised them), plus — for a `vi` source — `{jira_key: <KEY>, has_summary: true}`. Passing the key rather than a path is deliberate: the orchestrator does not know which vault directory holds that VI, and resolving it is the finder's job. The supplied VI is then classified and status-resolved by the same code path as a discovered one. When OFF, skip silently.
+**Prior art.** Using the `resolve-prior-art idea` result already obtained in Phase 1: when `prior_art: ON`, `dispatch-prior-art-finder` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prior-art.md` with `specs_root:` = the resolved root, `exclude_dirs:` = the origin folder resolved in Phase 1 plus, for an `rfe` source with a `vi_key`, that VI's folder (when it has one), `feature_summary` = the same problem/outcome, `themes` = the digest's signals, and `known_refs` built from the reader's digest: every `wikilinks_followed` path and every filesystem-path `source_refs` ref as `{path, has_summary: true}` (`idea-reader` already summarised them), plus — for a `vi` source — `{jira_key: <KEY>, has_summary: true}`. Passing the key rather than a path is deliberate: the orchestrator does not know which feature folder holds that VI, and resolving it is the finder's job. The supplied VI is then classified and status-resolved by the same code path as a discovered one. When OFF, skip silently.
 
-Carry both digests into Phase 3 with **grill-rank** consumption — challenges from the two compete together for the ≤10 question slots, they do not add slots. Carry `area_proposal` and the `vi` source's match into Phase 4.
+Carry both digests into Phase 3 with **grill-rank** consumption — challenges from the two compete together for the ≤10 question slots, they do not add slots. Carry the `vi` source's match into Phase 4.
 
 ---
 
@@ -170,7 +188,7 @@ Handle every returned status through the list `~/.copilot/installed-plugins/ihud
 
 **3. Round 2 — narrow.** Apply §8.5 of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`: for each theme round 1 left **inconclusive** (`classification` `partial` / `absent` / `error`, or **two or more** scanners' per-theme `capability_map[].gap_summary` texts point at each other's repo in a cycle, or at a component/subsystem that no scanned repo covers), and for which round 1 produced at least one evidence anchor, dispatch `code-scanner` again with `capability_themes` holding exactly **one** question and `search_hints.paths` / `.symbols` / `.keywords` seeded from that round's verified `evidence[].path` and `.symbols`; where an evidence entry carries `lines`, name the anchor as `<path>:<line>` in the round-2 `context` prose, since `search_hints` has no line-number field. Round 2 reuses round 1's `refresh:` block verbatim — `switch_to_default_branch: false`, `pull: false` — so the read-only posture and that round's claim that `code-scanner`'s dirty-tree status is gated on `pull: true` and so is never produced here hold for both rounds. Cap **4 dispatches, one round only** — there is no round 3, and a theme still inconclusive is carried to Phase 4 as a `[NEEDS CLARIFICATION]`, never guessed at. A theme confirmed `absent` — by round 2, or by round 1 when no anchor existed to seed a round 2 — is a **resolved** finding: it belongs in Section 7's *What's missing*, not in Open questions. `[NEEDS CLARIFICATION]` is for a theme the scan could not settle — mutual deferral, or `error`.
 
-**OFF branch** (no `--ground-code`). Run one detection and print at most one line. Tokenise the raw argument and the digest's `raw_context`; match tokens case-insensitively against the basenames of the **git repositories** (a `.git` entry present) directly under each `${REPOS_PATH:-/workspace}` entry, excluding `$DOCS_PATH`, `$SPECS_PATH`, and `$VAULT_PATH`. Exact token match only — no substring, no stemming. On ≥1 match print:
+**OFF branch** (no `--ground-code`). Run one detection and print at most one line. Tokenise the raw argument and the digest's `raw_context`; match tokens case-insensitively against the basenames of the **git repositories** (a `.git` entry present) directly under each `${REPOS_PATH:-/workspace}` entry, excluding `$DOCS_PATH` and `$SPECS_PATH`. Exact token match only — no substring, no stemming. On ≥1 match print:
 
 ```
 This idea names <repo>; re-run with --ground-code to verify it against the code.
@@ -182,7 +200,7 @@ and **proceed without waiting** — an inline confirmation per `~/.copilot/insta
 
 ## Phase 3 — Refine via grill
 
-**Interview technique (grilling — embedded; no runtime dependency).** Follow the shared technique in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split (look up facts from the `idea-reader` digest / vault, put only decisions to the user), walk the design tree in dependency order, and clear the confirmation gate before writing. **Depth: bounded by default (below) — rhythm stays one-at-a-time, which is what makes the ≤10 bound enforceable; `--deep` = relentless, and switches the rhythm to rounds with it (`grilling-technique.md` `## Rhythm`).**
+**Interview technique (grilling — embedded; no runtime dependency).** Follow the shared technique in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/grilling-technique.md` — one question at a time, recommend each answer, fact-vs-decision split (look up facts from the `idea-reader` digest / the specs repo, put only decisions to the user), walk the design tree in dependency order, and clear the confirmation gate before writing. **Depth: bounded by default (below) — rhythm stays one-at-a-time, which is what makes the ≤10 bound enforceable; `--deep` = relentless, and switches the rhythm to rounds with it (`grilling-technique.md` `## Rhythm`).**
 
 Scan for gaps against an idea-stage **ambiguity taxonomy**: *problem clarity, target users, desired
 outcome/value, scope boundaries, evidence/demand sufficiency, success signal, terminology.* Rank gaps by **Impact × Uncertainty**, ranking every `docs_challenges` and `prior_art_challenges` entry from Phase 2.5 into that same list. Challenges **compete** for the slots below; they never add slots. **Code findings are facts, not questions.** A Phase 2.6 finding answers a gap rather than raising one — look it up, cite it, and do not spend a question on it. The one exception is the finding that **contradicts the idea's premise** (the capability already exists, or the gap is far smaller than the idea assumes): that becomes a challenge ranked into the same Impact × Uncertainty list, competing for a slot exactly like a `docs_challenges` or `prior_art_challenges` entry and never adding one. At most **2** such challenges.
@@ -199,54 +217,14 @@ outcome/value, scope boundaries, evidence/demand sufficiency, success signal, te
 
 ## Phase 4 — Write idea.md
 
-Author `idea.md` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` into the write root resolved in
-Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
+Author `idea.md` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` into the origin folder resolved in Phase 1, applying the no-hard-wrap prose convention in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/prose-formatting.md`:
 
-- **Path (container default):** `<container(source path)>/<candidate_slug>/idea.md`, where the container
-  is derived per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/vault-prior-art.md`. A source already sitting under a
-  `Projects/Products/` grouper lands beside its neighbours in that grouper; an inline prompt, a Jira key
-  with no vault item, and any source outside `Projects/Products/` all resolve to `Projects/ideas/`
-  exactly as before.
-- **Write-path gate.** Assemble **one** `choices:` array, in this row order, and present it verbatim:
-
-  | Row | Included when | Text |
-  |---|---|---|
-  | 1 | `provenance: vi` | `Rewrite <KEY> — reuse its Jira key; write into <item-dir>/` when the finder resolved one, else `Rewrite <KEY> — reuse its Jira key; write to <container default>/<candidate_slug>/` |
-  | 2 | `area_proposal.path` non-null, `confidence: high`, **and** it differs from the container default | `New idea under <area_proposal.path>/<candidate_slug>/` |
-  | 3 | always | `New idea — a new Jira key will be minted; write to <container default>/<candidate_slug>/ as detected` |
-  | 4 | always | `Enter a different path` |
-  | 5 | always | `Cancel` |
-  | 6 | always | `Other… (describe)` |
-
-  The gate **fires only when at least one of rows 1–2 is present**; otherwise the container default
-  applies silently. Append `(Recommended)` to **exactly one** row, chosen by the **top match** — the
-  `prior_art` entry with the highest `match_confidence`, ties broken by array order — and its
-  `relation`: `supersedes_self` → row 1 **when present, else row 3**; every other relation → row 2
-  when present, else row 3. `supersedes_self` needs its own fallback because it is reachable for **any**
-  `known_refs` entry — a `markdown` source that wikilinks a VI work document can carry it — while row 1
-  ships only for `provenance: vi`.
-  **When there is no top match at all — prior-art grounding OFF, an invalid `$VAULT_PATH`, a non-vault
-  write root, or the finder returning `EMPTY` — recommend row 3.** That state is reachable precisely
-  because row 1 fires on `provenance: vi` alone, and nothing is then known about whether this is a
-  rewrite; the neutral default is the one that mints no Jira key. Every branch must name a row that is
-  actually in the array, or the gate renders with nothing marked. Never recommend row 1 without
-  `supersedes_self` — extending and paralleling a VI are as common as rewriting one, and a wrong
-  default here silently mints or fails to mint a Jira key. Validate every chosen path sits inside the
-  resolved write root and is writable.
-
-  Record the choice as **`vi_disposition`** — `rewrite` for row 1, `new` for every other row — and carry
-  it into Phase 5. **When the gate does not fire at all, `vi_disposition` is `new`.** Row 1 keys only on
-  `provenance: vi`, never on the finder resolving anything, so a `vi` source always reaches this question
-  even when prior-art grounding is OFF or the key has no vault work document — the disposition decides
-  whether the user is told to mint a Jira key, which is not an advisory matter and must not depend on an
-  advisory, user-disableable subsystem. This is the only point in the flow where the three shapes of a supplied VI (extend,
-  parallel, rewrite-in-place) can be told apart.
 - **`## Prior art`:** write the section per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` when
   Phase 2.5 returned any `prior_art` entry **or** the source is `vi`; omit it entirely otherwise. A `vi`
   source contributes its Phase 2 `tracked` block (key, status, summary) even when prior-art grounding is
   OFF — it is prior art the user handed over, not something the finder discovered — and appears there
   **and** in `sources:`. Merge by Jira key so a supplied VI the finder also matched yields one bullet: the finder's entry wins,
-  because it is a strict superset of `tracked` (it adds `relation`, `match_reason`, and a vault path). A
+  because it adds `relation`, `match_reason`, and a feature-folder path to `tracked`. When the finder's status for it is `unknown`, keep the reader's `tracked` status instead — the finder found no import page, the reader read one. A
   finder match with `jira_key: null` cannot collide — a supplied VI always has a key.
 - **`## Feasibility grounding`:** write the section per
   `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/idea-format.md` when Phase 2.6 ran **and** returned at least one
@@ -255,13 +233,15 @@ Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plu
   `lines`, or `<repo>/<path>` when it has none); write a **Reframing** line only when a finding
   contradicted the idea's premise. A theme still inconclusive after round 2 becomes a
   `[NEEDS CLARIFICATION]` in **Open questions & assumptions**, never a hedged bullet.
-- **Existing file:** if `idea.md` already exists at that path, offer:
+- **Existing file:** if `idea.md` already exists in the origin folder, offer:
   ```
-  choices: ["Refine the existing idea.md (Recommended)", "Create a new one (you'll be prompted for a slug)", "Cancel", "Other… (describe)"]
+  choices: ["Refine the existing idea.md (Recommended)", "Replace it — start the brief over", "Cancel", "Other… (describe)"]
   ```
-  On *refine*, re-open it, resolve its open `[NEEDS CLARIFICATION]` items, and append the new source to
-  `sources`.
+  On *refine*, re-open it, resolve its open `[NEEDS CLARIFICATION]` items, and append the new source
+  (`{provenance, ref}` built from Phase 2's `provenance` and `source_refs`) to `sources`. **When this run has a `vi_key` and the file's frontmatter `vi_key` differs from it** (or is absent), say so in one line naming both, and ask `choices: ["Keep <the file's vi_key>", "Replace it with <this run's vi_key> (Recommended)", "Cancel", "Other… (describe)"]`; when this run has no `vi_key`, keep the file's without asking.
 - **`## Rough scope` carries the source's boundaries.** Every `stated_scope` entry is written into **In** or **Out** as the source put it, unless the user reversed it during the grill, in which case write what they decided. The confirmation gate before this section names each source-stated boundary so a lost one is caught before it is written. A boundary is never dropped silently because the grill did not touch it.
+- **Frontmatter `vi_key`:** write it when `vi_key` is set (`idea-format.md`). `create-vi:` finds a PRODFB-folder idea by it.
+- **Frontmatter `slug`:** the slug Phase 1 confirmed when it created the folder; otherwise `idea-reader`'s `candidate_slug`.
 - **`status`:** set frontmatter `status: refined` IFF zero `[NEEDS CLARIFICATION]` markers remain;
   otherwise `status: draft`.
 
@@ -271,19 +251,17 @@ Phase 0, applying the no-hard-wrap prose convention in `~/.copilot/installed-plu
 
 Report where `idea.md` was written and its `status`, then offer the next phase — **adapted to status**:
 
-**Both relocating branches below need `$SPECS_PATH`, and this phase is the first place the run reads it.** Test it before either branch relocates anything: where it is unset or is not an existing directory, relocate nothing and present no consent choice — an unset variable turns the target into `/specifications/<KEY>-<slug>/idea.md`, a write at the filesystem root nobody asked for. Ask instead: `choices: ["Set SPECS_PATH (enter the path)", "Leave idea.md in the vault — I'll hand it off later"]`. A path that exists and is a directory is used for this run; on the second, report plainly: *"Not handed off — `$SPECS_PATH` is not set, so `idea.md` stays at `<path>`. `create-vi: <KEY>` will not find it; use `create-vi: <KEY> @<path>`."* This is an environment halt, not a plugin-gap one — do NOT `emit-block`.
+- **`status: refined`** — present `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (`idea.md`'s one §3.4 row is `create-vi:`'s idea ladder, which falls back rather than stops), after that section's push-target probe: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]`. On the first choice, execute `handoff-to-main` (§2) with `prefix: idea`, `feature_folder` = the origin folder, `deliverable_paths` = `idea.md` — repo-relative, as `<origin folder>/idea.md` under `$SPECS_PATH` (e.g. `specifications/PRODFB-929-faster-trace-search/idea.md`), per §2.9 — `title: <origin key> Refine idea for <summary>`, `body_facts` = the idea's Problem/Goal one-liner, its `vi_key` (or "no VI yet"), and any open prior-art matches, then report the §4.1 outcome line. On the second or third choice (both decline it, §4.3 *What each option means*), report the §4.1 declined-outcome line with its falling-back `<next-phase-clause>`.
+- **`status: draft`** (N open `[NEEDS CLARIFICATION]`) — **never hand off**, and do not ask. Report the N open items and offer `--deep` (`idea: <the same source and keys> --deep`), or the out-of-contract route (`create-vi: <VI-KEY> @<idea.md path>`, which will grill you on the rest). State explicitly that no branch or pull request was created.
 
-- **`vi_disposition: rewrite`, `status: refined`** — the key is already known from the `vi` source, so there is **no round trip for the key** — but the git consent choice below still applies; a known key says nothing about whether the user consented to a branch and a pull request. Relocate `idea.md` to `$SPECS_PATH/specifications/<KEY>-<slug>/idea.md` (resolve the folder by key-number, tolerating a human-adjusted slug), then present `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — falling back** array verbatim (`idea.md`'s one §3.4 row is `create-vi:`'s idea ladder, which falls back rather than stops), after that section's push-target probe: `choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase does not stop on this, but until this is on main it might not read your copy)", "Cancel"]`. On the first choice, execute `handoff-to-main` (§2) with `prefix: idea`, `feature_folder` = the relocation target above (`$SPECS_PATH/specifications/<KEY>-<slug>/`), `deliverable_paths` = the relocated `idea.md`, `title: <KEY> Refine idea for <summary>`, `body_facts` = the idea's Problem/Goal one-liner, its `vi_disposition`, and any open prior-art matches, then report the §4.1 outcome line. On the second or third choice (both decline it, §4.3 *What each option means*), report the §4.1 declined-outcome line with its falling-back `<next-phase-clause>` — `idea.md` is relocated but not on the default branch; `create-vi:` does not stop on that, and goes down its idea ladder, which might not read this copy.
-- **`vi_disposition: new`, `status: refined`** — ask: `choices: ["Create the Jira workitem now and give me the key — I'll complete the handoff (Recommended)", "Leave it in the vault — I'll hand it off later", "Cancel", "Other… (describe)"]`. On a key matching `^[A-Z][A-Z0-9_]*-\d+$`, relocate `idea.md` to `$SPECS_PATH/specifications/<KEY>-<slug>/idea.md` exactly as above, then present the same §4.3 consent choice and proceed exactly as above — `handoff-to-main` on its first option, the §4.1 declined-outcome line on its second or third. On the second choice of **this** bullet's own Jira-key offer ("Leave it in the vault…"), report plainly: *"Not handed off — `idea.md` stays at `<path>`. `create-vi: <KEY>` will not find it; use the out-of-contract form `create-vi: <KEY> @<path>`."*
-- **`status: draft`** (N open `[NEEDS CLARIFICATION]`) — **never hand off**, regardless of `vi_disposition`, and do not ask. By the governing principle the phase is not finished, so there is nothing to hand over. Report the N open items and offer `--deep` (`idea: @<idea.md path> --deep`), or the out-of-contract route (`create-vi: <KEY-or-JIRA-KEY> @<idea.md path>`, which will grill you on the rest). State explicitly that no branch or pull request was created.
+**After a refined run's consent choice — whichever option was taken — recommend `create-vi:` `<merge-clause>`**, resolved from the `Phase handoff:` line §4.1 just emitted per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`'s resolution table, never written unconditionally, and outside the command's code span:
+- `idea.md` in a VI folder → `create-vi: <VI-KEY>`;
+- a PRODFB-folder idea with `vi_key` → `create-vi: <vi_key>` (it finds the idea by `vi_key`);
+- a PRODFB-folder idea without one → `create-vi: <VI-KEY> --idea <PRODFB-KEY>`, saying in prose that the VI is created in Jira first, and that linking it to the PRODFB ticket in Jira (*is caused by*) and importing the VI (`SPECS_PATH="$SPECS_PATH" python src/main.py <VI-KEY>`) lets `create-vi:` find the idea with no flag.
 
-**After either refined bullet's §4.3 consent choice — whichever option was taken — recommend `create-vi: <KEY>` `<merge-clause>`**, which finds `idea.md` in the relocation folder — `<merge-clause>` resolved from the `Phase handoff:` line §4.1 just emitted, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`'s resolution table, and never written unconditionally. **The clause sits outside the command's own code span**, per that reference's placement paragraph; it binds with particular force here, because this offer *is* the one line an operator copies, with nothing beside it to mark where the command ends. **The clause is load-bearing here, not decoration**: `create-vi:` Phase 0 step 3 rung 1 runs `require-on-main` on exactly this `idea.md`, so while the pull request this run just opened is still open that skill stops on rows D/E — an unqualified recommendation sends the operator into a stop this run itself caused.
+**The clause is load-bearing, not decoration**: `create-vi:` runs `require-on-main` on exactly this `idea.md`, so while the pull request this run just opened is still open it stops on rows D/E. **On a decline, or where §4.1's *Gate failed* line was emitted, also offer** `create-vi: <VI-KEY> @<the absolute path of idea.md>` — it reads the file where it sits, ungated, and does not wait for it to land.
 
-**On a decline, or where §4.1's *Gate failed* line was emitted, offer the `@<path>` route beside it**: `create-vi: <KEY> @<the absolute path of the relocated idea.md>`. Neither outcome committed anything, so the relocated `idea.md` is on no ref, and `create-vi: <KEY>` with no path then finds it on no ref (row F) and goes on down its idea ladder — whose discover rung searches `$VAULT_PATH/Projects`, not the specs folder this run relocated it into — so it comes back to this brief only through its same-session rung or a path the operator types, and otherwise grills the VI from scratch. Named as a path, the file is read where it sits on rung 2's terms: never relocated, never gated, reported once as out-of-contract. The merge-clause route is for an operator who will land the file first; the `@<path>` route is the one that does not wait for it.
-
-Also report any prior art found — matched keys with their statuses, and the alternative container path
-when one exists — **whether or not the gate fired**, so the user can relocate before `create-vi:` makes
-the path sticky.
+Also report any prior art found — matched keys with their statuses.
 
 Also report the code grounding when Phase 2.6 ran: the grounded repos with their `scanned_ref`s, any
 repo descoped or unmounted with the themes left unverified, any theme still inconclusive after round 2,
@@ -298,8 +276,10 @@ next-phase-offer contract; `idea:` is one reference implementation.)
 ### Context hygiene
 
 Continuing to `create-vi:` (still the PM phase)? → run **`/compact`** to free context; your
-`idea.md` is already on disk. (No resume pointer or `/rename` label here — the VI-Key is
-minted later, and the ideation phase is short.) Guidance only — see
+`idea.md` is already on disk at `<origin folder>/idea.md`, under `<origin key>`. The resume pointer is
+written in Phase 6 to `<origin folder>/dev-workflows/resume.md` — `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
+§1's tier 1, since the origin folder exists once `idea.md` is in it. No `/rename` label: `idea:` is outside
+that reference's §4 rename-aid set, because the PM phase is short, not for want of a key. Guidance only — see
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`.
 
 ---
@@ -312,11 +292,12 @@ Terminal phase — runs after Phase 5, NEVER interrupts an earlier phase.
 gap** (a capability the run needed but the plugin lacked), `emit-block` (per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) at that halt **before** escalating — so a run
 abandoned at the block still records the gap. NEVER `emit-block` for an environment / user halt (bad
-`$VAULT_PATH`, source-not-found, cancellation).
+`$SPECS_PATH`, source-not-found, cancellation).
 
 **Session-hygiene invariant.** End Phase 5 with a `### Context hygiene` note per
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — a same-role `/compact` suggestion
-(no `resume.md`, no `/rename`: pre-VI, short PM phase). Guidance only, never auto-run.
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` — a same-role `/compact` suggestion naming the
+origin key and folder (the `resume.md` write runs later, in step 3 below — this note prints the guidance
+only; no `/rename`: short PM phase, §4). Guidance only, never auto-run.
 
 1. **Invoke `impl-maintenance`** (agent_type: "dev-workflows:impl-maintenance", model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 
@@ -333,22 +314,24 @@ abandoned at the block still records the gap. NEVER `emit-block` for an environm
    > - Project root: [the idea.md folder]"
 2. **Persist plugin feedback (automatic).** Cite
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md` and call its `emit-auto` entry point (§6)
-   with the Lessons Learned report, `command: idea:`, `jira_key: null`, the run's `source`, and
+   with the Lessons Learned report, `command: idea:`, `jira_key` = the origin key, the run's `source`, and
    `plugin_version` (read from `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/.plugin/plugin.json`). It renders only the
    plugin-facing slice (§4), dedupes by stable `id` (§3), resolves the target via the §2 specs-first
-   ladder, and writes silently. Surface the persisted path (or "no plugin-facing signal — nothing
+   ladder — tier 1, `<origin folder>/dev-workflows/`, since the origin folder exists — and writes silently. Surface the persisted path (or "no plugin-facing signal — nothing
    persisted").
-3. **Commit session artifacts (terminal).** Cite
+3. **Write the resume pointer.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md` §1 and
+   write/overwrite `<origin folder>/dev-workflows/resume.md` (its tier 1) now — after the feedback entry
+   above, so the pointer reflects the completed run, and before the commit step below, so it is included
+   in it. Omit the session-name line (`idea:` carries no `/rename`, §4) and redact per §1. Silent; the
+   printed `### Context hygiene` guidance already appeared in the report.
+4. **Commit session artifacts (terminal).** Cite
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
    and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages
    ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
-   `NOISSUE Add dev-workflows session artifacts (idea:)` (this run is keyless — no VI-Key exists
-   yet), and pushes. It NEVER touches a code/docs repo, the vault, or the current working directory;
-   NEVER force-pushes; NEVER fails the run; and skips entirely when the run carries
-   `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome line for the Final
-   report. No `resume.md` is written for `idea:`
-   (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`
-   §1 skip list — pre-VI and keyless).
+   `<origin key> Add dev-workflows session artifacts (idea:)`, and pushes. It NEVER touches a code/docs
+   repo or the current working directory; NEVER force-pushes; NEVER fails the run; and skips entirely
+   when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome
+   line for the Final report.
 
 ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea.md itself is handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2, behind Phase 5's §4.3 consent choice; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`), and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.
 
@@ -361,9 +344,8 @@ Report: the `idea.md` path + `status` (refined / draft with N open clarification
 or broken wikilinks; the resolved model routing (+ any Opus degradation); the feedback path; the
 `Specs repo:` outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
-with any guard notice repeated in full; any prior art found (keys + statuses), any `status_conflict` a
-match reported (both values and the export's date — it is the signal that catches a broken sync) and any
-`notes` the finder returned; the resolved `vi_disposition`; the code grounding outcome — the grounded
+with any guard notice repeated in full; any prior art found (keys + statuses) and any
+`notes` the finder returned; the origin folder and `vi_key` (or "no VI yet"); the code grounding outcome — the grounded
 repos with their `scanned_ref`s, any descoped or inconclusive ones, and — first, because it is the most
 consequential thing a run can produce — the **Reframing** line if one was written; or, when no scan ran,
 `code grounding: off` (no `--ground-code`) or `code grounding: declined at the repo gate`

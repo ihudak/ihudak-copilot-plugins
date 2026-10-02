@@ -35,8 +35,8 @@ Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-b
 
 1. **Resolve the Jira input via the shared front-end.** Classify the argument (text following the `design:` trigger) **minus every recognised flag** (`--design-twice`) before resolving — strip it first, exactly as `skills/idea/SKILL.md`'s Phase 1 strips its own flags: an unstripped `--design-twice` is parsed as part of the Jira key and the run resolves the wrong feature, or fails. Execute
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against the stripped argument. `design:` is
-   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
+   **jira-driven only**: expect `mode: jira-driven`. The front-end owns the
+   import-location validation, Fallbacks A/B **and D/E**, and the VI-selector (key-or-directory) +
    focus-Epic grammar. Carry forward:
    - `jira_key` — the resolved **top-level** key: the **VI** when a focus Epic is present, or the
      stand-alone top-level item's own key otherwise. Define `<VI>` = `jira_key`.
@@ -432,7 +432,7 @@ and execute its `commit-artifacts` entry point (§4) inline — the LAST action 
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (design:)` with no
 `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase
-created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the
+created (§4.1). It NEVER touches a code repo, a docs repo, or the
 current working directory; NEVER force-pushes; NEVER fails the run; and skips
 entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
 notice. Hold its §6 outcome line for the Final report.

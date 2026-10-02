@@ -26,7 +26,7 @@ the argument (text following the `implement:` trigger) may contain free-text pro
 **Jira-input resolution (shared front-end).** Before the per-`@path`
 classification above, run `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`
 against the argument (text following the `implement:` trigger). It unifies the input grammar with `document:`: a **JiraID**
-token (`^[A-Z][A-Z0-9]+-[0-9]+`) is discovered under `$VAULT_PATH/jira-products/`
+token (`^[A-Z][A-Z0-9]+-[0-9]+`) is resolved to its feature folder's `jira-import/`
 (Fallbacks A/B on miss); a directory that inspects as a **jira-export** is used as
 `jira_export_root`; a **spec-folder** contributes to `specs`; everything else is
 `direct` (free-text/`@file`, this command's existing flow). The classification
@@ -774,15 +774,15 @@ and executing its steps inline.
    out-of-scope maintenance items surfaced in the Phase 5 `### Session
    learnings` section (e.g. an impl-maintenance suggestion that touches
    another repo or team, or a manual post-merge step). **Do NOT** collect the
-   report's `### Deferred items (from review or tests)` or skipped tests — §6
+   report's `### Deferred items (from review or tests)` or skipped tests — §4
    explicitly excludes those as in-scope work already carried by the current
    task.
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`
-   (jira-driven runs carry a key; direct-prompt runs usually do not, so tasks
-   land in `Tasks.md # Irregular` when the vault is writable, else report-only);
-   render + place tasks and verbose notes per §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`
+   (jira-driven runs carry a key; direct-prompt runs usually do not, so they
+   degrade to report-only);
+   render + place tasks per §1 (verbose detail inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 5 report. This phase NEVER
 fails the run, NEVER commits (still true — this phase only writes follow-up
@@ -807,7 +807,7 @@ commits `<KEY> Add dev-workflows session artifacts (implement:)`, and pushes
 per §4 step 5. It NEVER writes into the code repo this run just changed — that
 repo's own commit, push, and pull request were Phase 4.6's, through a different
 reference and against a different remote —
-NEVER touches a docs repo, the vault, or the current working directory; NEVER
+NEVER touches a docs repo or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as

@@ -40,7 +40,7 @@ CLI_REQUIRED="marketplace add|update"   # claude: marketplace add|marketplace up
                                      # phrases getting-started.md must carry inline. A subset
                                      # of CLI_VERBS; differs per edition because Copilot
                                      # updates with `plugin update --all`, not a marketplace verb.
-HAS_COST=0                           # claude: 1 -- no cost subsystem exists here (skills/_shared/specs-repo-git.md:54)
+HAS_COST=0                           # claude: 1 -- no cost subsystem exists here (skills/_shared/specs-repo-git.md section 2.1's closing note)
 HAS_CHOICE_CAP=0                     # claude/mgd: 1 -- this edition's ask_user takes any number of
                                      # choices and its own allowFreeform; AskUserQuestion's 4-option
                                      # cap does not apply here

@@ -64,7 +64,7 @@ the entry with the two extra prose blocks (`origin: prompt`), and appends per §
 and execute its `commit-artifacts` entry point (§4) inline. It stages ONLY the
 §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
 `<KEY> Add dev-workflows session artifacts (prompt:)` — or `NOISSUE …` when no
-`jira_key` resolved — and pushes. It NEVER touches a code/docs repo, the vault,
+`jira_key` resolved — and pushes. It NEVER touches a code/docs repo,
 or the current working directory; NEVER force-pushes; NEVER fails the run; and
 skips entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting
 that notice. Hold its §6 outcome line for Phase 4.
@@ -76,7 +76,7 @@ outcome line from `commit-artifacts`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6),
 with any guard notice repeated in full.
 
-This command NEVER commits into a docs/code repo, the vault, or the current
+This command NEVER commits into a docs/code repo, or the current
 working directory — only the correction itself edits your target files, as you
 requested, and those edits are never staged. The terminal `commit-artifacts`
 step commits ONLY `$SPECS_PATH`'s bounded artifact paths

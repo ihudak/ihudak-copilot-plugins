@@ -1,10 +1,10 @@
 ---
 name: epic-writer
-description: "Writes child Epic-definition files for epics: from a structured handoff file — one file per Epic, following the Epic template, traceable to the jira-reader handoff and code-scanner evidence. Write-only — writes vault content, never commits (still true — it runs no git at all). Returns the list of Epic files written. The orchestrator pins it to the §2.1 detection chain for MODERATE runs (§2 Opus only if SIGNIFICANT/HIGH-RISK)."
+description: "Writes child Epic-definition files for epics: from a structured handoff file — one file per Epic, following the Epic template, traceable to the jira-reader handoff and code-scanner evidence. Write-only — writes Epic drafts, never commits (still true — it runs no git at all). Returns the list of Epic files written. The orchestrator pins it to the §2.1 detection chain for MODERATE runs (§2 Opus only if SIGNIFICANT/HIGH-RISK)."
 tools: [view, glob, grep, create, edit]
 ---
 
-Epic-definition writer for `epics:` Phase 6. The orchestrator resolved scope and inputs in Phases 2–5; this agent **executes** — write-only, and it **never** creates a branch or commits (still true — it runs no git at all; vault git is the user's responsibility, and the orchestrator's terminal `commit-artifacts` step touches only `$SPECS_PATH`).
+Epic-definition writer for `epics:` Phase 6. The orchestrator resolved scope and inputs in Phases 2–5; this agent **executes** — write-only, and it **never** creates a branch or commits (still true — it runs no git at all; the orchestrator's terminal `commit-artifacts` step commits drafts written under `$SPECS_PATH`).
 
 ## Inputs
 
@@ -14,7 +14,7 @@ The orchestrator writes a **handoff file** (a temp file) and passes its absolute
 - `code_scanner_outputs` (when code scan ran; else empty)
 - `scope` — the Phase 2 in-scope / out-of-scope decisions
 - `existing_epics` — for non-duplication
-- `output_dir` — the resolved output directory (default `$VAULT_PATH/jira-drafts/<JIRA_KEY>/`)
+- `output_dir` — the resolved output directory (default `<VI folder>/epic-drafts/`)
 - `vi_goal`, `jira_key`
 - `requirements` + `requirements_source` — the VI requirement inventory (from jira-reader); the coverage ground truth.
 - `applicable_ard` — the VI-level ARD `invariants` (AD#N) + `guidance_summary`, or absent when no ARD resolved.
@@ -93,9 +93,9 @@ Create the output directory if missing — your `create` tool auto-creates paren
 Traceability: every claim in each Epic must be traceable to the handoff `jira_reader_handoff` (Jira key + which item type — VI goal, existing Epic summary, Story theme) or `code_scanner_outputs` (`evidence.path` + symbols). Do not invent content the sources don't contain. `docs_grounding` (when present) is a **consistency reference** — align terminology and avoid contradicting shipped behavior with it — but it is never itself a source of new Epic claims; every Epic claim still traces to `jira_reader_handoff` or `code_scanner_outputs`.
 
 **Write restrictions** (enforced by invariants):
-- NEVER write inside `jira-products/` — re-created on every import.
+- NEVER write inside `jira-import/` — re-created on every import.
 - NEVER write inside `_archive/` — read-only by convention.
-- NEVER write outside `$VAULT_PATH`.
+- NEVER write outside `output_dir`.
 - ALWAYS write inside the handoff `output_dir`.
 
 ## Uncertainty markers

@@ -23,7 +23,7 @@ the embedded grilling technique (`~/.copilot/installed-plugins/ihudak-copilot-pl
 a declared install-time dependency.
 
 **Relationship to B4 (`followup-emission.md`).** B4 captures the *engineer's own*
-follow-up actions → vault-first, audience = the engineer. This feature captures
+follow-up actions → a checklist, audience = the engineer. This feature captures
 *plugin* friction → specs-first, audience = the maintainer. Both share the
 `<VI-dir>/dev-workflows/` per-VI area. **No dedup between them** — different
 purpose, different audience.
@@ -93,25 +93,20 @@ back in review because the two products differ here.
 ## 2. Persistence ladder (specs-first; never cwd)
 
 `$SPECS_PATH` is primary — central aggregation is the whole point. Resolution is
-**deterministic** (no interactive vault-path prompt, consistent with silent
+**deterministic** (no interactive path prompt, consistent with silent
 capture, §5). Walk the ladder top-down and stop at the first tier that applies:
 
 1. **`$SPECS_PATH` resolvable + writable + the VI dir exists** — the dir matched
-   by `$SPECS_PATH/{specs|specifications|vis}/…/<KEY>{-|_}<slug>/…` →
+   by `$SPECS_PATH/{specs|specifications|vis|ideas}/…/<KEY>{-|_}<slug>/…`, per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts) →
    `<VI-dir>/dev-workflows/<KEY>-feedback.md`. *[primary — the whole point]*
 2. **`$SPECS_PATH` writable but no VI dir matched** (no `jira_key`, or no
    matching spec dir) → `$SPECS_PATH/dev-workflows-feedback/<KEY-or-date>.md` at
    the specs-repo root. Still committed & aggregated; notice:
    `unfiled — move under the VI dir if it belongs to one.`
-3. **No `$SPECS_PATH` (unset / missing / read-only) AND the vault is writable**
-   (`$VAULT_PATH` set **and** an existing directory **and**
-   writable) → `$VAULT_PATH/dev-workflows/feedback/<KEY>-feedback.md`, with a
-   **loud notice**:
-   `⚠ $SPECS_PATH unavailable — saved to your vault; it will NOT auto-aggregate to the maintainer. Set $SPECS_PATH and commit, or forward manually.`
-4. **`source = directory`** (imported Jira dir, no specs/vault) → beside the
+3. **`source = directory`** (imported Jira dir, no specs) → beside the
    imported directory, where `epics:` + `release-notes:` already drop their
-   no-vault output.
-5. **Nothing resolvable** → **report-only**: keep the feedback in the run's
+   own drafts.
+4. **Nothing resolvable** → **report-only**: keep the feedback in the run's
    final output and emit the notice. **NEVER write into the current working
    directory** — it may be a code repo.
 
@@ -206,7 +201,7 @@ terminal `commit-artifacts` step
 ### `emit-auto` — automatic callers (the thirteen commands' maintenance phases)
 
 Inputs: the `impl-maintenance` **Lessons Learned report**, `command` (the exact
-slash-command name), `jira_key` (or `null`), `source` (`vault | directory |
+slash-command name), `jira_key` (or `null`), `source` (`specs | directory |
 none`).
 
 Behavior: project the plugin-facing slice per §4 (Command workflow improvements
@@ -238,7 +233,7 @@ the target (§2); write silently (§5); surface the path.
 ### `emit-block` — capture-at-block (a run halting on a plugin gap, or on a tool the container image lacks)
 
 Inputs: `command` (exact slash-command name), `jira_key` (or `null`), `source`
-(`vault | directory | none`), and the **halting gap** — a short description of
+(`specs | directory | none`), and the **halting gap** — a short description of
 the plugin capability / reference / skill / command-path the run needed but the
 plugin lacked. Unlike `emit-auto`, no `impl-maintenance` report exists (the run
 is being abandoned mid-flight), so the gap is passed directly.
@@ -260,7 +255,7 @@ applies (never target-project `copilot-instructions.md` / hook advice).
 
 ### `emit-bugs` — bugs-only callers (`--skip-feedback`, `run-flags.md` §4)
 
-Inputs: the `defect-reporter` **Defects** list, `command` (the exact skill name), `jira_key` (or `null`), `source` (`vault | directory | none`), and `plugin_version`.
+Inputs: the `defect-reporter` **Defects** list, `command` (the exact skill name), `jira_key` (or `null`), `source` (`specs | directory | none`), and `plugin_version`.
 
 Behavior: render one `origin: auto` entry per defect — Friction = the defect plus its evidence; Suggested improvement = the repro plus the location to fix; `impact` is `blocker | friction` only, never `polish` — `emit-bugs` drops any defect marked `polish` and writes no entry for it; `category` is drawn from §1's vocabulary — `environment-defect` for a container-environment location, else `wrong-output` / `missing-reference-doc` / `missing-capability` / `other` as fits; dedupe by the stable `id` (§3); resolve the target (§2); write silently (§5). Return the persisted path.
 

@@ -15,7 +15,7 @@ and must never touch git. This reference supplies the two steps that close the
 loop: a **run-start** flush and branch disposition (`specs-preflight`, §3) and a
 **terminal** commit (`commit-artifacts`, §4).
 
-**Scope.** ONLY the bounded artifact paths of §2.1, ONLY inside `$SPECS_PATH`. Nothing here ever touches a code repo, a docs repo, the vault, or the current working directory. The code repo a run just changed is finished by `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` — a different repository, a different remote, and its own `Code repo:` outcome line. Neither entry point here opens a pull request: `specs-preflight` and `commit-artifacts` are prompt-free bookkeeping steps, and opening a pull request is outward-facing. Deliverable handoff — including `gh pr create` where the host supports it — lives in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2.6, behind that reference's consent choice. `git push` here is git-protocol, already sanctioned by `finish-and-handoff.md` §3.
+**Scope.** ONLY the bounded artifact paths of §2.1, ONLY inside `$SPECS_PATH`. Nothing here ever touches a code repo, a docs repo, or the current working directory. The code repo a run just changed is finished by `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/code-repo-handoff.md` — a different repository, a different remote, and its own `Code repo:` outcome line. Neither entry point here opens a pull request: `specs-preflight` and `commit-artifacts` are prompt-free bookkeeping steps, and opening a pull request is outward-facing. Deliverable handoff — including `gh pr create` where the host supports it — lives in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2.6, behind that reference's consent choice. `git push` here is git-protocol, already sanctioned by `finish-and-handoff.md` §3.
 
 ## 1. Hard rules
 
@@ -41,13 +41,18 @@ loop: a **run-start** flush and branch disposition (`specs-preflight`, §3) and 
 
 ### 2.1 Paths
 
-Exactly three shapes: two directories derived from the emission ladders, and one file
-`release-notes:` writes for the operator. Nothing outside this set is ever staged.
+Exactly seven shapes: two directories derived from the emission ladders, the Jira import and the
+Epic drafts a feature folder holds, and three files skills write for the operator. Nothing outside
+this set is ever staged.
 
 ```
-<specs-root>/{specs|specifications|vis}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
+<specs-root>/{specs|specifications|vis|ideas}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
 <specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
-<specs-root>/{specs|specifications|vis}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
+<specs-root>/{specs|specifications|vis|ideas}/**/jira-import/**            # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
+<specs-root>/{specs|specifications|vis|ideas}/**/epic-drafts/**            # epics: drafts
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-implementation-gaps.md  # source-truth.md §7.5 draft
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-pr-draft.md         # finish-and-handoff.md pull-request draft
 ```
 
 **The release-notes shape names a file, never its folder, and that distinction is the safety
@@ -60,8 +65,10 @@ classifies it OTHER, step 3 never stages it, and it sits dirty for ever — firi
 every later preflight of every caller. Anything a run writes into the feature folder and
 expects committed needs a shape here first.
 
-Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §4 (the
-shared per-VI area), `session-hygiene.md` §1 (resume tier 1). This edition has
+**`jira-import/` and `epic-drafts/` are directory shapes, and that is safe for the reason the release-notes shape is a file.** Neither directory ever holds a phase deliverable: `jira-import/` is written only by `jira-workitem-import` and regenerated on every re-import, and `epic-drafts/` only by `epics:`. A fresh import is therefore committed by the next run's `specs-preflight` flush, prompt-free — the import is shared team state, not one machine's cache. **A screenshot `document:` stages is not a shape**: it is a temporary copy kept until the operator uploads it, so `document:` keeps it out of `git status` through the repository's local exclude file instead (its Phase 6 writer step).
+
+Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §2.1 (the
+shared per-VI area), `session-hygiene.md` §1 (resume tier 1), `jira-input-resolution.md` (the import), `epics:` (drafts), `source-truth.md` §7.5 (gaps draft), `finish-and-handoff.md` §5 (pull-request draft). This edition has
 **no cost subsystem** — there is no `cost-emission.md`, no `emit-cost`, and no
 `dev-workflows-cost/` path shape.
 
@@ -87,8 +94,12 @@ fragile to express and to review. The procedure is:
    is not a substitute: it suppresses only the octal escaping, and a path with a
    space is still quoted.
 2. Classify each reported path: **ARTIFACT** if it matches
-   `^(specs|specifications|vis)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
-   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$`; **OTHER**
+   `^(specs|specifications|vis|ideas)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
+   `^(specs|specifications|vis|ideas)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$` or
+   `^(specs|specifications|vis|ideas)/.+/jira-import/` or
+   `^(specs|specifications|vis|ideas)/.+/epic-drafts/` or
+   `^(specs|specifications|vis|ideas)/.+/[A-Z][A-Z0-9_]*-[0-9]+-(implementation-gaps|pr-draft)\.md$`
+   — exactly the seven §2.1 shapes, and a phase deliverable never matches; **OTHER**
    otherwise.
 3. Stage the literal ARTIFACT paths only:
    `git -C "$SPECS_PATH" add -A -- <path> [<path>…]`.
@@ -129,7 +140,7 @@ state in this container setup.
 
 **A failed gate is not one disposition but two, and conflating them is what made a misconfiguration indistinguishable from a supported state.**
 
-- **`$SPECS_PATH` is unset, or `.git` resolves but is not writable → silent no-op**, exactly as before. The artifacts are going to a vault or report-only tier the plugin does not manage, and a read-only specs mount is a normal state in this container setup. Saying nothing is correct here: there is nothing for the operator to fix.
+- **`$SPECS_PATH` is unset, or `.git` resolves but is not writable → silent no-op**, exactly as before. The artifacts are going to a report-only tier the plugin does not manage, and a read-only specs mount is a normal state in this container setup. Saying nothing is correct here: there is nothing for the operator to fix.
 - **`$SPECS_PATH` is set to a path that is not a directory, or `rev-parse --git-dir` fails there → emit a one-line notice** naming the variable and the path, then continue. This is **never** a supported state: a set-but-not-a-repository `$SPECS_PATH` is a typo, a missing mount, or a path that was right in another container. Under the old blanket silence it looked identical to the read-only case, so a run would write its deliverables, commit nothing, open no pull request, and end on a terminal gate-failed line that named none of it — the operator's first clue being an empty specs tree some time later.
 
 Still **never fatal** (§1): the notice reports and the run continues. What changes is that the condition is now *said*.
@@ -297,7 +308,7 @@ condition here:
   or operator halt by its own predicate — which every Phase 0 refusal is.
 
 - **Follow-ups are a no-op.** No signal qualifies, so that phase resolves no
-  target, writes nothing and ends silently (`followup-emission.md` §6).
+  target, writes nothing and ends silently (`followup-emission.md` §4).
 
 - **`resume.md` is NOT written.** `session-hygiene.md` §1 defines it as the
   last *completed* position — the phase just finished and the exact next

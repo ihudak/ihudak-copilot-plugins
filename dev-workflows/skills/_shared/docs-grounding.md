@@ -72,8 +72,8 @@ write-target discovery hint (see its Phase 0).
 
 **Default-safety note.** A `/workspace/*` default is safe here because this is a
 read-only search base — a wrong/missing default just misses and silently skips.
-This mirrors `${REPOS_PATH:-/workspace}`. Write roots (`SPECS_PATH`,
-`VAULT_PATH`) deliberately do **not** default; do not change them.
+This mirrors `${REPOS_PATH:-/workspace}`. The write root (`SPECS_PATH`)
+deliberately does **not** default; do not change it.
 
 ## Plan-approval line
 
@@ -111,7 +111,7 @@ default for this retrieval agent):
   >
   > docs_path:       <docs_root>
   > feature_summary: <2–4 sentences: the goal + capability themes for this run>
-  > jira_key:        <the VI/Epic/ticket key, or omit for keyless idea:>
+  > jira_key:        <the VI/Epic/ticket key, or omit when the run has no key>
   > themes:          [capability themes, or []]"
 ```
 

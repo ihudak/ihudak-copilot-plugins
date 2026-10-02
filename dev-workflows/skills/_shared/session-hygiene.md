@@ -35,17 +35,16 @@ terminal feedback and follow-up steps. Prepare-first is still satisfied: the wri
 happens before the run ends, and therefore before the user can act on the printed
 suggestion.
 
-**Skipped** (no VI anchor to write against): `idea:` (pre-VI, keyless), `implement:`
+**Skipped** (no VI anchor to write against): `implement:`
 **direct** mode, `document:` **doc-edit** mode (Mode B), `vuln:`, `upgrade:`. There the
 durable state is the artifact / branch / PR already on disk; no resume pointer is written.
 
-**Location** (mirror `followup-emission.md` §4 resolution):
+**Location** (mirror `followup-emission.md` §2 resolution):
 
-1. `$SPECS_PATH` resolvable + writable + the VI dir exists → `<VI-dir>/dev-workflows/resume.md`. *[primary]*
+1. `$SPECS_PATH` resolvable + writable + the VI dir exists (matched per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts)) → `<VI-dir>/dev-workflows/resume.md`. *[primary]*
 2. `$SPECS_PATH` writable but no VI dir matched → skip the file; rely on the printed `### Next step`.
-3. No `$SPECS_PATH`; `$VAULT_PATH` writable → `$VAULT_PATH/dev-workflows/resume/<KEY>-resume.md`.
-4. Neither writable → skip the file; the suggestion still fires with a one-line
-   `⚠ could not persist a resume pointer — set $SPECS_PATH or $VAULT_PATH`.
+3. No writable `$SPECS_PATH` → skip the file; the suggestion still fires with a one-line
+   `⚠ could not persist a resume pointer — set $SPECS_PATH`.
 
 `resume.md` is a **"last known position" pointer, OVERWRITTEN each run** (NOT an append
 log). It is intentionally tiny:
@@ -110,9 +109,9 @@ question never reaches them — while `create-vi:` and `update-vi:` take a manda
 line. The block a command carries is the whole of the test.
 
 **`idea:`, `create-vi:` and `update-vi:` are excluded** from the rename aid, and the reason is the
-phase rather than the key. `idea:` usually does run before a key exists — it is keyless unless its
-source is a `vi` — but `create-vi:` and `update-vi:` each take a mandatory Jira key as their first
-argument and refuse without one (`CREATE_VI_NEEDS_KEY`, `UPDATE_VI_NEEDS_KEY`), so the key is in
+phase rather than the key. `idea:` always has one — its origin key, the VI's or the PRODFB
+ticket's whose folder it writes into, which is also where its pointer goes — and `create-vi:` and
+`update-vi:` each take a mandatory Jira key as their first argument and refuse without one (`CREATE_VI_NEEDS_KEY`, `UPDATE_VI_NEEDS_KEY`), so the key is in
 hand before either writes anything. This section used to give "there is usually no VI-ID to name a
 session after" as the reason for `create-vi:` too, and named no disposition for `update-vi:` at all,
 which writes a resume pointer and so reached §1's template with nothing to decide the line by. The
@@ -137,7 +136,7 @@ names the session manually if they want one.
    (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4).
 3. **Role-aware via a single graph** — the compact/clear split reads
    `next-phase-offer.md`'s role labels; the role graph is not duplicated here.
-4. **Mode-aware** — direct / doc-edit / non-pipeline / pre-VI runs (no VI anchor) → no
+4. **Mode-aware** — direct / doc-edit / non-pipeline runs (no VI anchor) → no
    `resume.md`, no `/rename`, and the suggestion degrades to a plain optional `/compact`
    note (or is omitted, consistent with `next-phase-offer`'s mode-aware omission).
 5. **Never blocks** — a nudge appended to the Final Report, exactly like the next-phase offer.

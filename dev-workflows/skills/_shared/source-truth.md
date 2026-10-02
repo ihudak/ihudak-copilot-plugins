@@ -289,11 +289,10 @@ marker explaining the gap. See §7 for the marker format.
 - Reviewer severity rule: a customer-visible option / label / count
   that does not appear in the source is **BLOCKER**, not CONCERN —
   unless an intentional-discrepancy marker is present (§7).
-- Bug-report draft destination is the ticket's vault project folder
-  (auto-discovered by the orchestrator at
-  `<vault>/Projects/Products/**/<JIRA_KEY>*`) — the folder `document:`
-  uses, which is not the release-notes draft's when that draft is written
-  into the VI's specs folder. File name:
+- Bug-report draft destination is the ticket's feature folder
+  (resolved by the orchestrator per `jira-input-resolution.md` § JiraID
+  token step 2) — the folder `document:` uses, and the release-notes
+  draft's too. File name:
   `<JIRA_KEY>-implementation-gaps.md`. Same hard rule as for release-notes:
   **NEVER `/tmp/`** — container restarts wipe it.
 
@@ -457,14 +456,14 @@ When `discrepancy_decisions` contains ANY entry with decision
 `document-as-spec` (where the code lags the intended phrasing),
 `skip-and-report`, or `document-as-code` **where the Jira phrasing asserts a
 specific value that contradicts the source**, the writer MUST emit a
-Markdown file in the auto-discovered vault project folder (§5 above names it). Skip a `document-as-code` entry whose Jira phrasing is vague
+Markdown file in the ticket's feature folder (§5 above names it). Skip a `document-as-code` entry whose Jira phrasing is vague
 or non-committal — "several registries" against a source with four is loose,
 not wrong. When the two readings are arguable, emit: the output is a draft
 the user reviews, so a spurious entry costs a paragraph while a miss leaves
 a wrong customer-facing claim in the ticket indefinitely.
 
 ```
-<vault>/Projects/Products/**/<JIRA_KEY>*/<JIRA_KEY>-implementation-gaps.md
+<feature folder>/<JIRA_KEY>-implementation-gaps.md
 ```
 
 Format:
@@ -495,7 +494,7 @@ team (or amend the Jira ticket if the gap is intentional).
                     filing a defect against the implementation team>
 ```
 
-The bug-report draft's destination is always the vault project folder,
+The bug-report draft's destination is always the ticket's feature folder,
 never `/tmp/`, never inside the docs repo.
 
 ### 7.6 Intentional-discrepancy marker format (for the writer)
@@ -508,7 +507,7 @@ the writer inserts this marker immediately before the affected prose:
 "<spec_phrasing>" (spec; "<jira_phrasing>" per Jira when no spec) but the
 source at <file:line> currently has "<source_phrasing>". User decision:
 document intended phrasing pending implementation.
-See <vault-path>/<JIRA_KEY>-implementation-gaps.md gap #<n>. -->
+See <feature-folder>/<JIRA_KEY>-implementation-gaps.md gap #<n>. -->
 ```
 
 `doc-reviewer`'s Source-code accuracy dimension (§4.3) recognises this

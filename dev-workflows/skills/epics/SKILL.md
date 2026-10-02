@@ -10,11 +10,11 @@ Draft child Epics for the Jira Value Increment: the argument (text following the
 
 Usage: `epics: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs` turns off documentation grounding for the run; `--docs <path>` overrides `$DOCS_PATH` for this run — see Phase 2).
 
-`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown in the user's Obsidian vault, optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on a review-tier review.
+`epics:` is the **Jira-driven Epic-writing** workflow. Given a Value Increment key, it reads the VI plus its existing Epics from pre-exported markdown (the VI's feature-folder `jira-import/`, or an imported-Jira directory), optionally scans code repos to identify reusable capabilities and gaps, drafts child Epic definitions as markdown files under the resolved output directory, and gates the result on a review-tier review.
 
 Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not yet implemented** — there are no PRs to diff. Code scanning (when enabled) is a plain filesystem search to understand what exists and what needs to be built.
 
-`epics:` **never branches** and **never commits the Epic drafts** (still true — the run's git **writes** are confined to `$SPECS_PATH`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`; the run does make read-only git calls elsewhere — Phase 4's `git remote get-url origin` per candidate clone and Phase 8's `git diff --stat` from `project_root` — but none of them writes), and writes only to the resolved output directory — `jira-drafts/<jira_key>/` under `$VAULT_PATH`, or a derived `epic-drafts/<jira_key>/` dir beside the imported hierarchy when `$VAULT_PATH` is unset. Git hygiene of the write target is the user's responsibility — they may or may not have it under version control. The run commits only inside `$SPECS_PATH`, and only its bounded session-artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) — via the `specs-preflight` flush at run start (§3.4) and the terminal `commit-artifacts` step (§4); never the drafts, never the write target. It still creates no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none).
+`epics:` **never branches**, never runs `handoff-to-main` and never opens a pull request (still true — the run's git **writes** are confined to `$SPECS_PATH`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`; the run does make read-only git calls elsewhere — Phase 4's `git remote get-url origin` per candidate clone and Phase 8's `git diff --stat` from `project_root` — but none of them writes), and writes only to the resolved output directory — `<VI folder>/epic-drafts/`, or a derived `epic-drafts/<jira_key>/` dir beside an imported hierarchy outside `$SPECS_PATH`. Drafts written under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) are committed by the terminal `commit-artifacts` step (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1); drafts written beside an import outside `$SPECS_PATH` are never committed — git there is the user's responsibility. The run commits only inside `$SPECS_PATH`, and only its bounded artifact paths (§2.1) — via the `specs-preflight` flush at run start (§3.4) and the terminal `commit-artifacts` step (§4); never anything outside `$SPECS_PATH`. It still creates no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none).
 
 ---
 
@@ -29,9 +29,9 @@ Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not ye
    `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` against
    the stripped argument (text following the `epics:` trigger). `epics:` is **jira-driven only**: expect `mode: jira-driven`
    with `jira_key` (the input Value Increment key), `jira_export_root` (the VI
-   export dir — `$VAULT_PATH/jira-products/<KEY>` for a JiraID, or the passed
-   directory), and `source`. The front-end owns the `$VAULT_PATH` /
-   `jira-products` validation and Fallbacks A/B. Carry `jira_key`,
+   export dir — `<feature-folder>/jira-import` for a JiraID, or the passed
+   directory), and `source`. The front-end owns the
+   import-location validation and Fallbacks A/B. Carry `jira_key`,
    `jira_export_root`, and `focus_key` forward. Downstream, `<JIRA_KEY>` and
    `<VI-KEY>` both denote this `jira_key`.
 
@@ -41,7 +41,7 @@ Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not ye
 
 `epics:` is **cwd-agnostic**: it writes Epic drafts to an absolute output
 directory (resolved in Phase 1), so it does **not** require cwd to be inside the
-vault.
+specs repo.
 
 **Specs-repo preflight.** Cite
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
@@ -64,18 +64,9 @@ Ask about:
 
 - **Output directory.** One `.md` file per Epic, filename `<NEW-EPIC-SLUG>.md`
   (drafted Epics have no Jira ID yet, so they are slug-named files inside the
-  VI-keyed folder). The default depends on `$VAULT_PATH`:
-  - **`$VAULT_PATH` set** → `$VAULT_PATH/jira-drafts/<jira_key>/`. This lives
-    **outside** `jira-products/` by design — `jira-products/` is re-created on
-    every Jira import, so drafts written there would be lost; `jira-drafts/` is a
-    sibling reserved for PM/PO work-in-progress that survives re-imports.
-  - **`$VAULT_PATH` unset** (directory input) →
-    `<parent-of-jira_export_root>/epic-drafts/<jira_key>/`. **Path-safety
-    guard:** warn and offer another path if this dir would fall *inside*
-    `jira_export_root` (wiped and regenerated on every import). A pre-existing
-    dir that already holds drafts is normal — **not** a warning.
+  VI-keyed folder). The default is **`<VI folder>/epic-drafts/`** — beside `jira-import/`, never inside it: a re-import regenerates `jira-import/`, so a draft written there would be lost, while `epic-drafts/` survives re-imports. The terminal `commit-artifacts` step commits it (`specs-repo-git.md` §2.1). For a directory-token input outside `$SPECS_PATH`: `<parent-of-jira_export_root>/epic-drafts/<jira_key>/`, with the path-safety guard — warn and offer another path if it would fall *inside* `jira_export_root`. A pre-existing directory that already holds drafts is normal — **not** a warning.
   The directory is auto-created if missing. Record `output_dir`, and record
-  `project_root` = `$VAULT_PATH` when set, else `output_dir`. Ask:
+  `project_root` = `$SPECS_PATH` when the VI folder resolved, else `output_dir`. Ask:
   ```
   choices: ["Use <output_dir> (Recommended)", "Use a different path (you'll be prompted)", "Cancel", "Other… (describe)"]
   ```
@@ -102,7 +93,7 @@ Also display (for user context):
 - Resolved cwd absolute path
 - Resolved output directory
 - Resolved `$REPOS_PATH` (or "N/A — code scan off")
-- Resolved `jira_export_root` and `jira_key` (plus `$VAULT_PATH` when set)
+- Resolved `jira_export_root` and `jira_key` (plus the VI folder when resolved)
 
 No branching context is shown — this command never branches (still true — `specs-preflight` only switches `$SPECS_PATH` between branches that already exist, and only ones the plugin created, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2; it creates none).
 
@@ -110,7 +101,7 @@ No branching context is shown — this command never branches (still true — `s
 
 ## Phase 1.5 — Classify
 
-Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then classify the task as exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, or `HIGH-RISK`. Epic writing is typically **MODERATE** (bounded scope, single VI, vault-internal output). State the classification and a one-sentence reason.
+Load and follow the model-routing policy at `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md`, then classify the task as exactly one of: `SIMPLE`, `MODERATE`, `SIGNIFICANT`, or `HIGH-RISK`. Epic writing is typically **MODERATE** (bounded scope, single VI, specs-repo output). State the classification and a one-sentence reason.
 
 MODERATE → no separate Opus planner; the `epic-reviewer` gate (Opus, dispatch-pinned to this chain) is mandatory. Resolve the per-step routing per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9:
 
@@ -347,9 +338,9 @@ Handle per-repo status after the batch returns:
 
 ## Phase 6 — Write Epics
 
-The drafting is delegated to the **`epic-writer`** subagent (pinned to the §2.1 detection chain for MODERATE; §2 Opus only if the run is SIGNIFICANT/HIGH-RISK — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9.2). The orchestrator prepares a handoff and dispatches; it does not write Epics itself, and **nothing commits in this phase** (still true — `epics:` never branches, and the Epic drafts it writes are never committed; git hygiene of the write target is the user's responsibility. The run commits only inside `$SPECS_PATH`, and only its bounded session-artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+The drafting is delegated to the **`epic-writer`** subagent (pinned to the §2.1 detection chain for MODERATE; §2 Opus only if the run is SIGNIFICANT/HIGH-RISK — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9.2). The orchestrator prepares a handoff and dispatches; it does not write Epics itself, and **nothing commits in this phase** (still true — `epics:` never branches; drafts written under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) are committed later by the terminal `commit-artifacts` step, and drafts written beside an import outside `$SPECS_PATH` are never committed — git there is the user's responsibility. The run commits only inside `$SPECS_PATH`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 
-1. **Write the handoff file.** Create a temp file (`command mktemp -t dw-epics-handoff-XXXXXX` — never the vault, never a repo) containing the `epic-writer` input contract: `jira_reader_handoff`, `code_scanner_outputs` (empty if no scan), `scope` (Phase 2 in/out of scope), `existing_epics` (non-duplication), `output_dir` (resolved Phase 1 dir), `vi_goal`, `jira_key`, `requirements` + `requirements_source` (from Phase 3), `applicable_ard` (the Phase 2.5 invariants + guidance_summary, or omit when status was none), `existing_epic_themes` (themes of the already-linked Epics), `mode` (`generate` | `refine` | `both` — from Phase 3.5; `generate` when 3.5 skipped), and `refinement_targets` (list of `{key, team, scope_hint, current_body_path}`, where `current_body_path = <jira_export_root>/<EPIC-KEY>/<EPIC-KEY>.md`; empty in `generate` mode), and `docs_grounding` (the Phase 3.6 digest, or omit when OFF/EMPTY). Record its absolute path. When `focus_key` is set (the Phase 3 refinement target), set `scope` in-scope to just the focus Epic and `existing_epics` to the *other* linked Epics, so `epic-writer` re-drafts the single focus Epic's definition file; `output_dir` is unchanged. Remove the handoff file (`command rm -f -- "<path>"`) once step 2's dispatch (and any re-dispatch on `status: BLOCKED`) has returned — no later step in this run reads it again.
+1. **Write the handoff file.** Create a temp file (`command mktemp -t dw-epics-handoff-XXXXXX` — never a repo) containing the `epic-writer` input contract: `jira_reader_handoff`, `code_scanner_outputs` (empty if no scan), `scope` (Phase 2 in/out of scope), `existing_epics` (non-duplication), `output_dir` (resolved Phase 1 dir), `vi_goal`, `jira_key`, `requirements` + `requirements_source` (from Phase 3), `applicable_ard` (the Phase 2.5 invariants + guidance_summary, or omit when status was none), `existing_epic_themes` (themes of the already-linked Epics), `mode` (`generate` | `refine` | `both` — from Phase 3.5; `generate` when 3.5 skipped), and `refinement_targets` (list of `{key, team, scope_hint, current_body_path}`, where `current_body_path = <jira_export_root>/<EPIC-KEY>/<EPIC-KEY>.md`; empty in `generate` mode), and `docs_grounding` (the Phase 3.6 digest, or omit when OFF/EMPTY). Record its absolute path. When `focus_key` is set (the Phase 3 refinement target), set `scope` in-scope to just the focus Epic and `existing_epics` to the *other* linked Epics, so `epic-writer` re-drafts the single focus Epic's definition file; `output_dir` is unchanged. Remove the handoff file (`command rm -f -- "<path>"`) once step 2's dispatch (and any re-dispatch on `status: BLOCKED`) has returned — no later step in this run reads it again.
 
 2. **Dispatch the writer:**
 
@@ -362,7 +353,7 @@ The drafting is delegated to the **`epic-writer`** subagent (pinned to the §2.1
    ```
    choices: ["Provide the missing input (you'll be prompted)", "Cancel"]
    ```
-   On a provided value, rewrite the handoff and re-dispatch once. Nothing is committed here (still true — this step writes only Epic drafts into the vault / output directory, which `commit-artifacts` never stages; git management there is the user's responsibility).
+   On a provided value, rewrite the handoff and re-dispatch once. Nothing is committed here (still true — this step writes only Epic drafts into the output directory; under `$SPECS_PATH` the terminal `commit-artifacts` step commits them, outside it nothing does — git management there is the user's responsibility).
 
    Also record `coverage_file` (the `_coverage.md` path) and `clarifications_needed[]` for Phases 6.1 and 7.
 
@@ -392,7 +383,7 @@ Fold the results back: *assign* → re-dispatch `epic-writer` once (or Edit inli
 
 ## Phase 6.2 — Dynatrace style check
 
-Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (Jira mode), this does NOT use `docs-style-checker` (no repo linter for vault content). Instead, the Dynatrace corporate style guide checker validates terminology, trademarks, voice/tone, and inclusive language.
+Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (Jira mode), this does NOT use `docs-style-checker` (no repo linter for specs-repo content). Instead, the Dynatrace corporate style guide checker validates terminology, trademarks, voice/tone, and inclusive language.
 
 → task(agent_type: "dt-style-guide:dt-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Run the style check for this brief:
@@ -445,7 +436,7 @@ gate.
 
 ## Phase 7 — Epic review gate
 
-Invoke `epic-reviewer` (Opus). This reviewer is Epic-specific — scope clarity, acceptance-criteria testability, non-duplication of existing Epics. `docs-style-checker` is NOT used here (no repo linter for vault content); Dynatrace corporate style is handled by the Phase 6.2 `dt-style-checker` step above.
+Invoke `epic-reviewer` (Opus). This reviewer is Epic-specific — scope clarity, acceptance-criteria testability, non-duplication of existing Epics. `docs-style-checker` is NOT used here (no repo linter for specs-repo content); Dynatrace corporate style is handled by the Phase 6.2 `dt-style-checker` step above.
 
 → task(agent_type: "dev-workflows:epic-reviewer"):
   > "Review the Epic drafts for this brief:
@@ -464,7 +455,7 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 
 **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
 
-- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
+- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX`, never inside a repo tree), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
   ```
   choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run", "Other… (describe)"]
   ```
@@ -494,7 +485,7 @@ Cap: one fix cycle + one re-review maximum.
 
 First gather the change context:
 
-a. `project_root` (the vault when `$VAULT_PATH` is set, else the resolved output directory) is the "project root" for this run. Run `git diff --stat` from `project_root` if it is a git repo; otherwise list the written files manually. This command never commits anything under `project_root` — just report what changed (the terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+a. `project_root` (`$SPECS_PATH` when the VI folder resolved, else the resolved output directory) is the "project root" for this run. Run `git diff --stat` from `project_root` if it is a git repo; otherwise list the written files manually. This step never commits — just report what changed (when `project_root` is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the other bounded artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1; outside `$SPECS_PATH` nothing commits them).
 b. Compose a **change summary block**:
 
 ```
@@ -514,7 +505,7 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > "Post-write documentation review. Change summary:
 > [paste change summary block]
 >
-> The project root is an Obsidian vault when `$VAULT_PATH` is set, else the resolved output directory; look only for internal documentation files that reference Epic drafts (e.g., a `jira-drafts/README.md` or an index page enumerating active drafts).
+> The project root is the specs repo when the VI folder resolved, else the resolved output directory; look only for internal documentation files that reference Epic drafts (e.g., an `epic-drafts/README.md` or an index page enumerating active drafts).
 > Determine if any such file needs updating — e.g., a new entry in a drafts index.
 > Skip if: no such file exists or drafts aren't indexed centrally.
 > If an update is warranted: apply minimal edits.
@@ -524,7 +515,7 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > "Post-write knowledge review. Change summary:
 > [paste change summary block]
 >
-> Check ~/.copilot/memory/ (global) and .copilot/memory/ (project-level, preferred for vault-specific knowledge) for existing knowledge files.
+> Check ~/.copilot/memory/ (global) and .copilot/memory/ (project-level, preferred for specs-repo-specific knowledge) for existing knowledge files.
 > Determine if a new knowledge entry is warranted — look for: reusable insights about this VI-family's Epic patterns, non-obvious scoping constraints uncovered, code-reuse discoveries from code-scanner, duplicate-Epic near-misses that required scope adjustment.
 > If YES: append to the most appropriate existing file (never create a new file if an existing one fits) using this format:
 > ### [Short title]
@@ -578,7 +569,7 @@ report still appears in the report; this step NEVER fails the run, NEVER
 commits (still true — this step only writes the feedback file; those writes
 are committed by the terminal `commit-artifacts` step in Phase 10, per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
-§4), and NEVER writes into `jira-products/`, `jira_export_root`, or the
+§4), and NEVER writes into `jira-import/`, `jira_export_root`, or the
 current working directory.
 
 ---
@@ -593,7 +584,7 @@ Output a structured report — do NOT ask any closing confirmation:
 ## Jira-driven Epic Drafting Report
 
 ### Classification
-MODERATE — vault-internal Epic drafting for a single VI
+MODERATE — specs-repo Epic drafting for a single VI
 
 ### Model Routing
 - Session model (current_model): [model]
@@ -658,7 +649,7 @@ MODERATE — vault-internal Epic drafting for a single VI
 - [list any]
 
 ### Git state
-The project root has uncommitted changes. `epics:` never commits the project root — git management there is your responsibility. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step — see its outcome line at the end of the run.)
+The project root has uncommitted changes. If it is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the session artifacts — see its outcome line at the end of the run. Otherwise `epics:` does not commit the project root — git management there is your responsibility.
 
 ### Next step
 [Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` — guidance only, never auto-invoked. For each Epic just drafted, author its spec → `specify: <VI> <Epic>` (PE); the **Epic fan-out** (depth vs breadth) applies from the spec/design stage on. Optionally a Product Architect adds an Epic-level ARD first → `create-ard: <VI> <Epic>`. If the review BLOCKED, resolve that first.]
@@ -684,19 +675,19 @@ follow-ups by citing `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-wo
 and executing its steps inline.
 
 1. **Collect** the qualifying follow-ups: the manual publish step ("create these
-   drafted Epics in Jira manually" — the drafts are vault/dir files, not Jira
+   drafted Epics in Jira manually" — the drafts are specs-repo files, not Jira
    tickets) and the Phase 9 `### Deferred items` that are out-of-scope refinement.
-2. **Filter** them with the reference's §6 qualifying predicate.
-3. **Resolve** the write target via the §4 ladder using `jira_key` and `source`;
-   render + place tasks and verbose notes per §1–§3; dedupe per §5.
-4. **Preview + confirm** per §7 (`approve-all | select | cancel`), then write.
+2. **Filter** them with the reference's §4 qualifying predicate.
+3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`;
+   render + place tasks per §1 (verbose detail inlined as a section of the file); dedupe per §3.
+4. **Preview + confirm** per §5 (`approve-all | select | cancel`), then write.
 
 ADDITIVE — the follow-ups also remain in the Phase 9 report. This phase NEVER
 fails the run, NEVER commits (still true — this phase only writes follow-up
 files; those writes are committed by the terminal `commit-artifacts` step at the
 end of this phase, per
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
-§4), and NEVER writes into `jira-products/`, `jira_export_root`, or the current
+§4), and NEVER writes into `jira-import/`, `jira_export_root`, or the current
 working directory.
 
 **Then write the resume pointer.** Cite
@@ -711,8 +702,9 @@ printed `### Context hygiene` guidance already appeared in the Phase 9 report.
 and execute its `commit-artifacts` entry point (§4) inline — the LAST action of
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (epics:)`, and pushes per §4
-step 5. It NEVER touches the vault, `jira-products/`, `jira_export_root`, a
-code/docs repo, or the current working directory; NEVER
+step 5. It NEVER touches an imported directory outside `$SPECS_PATH` (drafts written there are never committed), a
+code/docs repo, or the current working directory (an import under `$SPECS_PATH` and `<VI folder>/epic-drafts/` are committed by
+this step, `specs-repo-git.md` §2.1); NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
 report was composed before this phase, **print its §6 outcome line here**, as
@@ -724,18 +716,18 @@ in full.
 ## Invariants (always enforced)
 
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
-- ALWAYS resolve input via the shared Jira-input front-end (Phase 0) — a JiraID requires `$VAULT_PATH`; an imported-Jira directory works without it; `epics:` is cwd-agnostic and rejects `mode: direct`
+- ALWAYS resolve input via the shared Jira-input front-end (Phase 0) — a JiraID requires `$SPECS_PATH` and an import in its feature folder; an imported-Jira directory works without either; `epics:` is cwd-agnostic and rejects `mode: direct`
 - NEVER create a git branch — this command never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
-- NEVER commit the Epic drafts or anything in the vault, `jira-products/`, `jira_export_root`, or the current working directory — git management there is the user's responsibility. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- NEVER branch, run `handoff-to-main`, or open a pull request. NEVER commit anything in an imported directory outside `$SPECS_PATH` (drafts written there are never committed) or the current working directory — git management there is the user's responsibility. Drafts under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) and an import under `$SPECS_PATH` are committed by the terminal step, not by this skill's own phases. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
-- NEVER write inside `jira-products/` — re-created on every import; writes would be lost
+- NEVER write inside `jira-import/` — re-created on every import; writes would be lost
 - NEVER write inside `_archive/` — read-only by convention
 - NEVER write inside `jira_export_root` — it is re-created on every Jira import, so drafts there would be lost (the Phase 1 path-safety guard enforces this for the derived `epic-drafts/` default)
-- ALWAYS write to the resolved `output_dir` — `$VAULT_PATH/jira-drafts/<jira_key>/` when `$VAULT_PATH` is set, else `<parent-of-jira_export_root>/epic-drafts/<jira_key>/` (or the user-confirmed alternative) — auto-create the directory if missing
+- ALWAYS write to the resolved `output_dir` — `<VI folder>/epic-drafts/`, else `<parent-of-jira_export_root>/epic-drafts/<jira_key>/` (or the user-confirmed alternative) — auto-create the directory if missing
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `epic-reviewer` before Phase 8 maintenance
 - ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override unless §10 enforces a model); coordination + interactive gates run on `current_model`
-- ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts (still true — the drafts land in the vault / output directory, which the terminal `commit-artifacts` step never stages; git management there is the user's responsibility)
+- ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts itself (still true — drafts under `$SPECS_PATH` are committed by the terminal `commit-artifacts` step; drafts outside it are never committed, and git there is the user's responsibility)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block
 - ALWAYS pass `Command run: epics:` in the Phase 8 Agent 4 session handoff
@@ -743,8 +735,8 @@ in full.
 - ALWAYS use `choices` arrays for decision points; last choice is always `"Other… (describe)"`
 - ALWAYS produce the Phase 9 report as the final output
 - ALWAYS end the Phase 9 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked
-- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain. `[[KEY]]` wikilinks in the draft are correct here and stay: `epics:` writes into an Obsidian vault, where a wikilink is the native idiom and resolves. `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1 — which bans in-page provenance — governs **rendered product-docs pages** (`document:`'s write targets), not vault documents; do not apply it to Epic drafts
-- NEVER run `docs-style-checker` — Epic drafts are vault-internal and not subject to product-docs prose linting. Dynatrace corporate style is checked via `dt-style-checker` in Phase 6.2 instead.
+- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain. `[[KEY]]` wikilinks in the draft are correct here and stay: they are the specs tree's required traceability form, not a link that has to resolve — the specs tree is a git repository, not a vault, and nothing there resolves `[[name]]`. `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1 — which bans in-page provenance — governs **rendered product-docs pages** (`document:`'s write targets), not Epic drafts; do not apply it to them
+- NEVER run `docs-style-checker` — Epic drafts are plugin-internal and not subject to product-docs prose linting. Dynatrace corporate style is checked via `dt-style-checker` in Phase 6.2 instead.
 - ALWAYS have `epic-writer` write `_coverage.md` to `output_dir` (VI-holistic, even in focus mode); it is NOT a Jira Epic and is never pasted to Jira
 - ALWAYS run the Phase 6.1 clarification gate when the writer returns clarifications; unresolved-by-choice markers become `epic-reviewer` BLOCKERs
 - ARD steps (Phase 2.5, writer/reviewer `applicable_ard`, the Phase 9 ARD section) are ADDITIVE and guarded on `status: found` — a run with no ARD is byte-identical to before
