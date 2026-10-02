@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
+## [2.34.1] — 2026-10-02
+
+Ported from the Claude edition's 2.65.1, plus one Copilot-only fix.
+
+### Fixed
+
+**`specify:` overwrote `idea:`'s `idea.md`, and left its own uncommitted.** Phase 2 wrote an `idea.md` derived from the Jira text into the feature folder unconditionally. A broad VI-level spec's feature folder is the VI's own folder — the one `idea: <VI-KEY>` writes into — so `idea:` → `create-vi:` → `specify: <VI-KEY>` silently replaced the idea the user had worked out, and a `specify:` run ahead of `create-vi:` left a Jira restatement where `create-vi:`'s idea ladder takes it for the idea. The file was also never in Phase 7's `deliverable_paths` and matches no `specs-repo-git.md` §2.1 shape, so it sat uncommitted and fired G1 on every later preflight. Nothing reads it legitimately: the Jira import it restated is committed under `jira-import/`, and `source-truth.md` stops treating any `idea.md` as authoritative once `specification.md` exists — which the same run writes. **`specify:` now writes no `idea.md`**, and leaves one already in the folder (`idea:`'s) untouched. **Upgrading:** an uncommitted `idea.md` an earlier `specify:` left in a feature folder is a Jira restatement, not an idea — delete it, or `create-vi:` may still read it and G1 keeps firing until it is gone.
+
+- **The epic agents cited `epics:`' phases swapped** (Copilot only): `epic-reviewer` named Phase 6.1 as the style check and `epic-writer` named Phase 6.2 as the gate that routes coverage gaps. Phase 6.1 is clarifications and 6.2 the Dynatrace style check, as in the skill.
+- **`create-ard:` with no Jira input stops** with `CREATE_ARD_NEEDS_JIRA`, as every other Jira-driven-only skill already did, instead of continuing with no `jira_key`; its docs page says so.
+- **`jira-input-resolution.md`:** the several-folders picker no longer marks a row `(Recommended)` when it recommends nothing, and Fallback D's second option reads "Run without an Epic focus" — a directory root need not be a VI.
+- **`code-repo-handoff.md` §5** pairs each repo with the reference that governs it: `$SPECS_PATH` with `specs-repo-git.md` and `phase-handoff.md`, a docs repo with `finish-and-handoff.md`.
+- **Text:** `specs-repo-git.md` §2.1's comment column is aligned and its Sources line cites `skills/epics/SKILL.md` Phase 6 instead of the skill name; `jira-input-resolution.md`'s over-long lines are rewrapped.
+
 ## [2.34.0] — 2026-10-02
 
 ### Removed — `$VAULT_PATH`

@@ -79,7 +79,8 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
        written flat inside it either way.
    - All delimiters this step writes are hyphens; matching an existing dir tolerates a stray `-`/`_`.
      Neither the VI dir nor the feature folder is created here — the first phase that writes to it
-     (Phase 2's `idea.md` write, in a fresh run) creates it.
+     (its first `_session.md` write — Phase 3's feasibility note, step 4's soft gate, or Phase 5's
+     first settled decision) creates it.
 
 4. **Detect a prior run.** If a `_session.md` exists in the resolved feature folder, record that a
    resume is available — Phase 1 asks the user resume-vs-fresh. If no `_session.md` exists, this is a
@@ -266,13 +267,16 @@ rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skill
   Stories/Sub-tasks (`linked_items` whose `parent` chain leads to `focus_key`) — filtering
   in-orchestrator and discarding sibling Epics' subtrees before feeding the downstream phases. When
   `focus_key` is null (broad VI-level spec), use the whole VI subtree as today. Everything below —
-  themes, `idea.md`, the Phase 5 raw material — derives from this scoped `focus_key` subtree.
+  themes and the Phase 5 raw material — derives from this scoped `focus_key` subtree.
 - Extract **capability themes** and component/product mentions from the scoped subtree — feeds
   Phase 3's repo derivation and Phase 4's `code-scanner` dispatches.
-- Write **`idea.md`** in the feature folder from the scoped Jira text (the focus item's summary,
-  description, and its linked-item summaries) — pre-spec brainstorming provenance, in the same spirit
-  as the `idea.md` convention `source-truth.md` already treats as non-authoritative once
-  `specification.md` exists.
+- **Write no `idea.md`.** The Jira text this phase reads is the import itself — committed under
+  `jira-import/` for a key input — and `specification.md`, which this run writes, is what
+  `source-truth.md` treats as authoritative once it exists; a Jira-derived `idea.md` would be a
+  second, weaker record of the same text. It would also land where `idea:` writes: a broad VI-level
+  spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or be read
+  by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder is not this
+  command's to touch — `idea:`'s, or one an earlier `specify:` version left — leave it as it is.
 - Carry the scoped linked-item tree (the Epic's Stories/Sub-tasks) forward into Phase 5 — the raw
   material the grill mines for user stories, acceptance criteria, and test cases.
 
@@ -428,7 +432,7 @@ Cap: one fix cycle + one re-review maximum.
 
 ## Phase 7 — Handoff
 
-Write the feature folder: `specification.md` (`Published: no`), `idea.md`, `_session.md`, `_glossary.md`, and the rendered `.html`.
+Write the feature folder: `specification.md` (`Published: no`), `_session.md`, `_glossary.md`, and the rendered `.html` (no `idea.md` — Phase 2).
 
 Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — stopping** array verbatim (`design:` stops on a `specification.md` that is not on the default branch), after that section's push-target probe:
 ```

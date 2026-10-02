@@ -46,13 +46,13 @@ Epic drafts a feature folder holds, and three files skills write for the operato
 this set is ever staged.
 
 ```
-<specs-root>/{specs|specifications|vis|ideas}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
-<specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
-<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
-<specs-root>/{specs|specifications|vis|ideas}/**/jira-import/**            # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
-<specs-root>/{specs|specifications|vis|ideas}/**/epic-drafts/**            # epics: drafts
+<specs-root>/{specs|specifications|vis|ideas}/**/dev-workflows/**              # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
+<specs-root>/dev-workflows-feedback/**                                         # feedback-emission.md §2 tier 2 (keyless runs)
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-release-notes.md        # the release-notes: draft (that skill's Phase 8)
+<specs-root>/{specs|specifications|vis|ideas}/**/jira-import/**                # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
+<specs-root>/{specs|specifications|vis|ideas}/**/epic-drafts/**                # epics: drafts
 <specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-implementation-gaps.md  # source-truth.md §7.5 draft
-<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-pr-draft.md         # finish-and-handoff.md pull-request draft
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-pr-draft.md             # finish-and-handoff.md pull-request draft
 ```
 
 **The release-notes shape names a file, never its folder, and that distinction is the safety
@@ -65,12 +65,20 @@ classifies it OTHER, step 3 never stages it, and it sits dirty for ever — firi
 every later preflight of every caller. Anything a run writes into the feature folder and
 expects committed needs a shape here first.
 
-**`jira-import/` and `epic-drafts/` are directory shapes, and that is safe for the reason the release-notes shape is a file.** Neither directory ever holds a phase deliverable: `jira-import/` is written only by `jira-workitem-import` and regenerated on every re-import, and `epic-drafts/` only by `epics:`. A fresh import is therefore committed by the next run's `specs-preflight` flush, prompt-free — the import is shared team state, not one machine's cache. **A screenshot `document:` stages is not a shape**: it is a temporary copy kept until the operator uploads it, so `document:` keeps it out of `git status` through the repository's local exclude file instead (its Phase 6 writer step).
+**`jira-import/` and `epic-drafts/` are directory shapes, and that is safe for the reason the
+release-notes shape is a file.** Neither directory ever holds a phase deliverable: `jira-import/` is
+written only by `jira-workitem-import` and regenerated on every re-import, and `epic-drafts/` only
+by `epics:`. A fresh import is therefore committed by the next run's `specs-preflight` flush,
+prompt-free — the import is shared team state, not one machine's cache. **A screenshot `document:`
+stages is not a shape**: it is a temporary copy kept until the operator uploads it, so `document:`
+keeps it out of `git status` through the repository's local exclude file instead (its Phase 6 writer
+step).
 
-Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §2.1 (the
-shared per-VI area), `session-hygiene.md` §1 (resume tier 1), `jira-input-resolution.md` (the import), `epics:` (drafts), `source-truth.md` §7.5 (gaps draft), `finish-and-handoff.md` §5 (pull-request draft). This edition has
-**no cost subsystem** — there is no `cost-emission.md`, no `emit-cost`, and no
-`dev-workflows-cost/` path shape.
+Sources: `feedback-emission.md` §2 tiers 1–2, `followup-emission.md` §2.1 (the shared per-VI area),
+`session-hygiene.md` §1 (resume tier 1), `jira-input-resolution.md` (the import),
+`skills/epics/SKILL.md` Phase 6 (drafts), `source-truth.md` §7.5 (gaps draft),
+`finish-and-handoff.md` §5 (pull-request draft). This edition has **no cost subsystem** — there is
+no `cost-emission.md`, no `emit-cost`, and no `dev-workflows-cost/` path shape.
 
 **Staging is by enumeration, not by glob.** Pathspec glob magic (`:(glob)`) is
 fragile to express and to review. The procedure is:

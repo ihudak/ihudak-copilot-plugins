@@ -15,7 +15,8 @@ stop with a clear error).
 
 ## Input grammar
 
-The trigger argument (the text following the command trigger) is a whitespace-separated token list. Classify each token:
+The trigger argument (the text following the command trigger) is a whitespace-separated token list.
+Classify each token:
 
 - **JiraID** — matches `^[A-Z][A-Z0-9]+-[0-9]+`.
 - **Path** — a `@path` token, or a bare path that exists on disk (a directory; or,
@@ -34,27 +35,29 @@ The trigger argument (the text following the command trigger) is a whitespace-se
 
 ### jira-driven — JiraID token (requires `$SPECS_PATH`)
 
-`<spec-dirs>` = every existing directory among `$SPECS_PATH/{specs|specifications|vis|ideas}/`. Every
-later mention of the specs directories means exactly this — all of them are searched, because the
-importer writes `PRODFB-` tickets under `ideas/` and every other ticket under `specifications/`,
+`<spec-dirs>` = every existing directory among `$SPECS_PATH/{specs|specifications|vis|ideas}/`.
+Every later mention of the specs directories means exactly this — all of them are searched, because
+the importer writes `PRODFB-` tickets under `ideas/` and every other ticket under `specifications/`,
 while `create-vi:` may have used another.
 
 1. Resolve `$SPECS_PATH` (env). Unset, or not a directory → **Fallback A** (set the path). A
-   directory holding none of `specs/`, `specifications/`, `vis/`, `ideas/` → **Fallback A** too, saying the
-   importer needs a `specifications/` directory there.
-2. **Feature folder** = an immediate child of any `<spec-dirs>` directory whose name equals
-   `<KEY>` or begins `<KEY>-` or `<KEY>_` (case-insensitive) — `jira-workitem-import`'s rule
-   (`<KEY>` or `<KEY>-…`; the importer picks `ideas/` for a `PRODFB-` key and `specifications/`
-   otherwise, and names a folder it has to create `<ID>-<slug>` from the ticket's summary), widened
-   to tolerate `_` and the `specs/` and `vis/` directories, so a slugged folder the importer
-   created, a bare `<KEY>/` one made earlier, and one `create-vi:` created all match. The plugin
-   never renames a folder. **None** → go to the nested scan in step 3. **Several** (in one directory
-   or across several) → list every one as prose and ask which to use (never pick; never rename one). Mark the
+   directory holding none of `specs/`, `specifications/`, `vis/`, `ideas/` → **Fallback A** too,
+   saying the importer needs a `specifications/` directory there.
+2. **Feature folder** = an immediate child of any `<spec-dirs>` directory whose name equals `<KEY>`
+   or begins `<KEY>-` or `<KEY>_` (case-insensitive) — `jira-workitem-import`'s rule (`<KEY>` or
+   `<KEY>-…`; the importer picks `ideas/` for a `PRODFB-` key and `specifications/` otherwise, and
+   names a folder it has to create `<ID>-<slug>` from the ticket's summary), widened to tolerate `_`
+   and the `specs/` and `vis/` directories, so a slugged folder the importer created, a bare
+   `<KEY>/` one made earlier, and one `create-vi:` created all match. The plugin never renames a
+   folder. **None** → go to the nested scan in step 3. **Several** (in one directory or across
+   several) → list every one as prose and ask which to use (never pick; never rename one). Mark the
    one holding `jira-import/<KEY>-index.md` and recommend it; if none holds one, say so and
-   recommend nothing; if several do, list each with its import date and recommend the newest.
-   Say that the importer itself stops when several folders match, so the user should merge them.
-   The array follows the run-time picker shape (§ Fallback prompts, last paragraph):
+   recommend nothing; if several do, list each with its import date and recommend the newest. Say
+   that the importer itself stops when several folders match, so the user should merge them. The
+   array follows the run-time picker shape (§ Fallback prompts, last paragraph):
    `choices: ["<recommended folder> (Recommended)", "<other folders…>", "Cancel"]`.
+   When nothing is recommended, no row carries `(Recommended)`: the folders are listed in name
+   order, unmarked.
 3. If the folder holds `jira-import/<KEY>-index.md`, `jira_export_root` = `<feature
    folder>/jira-import`, `jira_key` = `<KEY>`, `focus_key = null`. Otherwise the key has no import
    of its own — **nested scan**: every `<spec-dirs>/*/jira-import/<KEY>/<KEY>.md`, skipping
@@ -122,8 +125,9 @@ jira-export; used directly as `jira_export_root`; **no `$SPECS_PATH` needed**). 
 | `<dir>` | `<dir>` | not needed | null |
 | `<dir> <Epic-Key>` | `<dir>` | not needed | the Epic |
 
-Directory tokens stay **content-classified** (jira-export vs spec-folder), so `<dir> <Epic-Key>` never
-collides with the existing `<VI-Key> @spec-folder` form (a spec-folder feeds `specs`, not the root).
+Directory tokens stay **content-classified** (jira-export vs spec-folder), so `<dir> <Epic-Key>`
+never collides with the existing `<VI-Key> @spec-folder` form (a spec-folder feeds `specs`, not the
+root).
 
 ### direct
 
@@ -135,14 +139,14 @@ Collect free-text prose into `direct_prompt` and any file tokens into
 `SPECS_PATH` is an AI-Containers environment variable — host-provided, mounted into the container
 (at `/workspace/specs` in Ai-Containers; an arbitrary directory on a host).
 
-**Never a spec, at any depth** — in any step below, including a passed directory: anything under
-a `jira-import/`, `epic-drafts/` or `dev-workflows/` directory; `jira_export_root` itself
-whatever it is named (a passed import directory need not be called `jira-import/`); and a feature
-folder's operator drafts `<KEY>-release-notes.md`, `<KEY>-implementation-gaps.md` and
-`<KEY>-pr-draft.md`. `jira-import/` is the Jira import itself (read by `jira-reader`), `epic-drafts/`
-holds `epics:`' drafts, `dev-workflows/` the plugin's own bookkeeping; `jira_export_root` by name
-covers an import passed from elsewhere, and the three drafts are operator output; a VI with forty imported Stories would
-otherwise hand forty ticket pages to `implement:` as specs.
+**Never a spec, at any depth** — in any step below, including a passed directory: anything under a
+`jira-import/`, `epic-drafts/` or `dev-workflows/` directory; `jira_export_root` itself whatever it
+is named (a passed import directory need not be called `jira-import/`); and a feature folder's
+operator drafts `<KEY>-release-notes.md`, `<KEY>-implementation-gaps.md` and `<KEY>-pr-draft.md`.
+`jira-import/` is the Jira import itself (read by `jira-reader`), `epic-drafts/` holds `epics:`'
+drafts, `dev-workflows/` the plugin's own bookkeeping; `jira_export_root` by name covers an import
+passed from elsewhere, and the three drafts are operator output; a VI with forty imported Stories
+would otherwise hand forty ticket pages to `implement:` as specs.
 
 Resolve in order:
 
@@ -185,7 +189,7 @@ Resolve in order:
   `choices: ["<first> (Recommended)", "<other directories…>", "Cancel"]`
 - **D — Epic key given explicitly as a second key (or under a directory root) but not found:**
   `<jira_export_root>/<Epic>/` missing;
-  `choices: ["Re-enter the Epic key", "Run on the VI without an Epic focus", "Cancel"]`
+  `choices: ["Re-enter the Epic key", "Run without an Epic focus", "Cancel"]`
 - **E — key found in several feature folders' imports:** print every candidate folder as prose
   above the prompt, marking each one's issue type and import date. Recommend the `ValueIncrement`
   candidate when exactly one is a VI, else the most recently imported — "a VI candidate" means a
@@ -239,8 +243,8 @@ itself (the JiraID steps, the VI-selector rule, the fallback prompts) now reads 
 
 ## Progress-aware Epic picker (opt-in per command)
 
-For an **Epic-unit** command given a top-level key with `focus_key = null`, first determine the item's
-type from a cheap `jira-reader depth: vi-plus-epics` read, then:
+For an **Epic-unit** command given a top-level key with `focus_key = null`, first determine the
+item's type from a cheap `jira-reader depth: vi-plus-epics` read, then:
 
 - **The item is itself an Epic** (stand-alone/top-level) → no picker; proceed for it directly.
 - **VI with exactly 1 Epic** → no picker; auto-proceed for that Epic.
@@ -256,5 +260,6 @@ type from a cheap `jira-reader depth: vi-plus-epics` read, then:
 - **VI with 0 Epics** → the command's no-Epics policy (e.g. split with `epics:` first, or a broad
   VI-level artifact).
 
-This pattern is **policy-neutral in the resolver** — it is invoked by Epic-unit commands only; VI-level
-commands (`epics:`, `document:`, `release-notes:`) never use it and must keep working for un-split VIs.
+This pattern is **policy-neutral in the resolver** — it is invoked by Epic-unit commands only;
+VI-level commands (`epics:`, `document:`, `release-notes:`) never use it and must keep working for
+un-split VIs.
