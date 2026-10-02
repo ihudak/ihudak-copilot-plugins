@@ -5,6 +5,43 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
+## [2.34.0] — Unreleased
+
+### Removed — `$VAULT_PATH`
+
+**The plugin reads and writes one tree, `$SPECS_PATH`.** No skill, agent, reference, hook or documentation page reads `$VAULT_PATH` or names `jira-products/`. Ported from the Claude edition's 2.65.0 (the same design, applied to the Copilot skills).
+
+- **Jira imports live in each feature folder** as `jira-import/` — `jira-workitem-import`'s SPECS mode (`SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>`; its stock `runme.sh` unsets `SPECS_PATH`, so Fallback B prints that command rather than the script). A JiraID resolves to its feature folder's import, searched across every existing `{specs|specifications|vis}` directory (`<spec-dirs>`); a nested ticket resolves through its parent's import, and a ValueIncrement is never resolved as nested. An import is committed by the next run's `specs-preflight`. Inlined `## Comments` are skipped by `jira-reader` and read by `update-vi:`. Specs resolution never reads `jira-import/`, `epic-drafts/` or `dev-workflows/` as specs.
+- **`idea:` writes `idea.md` into its origin's folder and never relocates it** — a PRODFB ticket's (`Product Need` or `Account`) or the VI's. The VI comes first — `idea: PRODUCT-17753 PRODFB-929`, `idea: PRODUCT-17753 <prompt>` — and lands as `vi_key` in the frontmatter; a key later in a prompt is prose. A source with no Jira origin needs a VI key; the old order (`idea: PRODFB-929 PRODUCT-17753`) is detected from the imports and swapped, a first key that is not a VI is asked about, and a VI key with no folder is confirmed before one is created. An un-imported source key stops with the import command and offers to check again. The run is keyed on its origin key: feedback and the resume pointer land in `<origin folder>/dev-workflows/`, and the artifact commit carries that key. The grammar, by example:
+
+  | You type | Meaning | `idea.md` goes to |
+  |---|---|---|
+  | `idea: PRODUCT-12345 <long prompt>` | an idea for that VI, from a prompt | `PRODUCT-12345…/` |
+  | `idea: PRODUCT-12345 @notes/thing.md` | the same, from a file | `PRODUCT-12345…/` |
+  | `idea: PRODFB-929` | customer feedback, no VI yet | `PRODFB-929…/` |
+  | `idea: PRODUCT-17753 PRODFB-929` | feedback, VI known | `PRODFB-929…/`, with `vi_key: PRODUCT-17753` |
+  | `idea: PRODUCT-12345` | rewrite of an existing VI | `PRODUCT-12345…/` |
+  | `idea: PRODUCT-NEW PRODUCT-OLD` | a new VI extending or paralleling an old one | `PRODUCT-NEW…/` |
+  | `idea: <prompt>` (no key) | stops and asks for the VI key | — |
+
+  The write-path gate, the container rule, `area_proposal`, `vi_disposition` and the mint-a-key offer are gone.
+- **`create-vi:` finds the idea** by `--idea <KEY>`, its own folder, `vi_key`, the PRODFB tickets its import links, `@path`, or the same session. It also finds an idea that exists only on an unmerged `idea/*` branch, so it stops on `require-on-main` rows D/E instead of grilling from scratch. When several ideas match, the user is asked which one (or none) — the run never picks, and there is no multi-seed.
+- **Prior art searches `$SPECS_PATH/specifications/**`** and is renamed (`skills/_shared/prior-art.md`, agent `prior-art-finder`); status comes from each item's own import. It takes `origin_dir` and excludes the run's own folder from its hits.
+- **Everything that used the vault project folder uses the feature folder**: `document:`'s screenshot staging, its image discovery, the implementation-gaps and pull-request drafts, `release-notes:`' non-VI destination; `epics:` drafts go to `<VI folder>/epic-drafts/` and are committed by `commit-artifacts`. Four new `specs-repo-git.md` §2.1 shapes (the Jira import, Epic drafts and two operator drafts) commit them.
+- **The vault follow-up flow is deleted** (Obsidian-Tasks lines, tag index, project files, `Tasks.md`, `Journal.md`); follow-ups are a plain checklist in `<VI-dir>/dev-workflows/`. Feedback and resume pointers lose their vault tier.
+- **`[[KEY]]` wikilinks in Epic drafts** are now described as the specs tree's required traceability form, not a link that has to resolve — the specs tree is a git repository, not a vault. The ID-grammar rationale names the Jira importer (`jira-workitem-import`) instead of "the vault importer".
+- **The residual vault wording is gone** from every "never touches … the vault" list, the temp-file rules ("never the vault"), the `epics:` wording ("vault-internal", "drafts are vault/dir files", "writes into an Obsidian vault"), `document:`'s description of where the Jira hierarchy comes from, `specs-repo-git.md`, the root and plugin READMEs, the docs tree and the instruction files. `$VAULT_PATH` survives only in the root README, as the optional variable `obsidian-llm-wiki` uses.
+
+### Fixed
+
+- **`epic-writer` refused the directory-input case `epics:` sends it**: its rule read "NEVER write outside `$VAULT_PATH`" while `epics:` wrote beside the import when `$VAULT_PATH` was unset. It now reads "NEVER write outside `output_dir`".
+- **The preload hook told Jira skills they would "use `$VAULT_PATH`-based specs"**, which no skill did.
+- **`doc-reviewer` was told to read `<vault_path>/jira-products/<JIRA_KEY>/`**, a path it no longer receives. It reads `jira_export_root`.
+
+### Note for anyone who set `$VAULT_PATH`
+
+Nothing deletes your vault files; the plugin stops reading them. Re-import each ticket you work on into `$SPECS_PATH`. Lost: the Obsidian-Tasks follow-up format, the vault project folder as a drop zone, and vault-wide `[[wikilink]]` resolution in `idea:` sources.
+
 ## [2.33.0] — 2026-10-01
 
 ### Added — five more `check-docs.sh` checks ported from `ai-workflows`
