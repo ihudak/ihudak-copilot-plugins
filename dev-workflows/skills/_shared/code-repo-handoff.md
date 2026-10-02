@@ -255,7 +255,7 @@ Four obligations. Omitting any one is a defect, not a style choice.
 
 ## 5. What this entry point never does
 
-- Never touches `$SPECS_PATH`, a docs repo, or the vault — those are `specs-repo-git.md`, `phase-handoff.md`, and `finish-and-handoff.md` respectively.
+- Never touches `$SPECS_PATH` or a docs repo — those are `specs-repo-git.md`, `phase-handoff.md`, and `finish-and-handoff.md` respectively.
 - Never merges a pull request, and never approves one.
 - Never calls a REST API over HTTPS. `git push` is git-protocol; `gh` wraps the API (§2.6).
 - Never writes a file into the repository it is committing. Everything it needs — the pull-request body included — is written outside the tree.

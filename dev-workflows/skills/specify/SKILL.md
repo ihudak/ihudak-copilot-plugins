@@ -48,9 +48,9 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
    direct-prompt behavior.
 
 2. **Resolve `$SPECS_PATH`.** `specify:` writes specifications under `$SPECS_PATH/specifications/`
-   (exact layout resolved in step 3) — the specs repo, not the vault. If `$SPECS_PATH` is unset, stop
+   (exact layout resolved in step 3) — the specs repo. If `$SPECS_PATH` is unset, stop
    with a clear error naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`) —
-   there is no vault-relative fallback for this write target the way there is for reads.
+   there is no fallback for this write target.
 
 3. **Resolve the feature folder.** Derive provisional kebab-case slugs from the relevant
    Jira item title(s) (from the index/summary — finalized once `jira-reader` runs in Phase 2, but a
@@ -85,7 +85,7 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
    resume is available — Phase 1 asks the user resume-vs-fresh. If no `_session.md` exists, this is a
    fresh run.
 
-`specify:` is **cwd-agnostic**, like `epics:` — it reads Jira from the vault/export and writes specs to
+`specify:` is **cwd-agnostic**, like `epics:` — it reads Jira from the import or export and writes specs to
 an absolute `$SPECS_PATH`-rooted directory, so it does not require cwd to be inside either.
 
 **Specs-repo preflight.** Cite
@@ -513,7 +513,7 @@ and execute its `commit-artifacts` entry point (§4) inline — the LAST action 
 the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (specify:)` with no
 `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase
-created (§4.1). It NEVER touches a code repo, a docs repo, the vault, or the
+created (§4.1). It NEVER touches a code repo, a docs repo, or the
 current working directory; NEVER force-pushes; NEVER fails the run; and skips
 entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
 notice. Hold its §6 outcome line for the Final report.

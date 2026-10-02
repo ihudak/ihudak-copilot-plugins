@@ -41,7 +41,7 @@ Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not ye
 
 `epics:` is **cwd-agnostic**: it writes Epic drafts to an absolute output
 directory (resolved in Phase 1), so it does **not** require cwd to be inside the
-vault.
+specs repo.
 
 **Specs-repo preflight.** Cite
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
@@ -383,7 +383,7 @@ Fold the results back: *assign* → re-dispatch `epic-writer` once (or Edit inli
 
 ## Phase 6.2 — Dynatrace style check
 
-Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (Jira mode), this does NOT use `docs-style-checker` (no repo linter for vault content). Instead, the Dynatrace corporate style guide checker validates terminology, trademarks, voice/tone, and inclusive language.
+Invoke `dt-style-checker` on the files written in Phase 6. Unlike `document:` (Jira mode), this does NOT use `docs-style-checker` (no repo linter for specs-repo content). Instead, the Dynatrace corporate style guide checker validates terminology, trademarks, voice/tone, and inclusive language.
 
 → task(agent_type: "dt-style-guide:dt-style-checker", model: `<detection_model — §9 / §2.1 detection chain; under §10, run_flags.enforced_model>`):
   > "Run the style check for this brief:
@@ -436,7 +436,7 @@ gate.
 
 ## Phase 7 — Epic review gate
 
-Invoke `epic-reviewer` (Opus). This reviewer is Epic-specific — scope clarity, acceptance-criteria testability, non-duplication of existing Epics. `docs-style-checker` is NOT used here (no repo linter for vault content); Dynatrace corporate style is handled by the Phase 6.2 `dt-style-checker` step above.
+Invoke `epic-reviewer` (Opus). This reviewer is Epic-specific — scope clarity, acceptance-criteria testability, non-duplication of existing Epics. `docs-style-checker` is NOT used here (no repo linter for specs-repo content); Dynatrace corporate style is handled by the Phase 6.2 `dt-style-checker` step above.
 
 → task(agent_type: "dev-workflows:epic-reviewer"):
   > "Review the Epic drafts for this brief:
@@ -455,7 +455,7 @@ Act on the verdict (same shape as `document:` Jira mode Phase 7):
 
 **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
 
-- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
+- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-epics-claims-XXXXXX`, never inside a repo tree), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `epic-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `epic-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. Remove `claims_file` (`command rm -f -- "<path>"`) once this re-review (or the NEEDS HUMAN escalation above) has returned — no later step reads it. If still BLOCK, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — epics:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER individually:
   ```
   choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run", "Other… (describe)"]
   ```
@@ -515,7 +515,7 @@ Then spawn all four maintenance agents in a **single task message**. They are in
 > "Post-write knowledge review. Change summary:
 > [paste change summary block]
 >
-> Check ~/.copilot/memory/ (global) and .copilot/memory/ (project-level, preferred for vault-specific knowledge) for existing knowledge files.
+> Check ~/.copilot/memory/ (global) and .copilot/memory/ (project-level, preferred for specs-repo-specific knowledge) for existing knowledge files.
 > Determine if a new knowledge entry is warranted — look for: reusable insights about this VI-family's Epic patterns, non-obvious scoping constraints uncovered, code-reuse discoveries from code-scanner, duplicate-Epic near-misses that required scope adjustment.
 > If YES: append to the most appropriate existing file (never create a new file if an existing one fits) using this format:
 > ### [Short title]
@@ -675,7 +675,7 @@ follow-ups by citing `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-wo
 and executing its steps inline.
 
 1. **Collect** the qualifying follow-ups: the manual publish step ("create these
-   drafted Epics in Jira manually" — the drafts are vault/dir files, not Jira
+   drafted Epics in Jira manually" — the drafts are specs-repo files, not Jira
    tickets) and the Phase 9 `### Deferred items` that are out-of-scope refinement.
 2. **Filter** them with the reference's §4 qualifying predicate.
 3. **Resolve** the write target via the §2 ladder using `jira_key` and `source`;
@@ -735,7 +735,7 @@ in full.
 - ALWAYS use `choices` arrays for decision points; last choice is always `"Other… (describe)"`
 - ALWAYS produce the Phase 9 report as the final output
 - ALWAYS end the Phase 9 report with a `### Next step` recommendation (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md`) — guidance only, never auto-invoked
-- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain. `[[KEY]]` wikilinks in the draft are correct here and stay: `epics:` writes into an Obsidian vault, where a wikilink is the native idiom and resolves. `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1 — which bans in-page provenance — governs **rendered product-docs pages** (`document:`'s write targets), not vault documents; do not apply it to Epic drafts
+- ALL written claims must be traceable to Jira keys (from `jira-reader`) or code paths (from `code-scanner`); do not invent content the sources don't contain. `[[KEY]]` wikilinks in the draft are correct here and stay: they are the specs tree's required traceability form, not a link that has to resolve — the specs tree is a git repository, not a vault, and nothing there resolves `[[name]]`. `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §1 — which bans in-page provenance — governs **rendered product-docs pages** (`document:`'s write targets), not Epic drafts; do not apply it to them
 - NEVER run `docs-style-checker` — Epic drafts are plugin-internal and not subject to product-docs prose linting. Dynatrace corporate style is checked via `dt-style-checker` in Phase 6.2 instead.
 - ALWAYS have `epic-writer` write `_coverage.md` to `output_dir` (VI-holistic, even in focus mode); it is NOT a Jira Epic and is never pasted to Jira
 - ALWAYS run the Phase 6.1 clarification gate when the writer returns clarifications; unresolved-by-choice markers become `epic-reviewer` BLOCKERs

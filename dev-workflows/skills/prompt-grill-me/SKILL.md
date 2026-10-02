@@ -60,7 +60,7 @@ grill, which is interactive and may run long. It stages ONLY the §2.1 bounded
 artifact paths inside `$SPECS_PATH`, commits
 `<KEY> Add dev-workflows session artifacts (prompt-grill-me:)` — or
 `NOISSUE …` when no `jira_key` resolved — and pushes. It NEVER touches a
-code/docs repo, the vault, or the current working directory; NEVER
+code/docs repo, or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Print its §6 outcome
 line here, prefixed `Specs repo:`, with any guard notice repeated in full.
@@ -78,7 +78,7 @@ Follow the technique's mechanics (one question at a time — the bounded rhythm,
 which is what makes the ≤5 bound enforceable; a recommended answer
 each time, fact-vs-decision split, dependency order, and the confirmation gate
 before you act on the result). This command NEVER
-commits into a docs/code repo, the vault, or the current working directory.
+commits into a docs/code repo, or the current working directory.
 The Phase 2 `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded
 artifact paths
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).

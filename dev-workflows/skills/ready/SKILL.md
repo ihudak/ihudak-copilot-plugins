@@ -376,7 +376,7 @@ plugin-gap halt (see Invariants).
    Guidance only — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/session-hygiene.md`.
    ```
 
-`ready:` **NEVER** writes to Jira, `jira-import/`, or the vault. It commits and hands off
+`ready:` **NEVER** writes to Jira or `jira-import/`. It commits and hands off
 `_readiness.md` only through step 3's `phase-handoff.md` §4.3 consent choice — declining leaves it
 uncommitted; that handoff is independent of the terminal `commit-artifacts` step, which stages ONLY the
 run's bounded session-artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) and
@@ -535,7 +535,7 @@ per §1. Silent; the printed `### Context hygiene` guidance already appeared in 
 and execute its `commit-artifacts` entry point (§4) inline — the LAST action of the run. It stages ONLY
 the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
 `<KEY> Add dev-workflows session artifacts (ready:)`, and pushes per §4 step 5.
-It NEVER touches a code/docs repo, the vault, or the current working directory; NEVER force-pushes;
+It NEVER touches a code/docs repo, or the current working directory; NEVER force-pushes;
 NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0),
 re-emitting that notice. Because the Phase 5 report was composed before this phase, **print its §6
 outcome line here**, as the run's last output — prefixed `Specs repo:`, with any guard notice repeated
@@ -548,7 +548,7 @@ ADDITIVE — this phase itself NEVER fails the run and touches neither `_readine
 ## Invariants (always enforced)
 
 - NEVER set or write Jira status — status is read-only input (Phase 2), never output
-- NEVER write inside `jira-import/` or the vault
+- NEVER write inside `jira-import/`
 - Branches only via the Phase 5 step 3 `phase-handoff.md` §4.3 consent choice, creating
   `ready/<KEY>-<slug>` — `specs-preflight` itself still creates no branch, a hard invariant: it only
   switches `$SPECS_PATH` between branches that already exist, and only plugin-created ones, per

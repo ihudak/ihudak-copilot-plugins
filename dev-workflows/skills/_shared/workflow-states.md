@@ -5,7 +5,7 @@ Maps each Jira **workflow status** on the VI and Epic ladders to (a) its owning 
 that should exist at that status. This is the rubric `readiness-reviewer` applies and the
 source for the readiness verdict; it also feeds the PM/PA/PE/Dev workflow graph.
 
-Jira is the **source of truth** for status (imported into `jira-products/`, emitted by `jira-reader`
+Jira is the **source of truth** for status (imported into the feature folder's `jira-import/`, emitted by `jira-reader`
 as `value_increment.status` + `linked_items[].status`). This reference NEVER stores status —
 it only interprets it.
 

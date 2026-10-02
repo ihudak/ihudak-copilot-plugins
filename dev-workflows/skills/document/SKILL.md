@@ -10,7 +10,7 @@ Generate product documentation for the Jira Value Increment: the argument (text 
 
 Signature: `PRODUCT-NNNN [saas|managed] [--counterpart <JiraID|PR-url>]`. The optional second token is a **space constraint**, not a target list. When you pass `saas` or `managed`, the command documents **only that space** and leaves the OTHER space's rendered output unchanged (SaaS pages stay as they are when you pass `managed`, and vice-versa). When you omit it, the command **determines the applicable space(s)** from the Jira hierarchy and the resolved repos, then confirms with you. `both` is intentionally NOT an accepted value — omit the argument to cover both spaces. `--counterpart <JiraID | PR-url>` is an optional named flag (valid only on a space-constrained run) that points at the OTHER space's documentation for this feature — a Jira key or a PR URL (merged or not). It is used as **read-only grounding**; on a both-space run it is rejected. See Phase 5.6.5.
 
-`document:` (Jira mode) is the **Jira-driven feature-documentation** workflow. Given a Jira Value Increment key, it reads the full Jira hierarchy from pre-exported markdown in the user's Obsidian vault, resolves PR URLs to local git repos, runs parallel PR-diff summaries, synthesises product documentation, runs style-check + review-tier review gates, and writes the output to the current working directory (a product docs repository).
+`document:` (Jira mode) is the **Jira-driven feature-documentation** workflow. Given a Jira Value Increment key, it reads the full Jira hierarchy from pre-exported markdown (the feature folder's `jira-import/` in the specs repo), resolves PR URLs to local git repos, runs parallel PR-diff summaries, synthesises product documentation, runs style-check + review-tier review gates, and writes the output to the current working directory (a product docs repository).
 
 For small one-off doc edits, use direct mode (below). For writing child Epic drafts from a VI, use `epics:`. For release notes, use `release-notes:` — this command never writes release-notes / what's-new pages, because those are generated from Jira by the docs team's automation.
 
@@ -783,7 +783,7 @@ No external CLI calls; all git operations are local.
 
 The writing is delegated to the **`doc-writer`** subagent (pinned to the §2 Opus reasoning chain — see `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/model-routing.md` §9.2). The orchestrator prepares a structured handoff and dispatches; it does not write pages itself.
 
-1. **Write the handoff file.** Create a temp file (`command mktemp`, e.g. `$(command mktemp -t dw-<JIRA_KEY>-XXXXXX.yml)` — never the vault, never the docs repo) containing the `doc-writer` input contract: `jira_reader_handoff`, `diff_summaries`, `write_targets`, `doc_planner_checklist` (+ gap dispositions), `repo_authoring_guidance` (the planner's extracted repo-specific rules), `component_patterns` (the planner's recurring content-shape → dominant-component evidence, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §3 — like `repo_authoring_guidance`, a top-level sibling of the planner's `checklist:`, so it must be carried explicitly; `[]` when the sibling sample showed no established pattern), `discrepancy_decisions` (Phase 5.8), `write_strategies` (Phase 5.9), `cdn_handoff_decision` + `cdn_urls` + `screenshot_staging_dir` + `screenshots` + `existing_image_decisions` (Phase 5.6 / 6.1), `target_spaces`, `profile`, `docs_repo_path`, `counterpart_references` (Phase 5.6.5), and `bug_report_destination`. Record its absolute path.
+1. **Write the handoff file.** Create a temp file (`command mktemp`, e.g. `$(command mktemp -t dw-<JIRA_KEY>-XXXXXX.yml)` — never the docs repo) containing the `doc-writer` input contract: `jira_reader_handoff`, `diff_summaries`, `write_targets`, `doc_planner_checklist` (+ gap dispositions), `repo_authoring_guidance` (the planner's extracted repo-specific rules), `component_patterns` (the planner's recurring content-shape → dominant-component evidence, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/doc-structure-conventions.md` §3 — like `repo_authoring_guidance`, a top-level sibling of the planner's `checklist:`, so it must be carried explicitly; `[]` when the sibling sample showed no established pattern), `discrepancy_decisions` (Phase 5.8), `write_strategies` (Phase 5.9), `cdn_handoff_decision` + `cdn_urls` + `screenshot_staging_dir` + `screenshots` + `existing_image_decisions` (Phase 5.6 / 6.1), `target_spaces`, `profile`, `docs_repo_path`, `counterpart_references` (Phase 5.6.5), and `bug_report_destination`. Record its absolute path.
 
 2. **Dispatch the writer:**
 
@@ -1016,7 +1016,7 @@ Act on the verdict:
 
 **Triage sub-step** (before any fixer dispatch): follow `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/finding-triage.md`. For each finding, verify its claimed consequence at the location it names; keep or dismiss; record every dismissal with a reason that disposes of that finding's own claim. Hand the fixer **survivors only**, and carry the dismissal list into this run's report.
 
-- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-doc-claims-XXXXXX`, never inside a repo tree or the vault), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `doc-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `doc-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. If the second verdict is still BLOCK, escalate for each unresolved BLOCKER individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`:
+- **BLOCK** — invoke `doc-fixer` with `Severities to fix: BLOCKER and MAJOR`. Write the `doc-fixer` Fix Report to a temp file (`command mktemp -t dw-doc-claims-XXXXXX`, never inside a repo tree), record its path as `claims_file`, then **check `doc-fixer`'s `Stop condition flag` before re-invoking anything**. If it is `NEEDS HUMAN`, the fixer deferred at least one BLOCKER as needing a human decision: do NOT re-invoke `doc-reviewer` — a re-review can only re-find the BLOCKER the fixer has just reported it could not resolve — and instead surface each deferred BLOCKER with the reason the fixer gave, then escalate it individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`, which names this entry point alongside the second-BLOCK one. Only when the flag is `CLEAR` do you re-invoke `doc-reviewer` once **passing `claims_file`** — so the re-review falsifies the fixer's account rather than assuming it. If the second verdict is still BLOCK, escalate for each unresolved BLOCKER individually per the `Review verdict BLOCK (unresolved after one fix cycle) — document:` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`:
   ```
   choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run"]
   ```
@@ -1349,7 +1349,7 @@ the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (document:)`, and pushes
 per §4 step 5. It NEVER writes into the docs repo this run just changed — the
 documentation commit, branch, and PR are untouched — NEVER touches a code
-repo, the vault, or the current working directory; NEVER
+repo, or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
 report was composed before this phase, **print its §6 outcome line here**, as
@@ -1507,7 +1507,7 @@ Produce a written plan with these sections:
 5. **Files to create/modify** — list with brief rationale for each
 6. **Validation** — spot-check steps to run after the edit. Replace the `implement:` "Tests" section with this. Typical checks:
    - Heading structure renders correctly (no orphan H3 under H1, no skipped levels)
-   - All `[[wikilinks]]` resolve to existing files in the vault / docs tree
+   - All `[[wikilinks]]` resolve to existing files in the docs tree
    - All `[text](relative-path)` links resolve on disk
    - YAML frontmatter parses (if the page has frontmatter)
    - `changelog:` or equivalent field updated if the repo's convention requires one
@@ -1777,7 +1777,7 @@ the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (document:)` — or
 `NOISSUE …` when this doc-edit run resolved no key — and pushes per §4 step 5.
 It NEVER writes into the docs repo this run just changed, NEVER touches a code
-repo, the vault, or the current working directory; NEVER
+repo, or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as
@@ -1797,7 +1797,7 @@ in full. No `resume.md` is written in this mode
 - NEVER create a git branch — this mode never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
 - NEVER run tests (this command has no test phase)
 - NEVER invoke Opus (no planning agent, no review agent — docs edits are always SIMPLE or MODERATE), unless `run_flags.enforced_model` names one (§10)
-- NEVER commit the doc edits, or anything else in a docs/code repo, the vault, or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- NEVER commit the doc edits, or anything else in a docs/code repo, or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` in the shared `## Mode detection` section, before dispatching to either mode — so it runs for Mode B as well as Mode A — and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - NEVER make assumptions that could have been asked — ask instead
 - NEVER end implementation with "Should I implement?" — if approved, implement
