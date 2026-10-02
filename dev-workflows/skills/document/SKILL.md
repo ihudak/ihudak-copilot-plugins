@@ -1486,7 +1486,7 @@ State the classification and a one-line reason, then proceed to Phase 2A.
 
 **Repo exploration** — Before writing the plan, spawn an exploration subagent to map the relevant docs and any sibling conventions:
 
-→ task(agent_type: "general-purpose", tools: view/glob/grep only — no bash, no edit):
+→ task(agent_type: "general-purpose", tools: view/glob/grep only — no bash, no edit, model: `<detection chain — claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5; under §10, run_flags.enforced_model>`):
   "Given this doc-edit description: [paste the full description from Phase 0 or Phase 1 here], find and return:
    - Target file(s) and their current structure (headings, frontmatter, approximate size)
    - Sibling / adjacent pages that may need matching updates (cross-references, navigation files, index pages)
@@ -1679,7 +1679,7 @@ choices: ["Skip — report only (Recommended)", "Apply all", "Choose per proposa
 - **Choose per proposal** — ask accept/decline for each proposal; apply the accepted ones (`applied-uncommitted`), leave the rest `declined`.
 - **Cancel** — apply nothing; every proposal's disposition is `proposed`. Unlike every other "Cancel" in this command, **Cancel here does not abort the run**: direct mode never branches or commits the doc edits (Phase 3), so there is nothing upstream to unwind (still true — what still commits after this point is the terminal `commit-artifacts` step, bounded to `$SPECS_PATH`'s artifact paths per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1). Cancel only declines this phase's proposals; the run proceeds to Phase 5 and the Final Report is produced exactly as it would be after Skip.
 
-**Apply mechanism.** For each accepted proposal, re-dispatch the agent that produced it — Agent 2 or Agent 3, same general-purpose agent as Phase 4, no new agent type — in apply mode, carrying its own proposal back verbatim:
+**Apply mechanism.** For each accepted proposal, re-dispatch the agent that produced it — Agent 2 or Agent 3, same general-purpose agent and model as Phase 4, no new agent type — in apply mode, carrying its own proposal back verbatim:
 
 > "Apply this proposed edit exactly as returned — do not re-derive it:
 > `{file, anchor, replacement, reason}`: [paste the proposal]
