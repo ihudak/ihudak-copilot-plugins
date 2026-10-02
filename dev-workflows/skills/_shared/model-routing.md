@@ -144,10 +144,13 @@ If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
 
 **`defect-reporter` runs on this chain too**, under `--skip-feedback` (`run-flags.md` §4),
-recorded as `defect_model:`. Telling a defect from friction and confirming the wrong line in
+recorded as `defect_model:`. Telling a defect from friction and locating the wrong line in
 the plugin's source is judgement, not throughput; it takes this chain because it is the tier
 `impl-maintenance`, the agent it replaces, runs on. No chain in this file names Haiku;
-`run-flags.md` §2 carries the Haiku rows an enforced Haiku value resolves against.
+`run-flags.md` §2 carries the Haiku rows the `haiku` value resolves against.
+
+§2.2, the Haiku-first chain `defect-reporter` used to run on, is retired. Its number is not
+reused, so every citation of §2.3 stays valid.
 
 ---
 
@@ -166,18 +169,16 @@ Rows 1–3 are the version-6 OpenAI models; row 4 is the whole of §2, so a sess
 version-6 model reachable reviews on Anthropic exactly as it did before this split, and that
 is **not announced as a degradation** — it is a documented branch of the policy.
 
-**`gpt-6-astra` leads by house preference**, not by measurement in this repository. GitHub
-describes Astra as built for "long-horizon, autonomous coding and agentic tasks" and Sol as "a
-balanced model for interactive and agentic coding, and a strong all-round choice for
-development tasks that benefit from careful, multistep validation" — and *multistep validation*
-is arguably the better description of a review gate. The order here is the one the house asked
-for; if a measured comparison ever disagrees, change it here and say so, rather than quietly
-re-ranking at a call site.
+**The order is capability tier first, then version within a tier** — the house's rule.
+`gpt-6-astra` is the stronger tier, so it leads even though `gpt-6.1-sol` carries the higher
+version number; GitHub describes Astra as built for "long-horizon, autonomous coding and agentic
+tasks" and Sol as "a balanced model for interactive and agentic coding". The tier ranking is the
+house's, not a measurement made in this repository; if a measured comparison ever disagrees,
+change it here and say so, rather than quietly re-ranking at a call site.
 
-**`gpt-6.1-sol` sits ahead of `gpt-6-sol`** because it is the newer Sol: GitHub's changelog
-(2026-09-29) records it completing tasks with "noticeably fewer tokens and steps than earlier
-models in the GPT-6 and GPT-5.6 families". Newest-within-a-codename is the rule; Astra-before-Sol
-is the house preference above it.
+**`gpt-6.1-sol` sits ahead of `gpt-6-sol`** because it is the newer model of the same tier:
+GitHub's changelog (2026-09-29) records it completing tasks with "noticeably fewer tokens and
+steps than earlier models in the GPT-6 and GPT-5.6 families".
 
 **The selection rule of §2 does NOT apply here.** A review does not prefer the session model,
 because the whole purpose of this tier is that the reviewer is not the author. A GPT-6 session
@@ -313,7 +314,7 @@ Sub-agents that receive a `model_routing` block:
   `design-reviewer`, `readiness-reviewer`), the §2 work tier for `risk-planner`,
   the §2.1 detection chain for `jira-reader`, `code-scanner`, `diff-summarizer`,
   `doc-location-finder`, `docs-style-checker`, `doc-fixer`, `test-baseliner`,
-  `test-writer` and `impl-maintenance`, and by classification for the writers
+  `test-writer`, `impl-maintenance` and `defect-reporter` (under `--skip-feedback`), and by classification for the writers
   (`doc-planner`, `doc-writer`, `epic-writer` — strong tier for
   SIGNIFICANT/judgment authoring, detection chain for MODERATE; see §9) — and
   the orchestrator's own `model_routing` record names the chain it resolved.
