@@ -161,7 +161,7 @@ model_routing:
   current_model: <the model this orchestrator is running under>   # = the inline implementation coding
   enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   defect_model: <§2.1 detection chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
-  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer, impl-maintenance
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader, code-scanner, Phase 2A exploration, test-writer, test-baseliner, review-fixer, the maintenance agents
   planning_model: <§2 Opus chain>   # risk-planner (Phase 2B; SIGNIFICANT/HIGH-RISK only; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)
   review_model:  <§2.3 review tier>    # code-review (Phase 3B; dispatch-pinned to this chain, recorded, no override unless §10 enforces a model)
   implementation_model: <= current_model>   # coding done inline by the orchestrator
@@ -567,7 +567,7 @@ Review-tier review verdict: [PASS | PASS WITH RECOMMENDATIONS | BLOCK — or "N/
 
 Then spawn all four agents. They are independent and can run in any order — spawn them all before waiting for any to complete:
 
-**Agent 1 — Documentation** (general-purpose):
+**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-implementation documentation review. Change summary:
 > [paste change summary block]
 >
@@ -578,7 +578,7 @@ Then spawn all four agents. They are independent and can run in any order — sp
 > Use the file list above to reason precisely about what changed. If an update is warranted: apply minimal edits to the relevant section(s).
 > Return: file updated and what changed, OR 'no update required (reason)'."
 
-**Agent 2 — Knowledge base** (general-purpose):
+**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-implementation knowledge review. Change summary:
 > [paste change summary block]
 >
@@ -593,7 +593,7 @@ Then spawn all four agents. They are independent and can run in any order — sp
 > - **Ref**: [first 60 chars of implementation description]
 > Return: file updated/created and summary of entry, OR 'no update required'."
 
-**Agent 3 — Instructions** (general-purpose):
+**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-implementation instructions review. Change summary:
 > [paste change summary block]
 >

@@ -122,7 +122,7 @@ model_routing:
   current_model: <the model this orchestrator is running under>
   enforced_model: <run_flags.enforced_model, or omit>   # §10: when set, every dispatched-step *_model below equals it, and `routing: bypassed` is recorded
   defect_model: <§2.1 detection chain — only under --skip-feedback; under §10, run_flags.enforced_model>   # defect-reporter, in place of impl-maintenance
-  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader (Phase 2), impl-maintenance; the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
+  detection_model: <§2.1 detection chain: claude-sonnet-5.5, fallback claude-sonnet-5/4.6/4.5>   # jira-reader (Phase 2), the maintenance agents; the Phase 3 deterministic skeleton is mechanical and runs orchestrator-inline, not delegated
   review_model:    <§2.3 review tier>     # readiness-reviewer (caller-pinned; recorded)
   opus_available: <true if a §2 Opus model resolved, else false>
   notes: <any §2/§2.1 fallback or degradation>
@@ -410,7 +410,7 @@ Readiness verdict: [SUPPORTED | PARTIAL | NOT-SUPPORTED]
 Then spawn all four maintenance agents in a **single task message**. They are independent and run
 concurrently.
 
-**Agent 1 — Documentation** (general-purpose):
+**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-run documentation review. Change summary:
 > [paste change summary block]
 >
@@ -422,7 +422,7 @@ concurrently.
 > If an update is warranted: apply minimal edits.
 > Return: file updated and what changed, OR 'no update required (reason)'."
 
-**Agent 2 — Knowledge base** (general-purpose):
+**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-run knowledge review. Change summary:
 > [paste change summary block]
 >
@@ -439,7 +439,7 @@ concurrently.
 > - **Ref**: [first 60 chars of the Jira key + VI summary]
 > Return: file updated/created and summary of entry, OR 'no update required'."
 
-**Agent 3 — Instructions** (general-purpose):
+**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-run instructions review. Change summary:
 > [paste change summary block]
 >

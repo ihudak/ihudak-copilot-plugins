@@ -1582,7 +1582,7 @@ Validation result: [PASS | PARTIAL — with note on what's still broken]
 
 Then spawn all four Phase 4 agents. They are independent and can run in any order — spawn them all before waiting for any to complete:
 
-**Agent 1 — Documentation** (general-purpose):
+**Agent 1 — Documentation** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-doc-edit documentation review. Change summary:
 > [paste change summary block]
 >
@@ -1593,7 +1593,7 @@ Then spawn all four Phase 4 agents. They are independent and can run in any orde
 > If an update is warranted: apply minimal edits to the relevant section(s).
 > Return: file updated and what changed, OR 'no update required (reason)'."
 
-**Agent 2 — Knowledge base** (general-purpose):
+**Agent 2 — Knowledge base** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-doc-edit knowledge review. Change summary:
 > [paste change summary block]
 >
@@ -1608,7 +1608,7 @@ Then spawn all four Phase 4 agents. They are independent and can run in any orde
 > - **Ref**: [first 60 chars of the doc-edit description]
 > Return: `{file, anchor, replacement, reason}` — `anchor` is the exact existing text to change, or the section to append to; `replacement` is the entry above in full; `reason` is why it's warranted — OR 'no update required'."
 
-**Agent 3 — Instructions** (general-purpose):
+**Agent 3 — Instructions** (general-purpose, model: `<detection_model — §2.1 detection chain; under §10, run_flags.enforced_model>`):
 > "Post-doc-edit instructions review. Change summary:
 > [paste change summary block]
 >
