@@ -87,4 +87,4 @@ aggregate_summary: |
 | `DIRTY_TREE`        | Working tree is dirty and refresh was requested, on a **writable** mount; orchestrator must escalate. A read-only mount never returns this. |
 | `REFRESH_BLOCKED`   | `git fetch` or `git pull` genuinely failed (auth, network, non-fast-forward); orchestrator escalates. A read-only mount is NOT a cause — resolution proceeds at `prep.scanned_ref` with `prep.read_only: true`. |
 | `NO_PRS_RESOLVED`   | None of the provided PRs could be resolved; `unresolved_prs` lists all of them.|
-| `PARTIAL`           | Some PRs resolved, some unresolved; both `per_pr` and `unresolved_prs` populated. |
+| `PARTIAL`           | Some PRs resolved, some unresolved (both `per_pr` and `unresolved_prs` populated), **or** Strategy 4 was the only path that worked for at least one PR, whose content correctness is reduced. |
