@@ -21,7 +21,7 @@ At the start of the phase, resolve the write target by walking the ladder,
 most-durable first.
 
 1. **`$SPECS_PATH` VI dir exists** — the dir matched by
-   `$SPECS_PATH/{specs|specifications|vis}/…/<KEY>{-|_}<slug>/…` →
+   `$SPECS_PATH/{specs|specifications|vis|ideas}/…/<KEY>{-|_}<slug>/…`, per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts) →
    `<VI-dir>/dev-workflows/<KEY>-followups.md` (§2.1), verbose detail inlined
    as a section of that file and linked from the task line. Durable,
    VI-scoped, git-tracked (the specs repo), and NOT a code repo. *[primary]*

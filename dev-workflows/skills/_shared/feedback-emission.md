@@ -97,7 +97,7 @@ back in review because the two products differ here.
 capture, §5). Walk the ladder top-down and stop at the first tier that applies:
 
 1. **`$SPECS_PATH` resolvable + writable + the VI dir exists** — the dir matched
-   by `$SPECS_PATH/{specs|specifications|vis}/…/<KEY>{-|_}<slug>/…` →
+   by `$SPECS_PATH/{specs|specifications|vis|ideas}/…/<KEY>{-|_}<slug>/…`, per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts) →
    `<VI-dir>/dev-workflows/<KEY>-feedback.md`. *[primary — the whole point]*
 2. **`$SPECS_PATH` writable but no VI dir matched** (no `jira_key`, or no
    matching spec dir) → `$SPECS_PATH/dev-workflows-feedback/<KEY-or-date>.md` at

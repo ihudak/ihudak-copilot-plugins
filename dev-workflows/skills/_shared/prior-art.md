@@ -10,7 +10,7 @@ Consumers: `idea:` (grill-rank, `## Prior art`, handoff) and `create-vi:` (grill
 
 1. **Flags first.** `--no-prior-art` → return `prior_art: OFF`, `reason: "disabled with --no-prior-art"`.
 2. **Resolve the root.** `specs_root = $SPECS_PATH`. No default — it is the plugin's write root.
-3. **Validity gate — ON only when all hold** (else `OFF` with a one-line reason): `$SPECS_PATH` is non-empty, an existing readable directory, and holds `specifications/` (or `specs/` / `vis/`).
+3. **Validity gate — ON only when all hold** (else `OFF` with a one-line reason): `$SPECS_PATH` is non-empty, an existing readable directory, and holds at least one of `specifications/`, `specs/`, `vis/`, `ideas/`.
 4. **Return** `{ prior_art, specs_root, reason }`.
 
 There is deliberately **no index, no cache, and no consent prompt**. The corpus is a few hundred markdown files and retrieval is `Glob` + `Grep`, so this file has no analogue of `docs-grounding.md` step 3.5 — and none should be added.
@@ -35,7 +35,7 @@ Run only when `prior_art: ON`. Dispatch in the **same response** as `dispatch-do
   > "Find tracked prior art for this idea and return the digest:
   >
   > specs_root:      <specs_root>
-  > origin_dir:      <abs path of the run's origin/feature folder, or null>
+  > exclude_dirs:    [<abs path of a folder to leave out of the search hits>, …]   # possibly empty
   > feature_summary: <2–4 sentences: the problem + desired outcome>
   > themes:          [capability themes, or []]
   > known_refs:      [{path: <abs path> | jira_key: <KEY>, has_summary: true|false}, …]"
@@ -49,7 +49,7 @@ Wait for the digest. On `status: ERROR` or any dispatch failure, treat as `prior
 
 Root: `<spec-dirs>/*/` under `<specs_root>` (`<spec-dirs>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`) — one **item** per feature folder. Read, per item: its phase deliverables (`idea.md`, the VI `<KEY>_<slug>.md`, `*_ARD.md`, `specification.md`, `design.md`) and its own root ticket page `jira-import/<KEY>/<KEY>.md` (summary, description and status — never the import's other tickets, which belong to their own folders).
 
-A **search hit** is excluded when its folder is the run's own origin folder (`origin_dir`) — a run is never prior art for itself; a `known_refs` entry still resolves to the origin folder, so a supplied VI keeps its status and its `supersedes_self` classification. A folder is also **excluded** from search when its root ticket's `issue_type` is `Value Pack`; or when it lies under an `_archive/` segment. `epic-drafts/`, `dev-workflows/` and `Doc screenshots/` are never read.
+A **search hit** is excluded when its folder is any of `exclude_dirs` — the run's own folder, and any other folder the run is itself about (the VI an rfe idea is meant for, the folder a seed idea came from): a run is never prior art for itself. `exclude_dirs` filters **search hits only**; a `known_refs` entry still resolves to an excluded folder, so a supplied VI keeps its status and its `supersedes_self` classification. A folder is also **excluded** from search when its root ticket's `issue_type` is `Value Pack`; or when it lies under an `_archive/` segment. `epic-drafts/`, `dev-workflows/` and `Doc screenshots/` are never read.
 
 ## Status resolution
 

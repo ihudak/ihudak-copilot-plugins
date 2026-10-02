@@ -87,7 +87,7 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
   this path for drafts an update may invalidate. Resolve, first match wins:
   1. **`$SPECS_PATH` set and the VI folder resolves** — the folder matching `jira_key` on its
      key-number, tolerating a `-`/`_` separator and a trailing slug, under the `specs`,
-     `specifications` or `vis` root (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`
+     `specifications`, `vis` or `ideas` root (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`
      *Specs resolution*, the VI-flat form; a focus Epic does not change it, since the draft is the
      VI's) → default `<VI-dir>/<jira_key>-release-notes.md`. More than one matching folder is
      ambiguous: list them and ask which, never pick one. The terminal `commit-artifacts` step
@@ -208,7 +208,7 @@ Diff grounding is opt-in and advisory here: a repo the user skips degrades the g
 
 **Resolve `run_phase`.** `release-notes:` runs at two points in a VI's life, and the
 `release-note-types.md` §4 documentation-link rule depends on which. Glob the VI's specs dir
-(`$SPECS_PATH/specifications/<jira_key>-*/`) for `specification.md` and `design.md`:
+(the folder matching `<jira_key>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 — equal to `<jira_key>` or beginning `<jira_key>-`/`<jira_key>_`, in any `<spec-dirs>` directory) for `specification.md` and `design.md`:
 
 - **neither present** → `run_phase: pm`. The feature is not built and its documentation does not
   exist yet, so the note carries no documentation link and the skill never asks for one.

@@ -34,18 +34,21 @@ The trigger argument (the text following the command trigger) is a whitespace-se
 
 ### jira-driven — JiraID token (requires `$SPECS_PATH`)
 
-`<spec-dirs>` = every existing directory among `$SPECS_PATH/{specs|specifications|vis}/`. Every
+`<spec-dirs>` = every existing directory among `$SPECS_PATH/{specs|specifications|vis|ideas}/`. Every
 later mention of the specs directories means exactly this — all of them are searched, because the
-importer writes only under `specifications/` while `create-vi:` may have used another.
+importer writes `PRODFB-` tickets under `ideas/` and every other ticket under `specifications/`,
+while `create-vi:` may have used another.
 
 1. Resolve `$SPECS_PATH` (env). Unset, or not a directory → **Fallback A** (set the path). A
-   directory holding none of `specs/`, `specifications/`, `vis/` → **Fallback A** too, saying the
+   directory holding none of `specs/`, `specifications/`, `vis/`, `ideas/` → **Fallback A** too, saying the
    importer needs a `specifications/` directory there.
 2. **Feature folder** = an immediate child of any `<spec-dirs>` directory whose name equals
    `<KEY>` or begins `<KEY>-` or `<KEY>_` (case-insensitive) — `jira-workitem-import`'s rule
-   (`<KEY>` or `<KEY>-…`, under `specifications/` only), widened to tolerate `_` and the `specs/`
-   and `vis/` directories, so a bare folder an import created and a slugged one `create-vi:`
-   created both match. **None** → go to the nested scan in step 3. **Several** (in one directory
+   (`<KEY>` or `<KEY>-…`; the importer picks `ideas/` for a `PRODFB-` key and `specifications/`
+   otherwise, and names a folder it has to create `<ID>-<slug>` from the ticket's summary), widened
+   to tolerate `_` and the `specs/` and `vis/` directories, so a slugged folder the importer
+   created, a bare `<KEY>/` one made earlier, and one `create-vi:` created all match. The plugin
+   never renames a folder. **None** → go to the nested scan in step 3. **Several** (in one directory
    or across several) → list every one as prose and ask which to use (never pick; never rename one). Mark the
    one holding `jira-import/<KEY>-index.md` and recommend it; if none holds one, say so and
    recommend nothing; if several do, list each with its import date and recommend the newest.
@@ -145,8 +148,9 @@ Resolve in order:
 
 1. **`$SPECS_PATH` set →** search every `<spec-dirs>` directory, resolving by **matching folders
    on the Jira key-number** (tolerate `-`/`_` separators, a trailing slug, or neither — a bare
-   `<key>/` folder, which the importer creates, matches too):
-   - **`focus_key` set →** prefer the nested per-Epic home: under the VI folder
+   `<key>/` folder, which an earlier import created, matches too):
+   - **`focus_key` set →** prefer the nested per-Epic home (an immediate child of the VI folder,
+     never under `jira-import/`): under the VI folder
      matching `jira_key` (`<VI>`, `<VI>{-|_}<vslug>/`), the Epic folder matching `focus_key`
      (`<focus_key>`, `<focus_key>{-|_}<eslug>/`), holding `specification.md`, `design.md`, and any
      other `.md`. If that nested Epic folder does not exist, **fall back** to the
@@ -164,7 +168,7 @@ Resolve in order:
 
 - **A — JiraID but no usable `$SPECS_PATH`:** unset or not a directory → say so and offer to
   set it;
-  a directory with none of `specs/`, `specifications/`, `vis/` → say the importer needs
+  a directory with none of `specs/`, `specifications/`, `vis/`, `ideas/` → say the importer needs
   `specifications/` there. Either way
   `choices: ["Set SPECS_PATH (enter the path)", "Pass an imported-Jira directory instead", "Cancel"]`
 - **B — JiraID-shaped but no `<feature folder>/jira-import/<KEY>-index.md`, and no nested import

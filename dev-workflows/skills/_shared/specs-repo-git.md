@@ -46,13 +46,13 @@ Epic drafts a feature folder holds, and three files skills write for the operato
 this set is ever staged.
 
 ```
-<specs-root>/{specs|specifications|vis}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
+<specs-root>/{specs|specifications|vis|ideas}/**/dev-workflows/**          # tier 1: feedback, follow-ups, resume.md, release-notes archive copies
 <specs-root>/dev-workflows-feedback/**                               # feedback-emission.md §2 tier 2 (keyless runs)
-<specs-root>/{specs|specifications|vis}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
-<specs-root>/{specs|specifications|vis}/**/jira-import/**            # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
-<specs-root>/{specs|specifications|vis}/**/epic-drafts/**            # epics: drafts
-<specs-root>/{specs|specifications|vis}/**/<KEY>-implementation-gaps.md  # source-truth.md §7.5 draft
-<specs-root>/{specs|specifications|vis}/**/<KEY>-pr-draft.md         # finish-and-handoff.md pull-request draft
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-release-notes.md    # the release-notes: draft (that skill's Phase 8)
+<specs-root>/{specs|specifications|vis|ideas}/**/jira-import/**            # a jira-workitem-import SPECS-mode import (jira-input-resolution.md)
+<specs-root>/{specs|specifications|vis|ideas}/**/epic-drafts/**            # epics: drafts
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-implementation-gaps.md  # source-truth.md §7.5 draft
+<specs-root>/{specs|specifications|vis|ideas}/**/<KEY>-pr-draft.md         # finish-and-handoff.md pull-request draft
 ```
 
 **The release-notes shape names a file, never its folder, and that distinction is the safety
@@ -94,11 +94,11 @@ fragile to express and to review. The procedure is:
    is not a substitute: it suppresses only the octal escaping, and a path with a
    space is still quoted.
 2. Classify each reported path: **ARTIFACT** if it matches
-   `^(specs|specifications|vis)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
-   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$` or
-   `^(specs|specifications|vis)/.+/jira-import/` or
-   `^(specs|specifications|vis)/.+/epic-drafts/` or
-   `^(specs|specifications|vis)/.+/[A-Z][A-Z0-9_]*-[0-9]+-(implementation-gaps|pr-draft)\.md$`
+   `^(specs|specifications|vis|ideas)/.+/dev-workflows/` or `^dev-workflows-feedback/` or
+   `^(specs|specifications|vis|ideas)/.+/[A-Z][A-Z0-9_]*-[0-9]+-release-notes\.md$` or
+   `^(specs|specifications|vis|ideas)/.+/jira-import/` or
+   `^(specs|specifications|vis|ideas)/.+/epic-drafts/` or
+   `^(specs|specifications|vis|ideas)/.+/[A-Z][A-Z0-9_]*-[0-9]+-(implementation-gaps|pr-draft)\.md$`
    — exactly the seven §2.1 shapes, and a phase deliverable never matches; **OTHER**
    otherwise.
 3. Stage the literal ARTIFACT paths only:

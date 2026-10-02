@@ -1,6 +1,6 @@
 ---
 name: prior-art-finder
-description: Read-only prior-art discovery for the idea-authoring commands. Given the specs repo root, a feature summary, and optional themes, searches $SPECS_PATH/specifications/** (and specs/, vis/) for tracked initiatives that cover, precede, parallel, or are superseded by the new work, and returns a bounded digest — each match classified by relation, resolved to a Jira status, and summarised — plus reconciliation challenges. Never writes; advisory only. Model tier assigned by the caller per the model-routing policy (no fixed pin).
+description: Read-only prior-art discovery for the idea-authoring commands. Given the specs repo root, a feature summary, and optional themes, searches every feature folder under $SPECS_PATH/{specs|specifications|vis|ideas}/ for tracked initiatives that cover, precede, parallel, or are superseded by the new work, and returns a bounded digest — each match classified by relation, resolved to a Jira status, and summarised — plus reconciliation challenges. Never writes; advisory only. Model tier assigned by the caller per the model-routing policy (no fixed pin).
 tools: [view, glob, grep]
 ---
 
@@ -12,13 +12,13 @@ Find the tracked initiatives in the specs repo that this idea must be reconciled
 
 ```yaml
 specs_root:      <absolute $SPECS_PATH>
-origin_dir:      <absolute path of the run's origin/feature folder, or null>
+exclude_dirs:    <list of absolute folders to leave out of the search hits, possibly empty>
 feature_summary: <2–4 sentences: the problem + desired outcome>
 themes:          <optional capability themes from the caller, or []>
 known_refs:      <optional [{path | jira_key, has_summary}] the caller already holds, or []>
 ```
 
-`origin_dir` excludes that folder from **search hits** only; a `known_refs` entry still resolves to it (see the reference's `## Search scope and exclusions`).
+`exclude_dirs` excludes those folders from **search hits** only; a `known_refs` entry still resolves to any of them (see the reference's `## Search scope and exclusions`).
 
 Each `known_refs` entry carries **either** a `path` or a `jira_key`, never both required. A supplied Value Increment arrives as a key — resolving it to a feature folder is this agent's job, not the caller's.
 

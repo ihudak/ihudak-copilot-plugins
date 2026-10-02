@@ -70,7 +70,7 @@ not required.
 
 **PM — ideation & framing**
 
-- `idea:` — refined → `create-vi: <JIRA-KEY>` (PM); draft → `idea: @<path> --deep` (PM, refine)
+- `idea:` — refined → `create-vi: <JIRA-KEY>` (PM); draft → `idea: <the same keys and source> --deep` (PM, refine)
   or `create-vi: <JIRA-KEY>` (PM, proceed on a draft — not recommended).
 - `create-vi: <JIRA-KEY>` — after the paste-into-Jira + re-import round-trip:
   `release-notes: <VI>` (PM — draft the release note; recommended clear next step); hand to PA

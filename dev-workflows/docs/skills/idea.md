@@ -27,7 +27,7 @@ Refines one raw source — a prompt, a file, a community post, or an exported Ji
 The source after the optional VI key is classified into one of three forms (Phase 1), by precedence:
 
 - **An imported Jira ticket** — a key matching `^[A-Z][A-Z0-9_]*-\d+$`, resolved via `resolve-export-for-key` and then typed from the import's own `issue_type` frontmatter, never from the project prefix: `ValueIncrement` reads as an existing VI (prior art the user supplied), `Product Need` or `Account` reads as product feedback (a PRODFB ticket carries either), and any other `issue_type` is named to the user, who chooses, defaulting to VI. A key with no import anywhere stops the run with the SPECS-mode import command (`SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>`, run in a `jira-workitem-import` checkout; its stock `runme.sh` unsets `SPECS_PATH`) and offers to check again.
-- **A markdown file** — an existing `.md` path (a leading `@` is dropped), including a community post (tagged `community-post`) or a previously-written `idea.md` handed back for re-refinement.
+- **A markdown file** — an existing `.md` path (a leading `@` is dropped), including a community post (tagged `community-post`). To re-refine an existing `idea.md`, re-run with the same keys: the existing-file branch refines it in place, and asks first when its recorded `vi_key` differs from this run's.
 - **An inline prompt** — anything else; the argument text itself becomes the raw idea. A prompt or file with no VI key in front stops and asks for one.
 
 **Three safeguards** run before any folder is written. A first key whose import is not a `ValueIncrement` is not a target: when the source is a key whose import *is* a `ValueIncrement` — the old order, `idea: PRODFB-929 PRODUCT-17753` — the run says so in one line and swaps them; otherwise it asks you to re-enter the VI key or cancel. A VI key with no feature folder (a typo, a VI just created in Jira, or one seen only inside another ticket's import) is confirmed before a folder is created for it. Separately, a key matching several folders asks which one, recommending the folder that holds the key's import.
@@ -52,15 +52,15 @@ flowchart TD
 
 ## What it needs
 
-- **`$SPECS_PATH`** — must be set, an existing directory holding one of `specs/`, `specifications/`, `vis/`, and writable before anything else runs (Phase 0). If any of that fails, the run stops and offers to enter the path, or cancel — it never falls back to the current working directory, which may be a code repository. `specs-preflight` also runs against it at the end of Phase 0, which can emit a guard notice and set `specs_git: blocked` for the whole run.
+- **`$SPECS_PATH`** — must be set, an existing directory holding one of `specs/`, `specifications/`, `vis/`, `ideas/`, and writable before anything else runs (Phase 0). If any of that fails, the run stops and offers to enter the path, or cancel — it never falls back to the current working directory, which may be a code repository. `specs-preflight` also runs against it at the end of Phase 0, which can emit a guard notice and set `specs_git: blocked` for the whole run.
 - **The idea source itself** — read by `idea-reader`. A Jira key with no import, or a path that does not exist, stops the run and offers to re-enter the source or cancel (for a key, to check again after importing it); this is an environment/user halt, not a plugin gap.
 - **`$DOCS_PATH`** (optional, default `/workspace/docs`) — documentation grounding. Missing, unreadable, or carrying no markdown file is a silent, non-blocking skip: `docs grounding: OFF`, never an error. Turned off explicitly with `--no-docs`.
-- **Prior art** (optional, on by default) — searches `$SPECS_PATH/specifications/**` for tracked initiatives this idea should be reconciled against, excluding the run's own folder from the hits. Turned off with `--no-prior-art`, or silently OFF when it cannot resolve (for example an invalid `$SPECS_PATH`); advisory only, never a gate.
+- **Prior art** (optional, on by default) — searches every feature folder under `$SPECS_PATH/{specs|specifications|vis|ideas}/` for tracked initiatives this idea should be reconciled against, excluding the run's own folder (and, for feedback with a known VI, that VI's folder) from the hits. Turned off with `--no-prior-art`, or silently OFF when it cannot resolve (for example an invalid `$SPECS_PATH`); advisory only, never a gate.
 - **`--ground-code` repo(s)** (optional) — only runs when the flag is given. A named repo that is not mounted is neither invented nor silently dropped — it is escalated and, if declined, carried forward by name with its themes left unverified. With no flag at all, the run does one cheap detection pass and prints at most one advisory line naming a repo the idea mentions; it never scans.
 
 ## What it produces
 
-`idea.md`, authored against [`skills/_shared/idea-format.md`](../../skills/_shared/idea-format.md), written into its **origin's feature folder** under one of `$SPECS_PATH/{specs|specifications|vis}/` and never moved afterwards. The origin is the PRODFB feedback ticket's folder (`Product Need` or `Account`), or the VI's folder; the VI key, when one was given, is recorded as `vi_key` in the frontmatter. A VI with no folder yet gets one under `specifications/`, named `<VI-KEY>-<slug>`, after you confirm it. An existing `idea.md` there is refined or replaced on your say-so.
+`idea.md`, authored against [`skills/_shared/idea-format.md`](../../skills/_shared/idea-format.md), written into its **origin's feature folder** under one of `$SPECS_PATH/{specs|specifications|vis|ideas}/` and never moved afterwards. The origin is the PRODFB feedback ticket's folder under `ideas/` (`Product Need` or `Account`; the importer creates it), or the VI's folder; the VI key, when one was given, is recorded as `vi_key` in the frontmatter. A VI with no folder yet gets one under `specifications/`, named `<VI-KEY>-<slug>`, after you confirm it. An existing `idea.md` there is refined or replaced on your say-so.
 
 When the idea is `status: refined`, Phase 5 offers, behind a consent choice, to hand `idea.md` off onto the specs repo's default branch by branch, commit, push and pull request. A `status: draft` idea (any open `[NEEDS CLARIFICATION]`) is never handed off.
 
@@ -70,7 +70,7 @@ When the idea is `status: refined`, Phase 5 offers, behind a consent choice, to 
 
 - an idea in a VI folder → `create-vi: <VI-KEY>`;
 - a PRODFB-folder idea with `vi_key` → `create-vi: <vi_key>`, which finds the idea by `vi_key`;
-- a PRODFB-folder idea without one → `create-vi: <VI-KEY> --idea <PRODFB-KEY>`, after the VI is created in Jira; linking the VI to the PRODFB ticket in Jira (*is caused by*) lets `create-vi:` find the idea without the flag.
+- a PRODFB-folder idea without one → `create-vi: <VI-KEY> --idea <PRODFB-KEY>`, after the VI is created in Jira; linking the VI to the PRODFB ticket in Jira (*is caused by*) and importing the VI (`SPECS_PATH="$SPECS_PATH" python src/main.py <VI-KEY>`) lets `create-vi:` find the idea without the flag.
 
 On a decline or a failed handoff it also offers `create-vi: <VI-KEY> @<path>`, which reads the file in place without waiting for it to reach the default branch.
 

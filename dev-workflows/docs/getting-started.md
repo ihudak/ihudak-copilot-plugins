@@ -39,7 +39,7 @@ export DOCS_PATH="/workspace/docs"        # optional, read-only: product docs fo
 export GIT_USER_INITIALS="iv-gu"          # optional: identity segment for branch names
 ```
 
-- **`SPECS_PATH`** — the shared, team-visible store: each ticket's Jira import (`jira-import/`), `idea.md`, VI, ARD, `specification.md` and `design.md` live under `specifications/<KEY>-<slug>/…`. Required by `idea:`, the specs-authoring skills (`create-vi:`, `create-ard:`, `specify:`, `design:`, `ready:`) and by every Jira-driven skill given a Jira key (the importer writes here); only a directory input works without it. For the specs *content* it is advisory for `implement:` and additive for `document:`.
+- **`SPECS_PATH`** — the shared, team-visible store: each ticket's Jira import (`jira-import/`), `idea.md`, VI, ARD, `specification.md` and `design.md` live under `specifications/<KEY>-<slug>/…` (a `PRODFB-` feedback ticket's import and idea under `ideas/<KEY>-<slug>/…`). Required by `idea:`, the specs-authoring skills (`create-vi:`, `create-ard:`, `specify:`, `design:`, `ready:`) and by every Jira-driven skill given a Jira key (the importer writes here); only a directory input works without it. For the specs *content* it is advisory for `implement:` and additive for `document:`.
 - **`REPOS_PATH`** — where code clones live; a single directory or a colon-separated list. Defaults to `/workspace`. Repos are matched by their `git remote get-url origin` slug, not by directory name.
 - **`DOCS_PATH`** *(optional)* — a read-only clone of the product documentation (default `/workspace/docs`). When it is an existing directory containing markdown, `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `epics:`, and `release-notes:` automatically ground on the existing shipped docs, and `document:` prefers it as a docs-repo discovery hint. Never written to; every miss is a silent, non-blocking skip.
 - **`GIT_USER_INITIALS`** *(optional)* — the identity placeholder every branch-creating skill (`implement:`, `document:`, `docs-profile:`, `upgrade:`, and `vuln:` via `vuln-fixer`) fills into a target repo's own documented branch-naming pattern. Falls back to `git config user.initials`, then inference from existing branches, then a prompt.
@@ -60,7 +60,7 @@ Start with `idea:` — it touches no Jira and no code. It needs the Value Increm
 idea: PRODUCT-12345 <describe the thing you want to build>
 ```
 
-`idea:` asks up to 10 questions, one at a time (`--deep` makes the grill relentless instead of bounded), then writes a lean one-page `idea.md` into that VI's feature folder under `SPECS_PATH` (for `PRODFB-929` it goes into the feedback ticket's folder instead), and never moves it afterwards. When the brief is `refined` rather than `draft`, `idea:` offers to branch, commit, push and open a pull request for it, so it reaches the specs repo's default branch, where `create-vi: <JIRA-KEY>` finds it and turns it into a reviewed Value Increment.
+`idea:` asks up to 10 questions, one at a time (`--deep` makes the grill relentless instead of bounded), then writes a lean one-page `idea.md` into that VI's feature folder under `SPECS_PATH` (for `PRODFB-929` it goes into the feedback ticket's folder under `ideas/` instead), and never moves it afterwards. When the brief is `refined` rather than `draft`, `idea:` offers to branch, commit, push and open a pull request for it, so it reaches the specs repo's default branch, where `create-vi: <JIRA-KEY>` finds it and turns it into a reviewed Value Increment.
 
 ## superpowers — recommended, not required
 

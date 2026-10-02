@@ -34,7 +34,7 @@ case-insensitive) — record **paths only, never read image content**. For a com
 file with a thread/comment shape), additionally extract **demand
 signals** — requester names/handles, upvote/vote counts, recurring asks — into `signals`.
 
-**rfe / vi** (`provenance_hint: rfe | vi`) — validate `argument` against `^[A-Z][A-Z0-9_]*-\d+$`; on mismatch return `status: NOT_FOUND` naming the invalid key. Locate the export with `resolve-export-for-key <KEY>` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`) — **never** by assuming the key has a feature folder of its own, because a linked ticket often exists only inside another key's import. `NOT_FOUND` from that entry point is `status: NOT_FOUND` here. Enumerate `attachments/`/`Attachments/` image filenames (paths only) and read any wikilinked context.
+**rfe / vi** (`provenance_hint: rfe | vi`) — validate `argument` against `^[A-Z][A-Z0-9_]*-\d+$`; on mismatch return `status: NOT_FOUND` naming the invalid key. Locate the export with `resolve-export-for-key <KEY>` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md`) — **never** by assuming the key has a feature folder of its own, because a linked ticket often exists only inside another key's import. `NOT_FOUND` from that entry point is `status: NOT_FOUND` here. Enumerate `attachments/`/`Attachments/` image filenames (paths only) and follow the ticket page's markdown links (`[text](path.md)` — a flat import links GitHub-style and carries no `[[wikilinks]]`) to other `.md` pages in the export **one level** deep, reading them for context.
 
 Then split by provenance:
 

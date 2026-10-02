@@ -41,7 +41,7 @@ durable state is the artifact / branch / PR already on disk; no resume pointer i
 
 **Location** (mirror `followup-emission.md` §2 resolution):
 
-1. `$SPECS_PATH` resolvable + writable + the VI dir exists → `<VI-dir>/dev-workflows/resume.md`. *[primary]*
+1. `$SPECS_PATH` resolvable + writable + the VI dir exists (matched per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts)) → `<VI-dir>/dev-workflows/resume.md`. *[primary]*
 2. `$SPECS_PATH` writable but no VI dir matched → skip the file; rely on the printed `### Next step`.
 3. No writable `$SPECS_PATH` → skip the file; the suggestion still fires with a one-line
    `⚠ could not persist a resume pointer — set $SPECS_PATH`.
