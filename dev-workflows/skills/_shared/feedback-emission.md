@@ -13,7 +13,9 @@ maintainer can aggregate feedback across engineers. Feedback reaches the
 maintainer only if it lands in the committed, pushed specs repo — hence the
 persistence ladder is **specs-first** (§2), and hence every command's terminal
 `commit-artifacts` step commits and pushes it
-(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4). This emitter still
+(`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §4), save on a run carrying
+`specs_git: blocked` or `specs_git: misrooted`; under the second, §2 writes no entry in
+the first place. This emitter still
 never touches git itself (§6 caller contract); the commit is a separate,
 bounded, end-of-run step.
 
@@ -96,12 +98,14 @@ back in review because the two products differ here.
 **deterministic** (no interactive path prompt, consistent with silent
 capture, §5). Walk the ladder top-down and stop at the first tier that applies:
 
+**Before tier 1: the run carries `specs_git: misrooted`** (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.1, or its §8 `specs-root-check` stop) → **report-only**, as in tier 4, whatever else would apply. `$SPECS_PATH` is set but misplaced, so any write under it lands where `specs-repo-git.md` §2.1's classifier puts it in OTHER, or takes it for an artifact that cannot be staged from `$SPECS_PATH` and that the first run after the variable is fixed would commit in the wrong place. Every entry point below resolves its target here, so this covers them all.
+
 1. **`$SPECS_PATH` resolvable + writable + the VI dir exists** — the dir matched
    by `$SPECS_PATH/{specs|specifications|vis|ideas}/…/<KEY>{-|_}<slug>/…`, per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts) →
    `<VI-dir>/dev-workflows/<KEY>-feedback.md`. *[primary — the whole point]*
 2. **`$SPECS_PATH` writable but no VI dir matched** (no `jira_key`, or no
    matching spec dir) → `$SPECS_PATH/dev-workflows-feedback/<KEY-or-date>.md` at
-   the specs-repo root. Still committed & aggregated; notice:
+   the top of `$SPECS_PATH`. Still committed & aggregated; notice:
    `unfiled — move under the VI dir if it belongs to one.`
 3. **`source = directory`** (imported Jira dir, no specs) → beside the
    imported directory, where `epics:` + `release-notes:` already drop their

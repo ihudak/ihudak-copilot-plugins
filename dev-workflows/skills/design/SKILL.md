@@ -51,14 +51,12 @@ Flags: `--design-twice` forces the Phase 5 interface fan-out on the run's load-b
 
 2. **Resolve `$SPECS_PATH`.** `design:` reads `specification.md` and writes `design.md` under
    `$SPECS_PATH/specifications/`. If `$SPECS_PATH` is unset, stop with a clear error naming `SPECS_PATH`
-   (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`).
+   (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`). A path entered there is tested by `specs-root-check` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §8) before the preflight and step 3 use it; a signal is its hard stop.
 
-**Specs-repo preflight.** Cite
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+**Specs-repo preflight.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts
-from an earlier run, retry an artifact commit that failed to push, and settle the branch.
-Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires,
-emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole
+from an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires,
+emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole
 run — the terminal `commit-artifacts` step skips on it.
 
 *(The preflight runs here, before the gate below, because `require-on-main` performs **no** `fetch` of its own — §3.2 — and relies on this step's best-effort one. Gating first would test never-fetched refs: a just-merged artifact would be missed on `origin/<default>` while the stale remote-tracking ref for its deleted branch still carries it, producing a false row D/E stop. `specs-preflight` self-gates on `$SPECS_PATH`, so it is safe this early.)*
@@ -77,7 +75,7 @@ run — the terminal `commit-artifacts` step skips on it.
      to step 5.
    - **`focus_key` null** → inspect the resolved VI dir in the specs repo:
      - it holds a **flat `specification.md`** (a stand-alone top-level Epic, or a broad VI-level spec) → one design; the feature folder is the VI dir itself. Skip the picker; go to step 5 (step 3's gate re-applies against this flat path).
-     - it holds **Epic subfolders** → enumerate the **spec'd** ones using the ref test `git -C "$SPECS_PATH" cat-file -e "<default-ref>:specifications/<VI>-<vslug>/<EPIC>-<eslug>/specification.md" 2>/dev/null` (`<default-ref>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.2 — `origin/<default>` where the specs repo has a remote, the local default branch where it has none; exit 0 = present on `<default>`; the `2>/dev/null` is required — git writes `fatal:` to stderr on absence) — never a worktree file-existence check, which would list a branch-only Epic as designable for a user to select before step 3's gate stops on it. A subfolder that fails the test is excluded from the actionable set and counted in the excluded-count report, with the reason distinguished: *"N Epic(s) excluded — no specification.md; M excluded — specification.md not yet merged to `<default>`."* Then branch on count — this is the reusable **progress-aware Epic-picker pattern** in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` (§ Progress-aware Epic picker), applied here with `design:`'s own done-predicate and **enumerated from the specs repo** (not `jira-reader`):
+     - it holds **Epic subfolders** → enumerate the **spec'd** ones using the ref test `git -C "$SPECS_PATH" cat-file -e "<default-ref>:./specifications/<VI>-<vslug>/<EPIC>-<eslug>/specification.md" 2>/dev/null` (`<default-ref>` per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.2 — `origin/<default>` where the specs repo has a remote, the local default branch where it has none; exit 0 = present on `<default>`; the `2>/dev/null` is required — git writes `fatal:` to stderr on absence; the `./` reads the path from `$SPECS_PATH`, and `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3.2 says why) — never a worktree file-existence check, which would list a branch-only Epic as designable for a user to select before step 3's gate stops on it. A subfolder that fails the test is excluded from the actionable set and counted in the excluded-count report, with the reason distinguished: *"N Epic(s) excluded — no specification.md; M excluded — specification.md not yet merged to `<default>`."* Then branch on count — this is the reusable **progress-aware Epic-picker pattern** in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` (§ Progress-aware Epic picker), applied here with `design:`'s own done-predicate and **enumerated from the specs repo** (not `jira-reader`):
        - **exactly 1 spec'd Epic** → no picker; auto-select it; re-point the feature folder to its per-Epic subfolder; emit a one-line notice.
        - **≥2 spec'd Epics** → render the picker, one `choices` entry per spec'd Epic (its ○/◐/● marker + key + title), then `"Other… (describe)"`. Compute each Epic's state from `design:`'s **done-predicate** against that Epic's resolved folder:
          - **○ not started** — a `specification.md` exists there but no `design.md` and no `_design-session.md` → selectable.
@@ -434,8 +432,7 @@ commits `<KEY> Add dev-workflows session artifacts (design:)` with no
 `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase
 created (§4.1). It NEVER touches a code repo, a docs repo, or the
 current working directory; NEVER force-pushes; NEVER fails the run; and skips
-entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
-notice. Hold its §6 outcome line for the Final report.
+entirely when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Hold its §6 outcome line for the Final report.
 
 ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (still
 true — git for the deliverable is offered only in Phase 7, and this phase itself

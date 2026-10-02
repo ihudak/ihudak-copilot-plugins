@@ -67,7 +67,8 @@ Classify the docs repo's `git -C <docs_repo_path> remote get-url origin`:
 Compose the draft and BOTH write and show it:
 - **write** to the ticket's feature folder as `<JIRA_KEY>-pr-draft.md` (ask if
   none) — the same destination as the release-notes and gaps drafts; the terminal
-  `commit-artifacts` step commits it.
+  `commit-artifacts` step commits it, unless the run carries
+  `specs_git: blocked` or `specs_git: misrooted` (`specs-repo-git.md` §3.1, §3.7), which leave it written and uncommitted.
 - **title**: per `commit_convention` (e.g. `<JIRA-KEY> <summary>`).
 - **body**: what was documented; the output files; the Phase 6.5
   render-verification summary; deferred style/review/render items; a link back

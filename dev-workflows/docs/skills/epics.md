@@ -50,7 +50,7 @@ flowchart TD
 
 One `.md` file per new or refined Epic, under the resolved output directory: `<VI folder>/epic-drafts/` for a JiraID, or a derived `epic-drafts/<jira_key>/` beside the imported hierarchy for a directory input outside `$SPECS_PATH` — deliberately outside `jira-import/`, which is regenerated on every Jira re-import. `epic-writer` also writes `_coverage.md` (VI-holistic requirement coverage; never pasted to Jira). Refined team-Epic files are keyed by their real Jira id (`<EPIC-KEY>.md`); net-new drafts are slug-named.
 
-`epics:` never creates a branch. Its git writes are confined to `$SPECS_PATH`, and only to its bounded paths — `<VI folder>/epic-drafts/` is committed by the terminal `commit-artifacts` step along with the run's session artifacts, never through a branch or a pull request; drafts written beside an import outside `$SPECS_PATH` are never committed, and git hygiene there is your own responsibility.
+`epics:` never creates a branch. Its git writes are confined to `$SPECS_PATH`, and only to its bounded paths — `<VI folder>/epic-drafts/` is committed by the terminal `commit-artifacts` step along with the run's session artifacts, never through a branch or a pull request, save on a run that found the specs repository on a detached HEAD or `$SPECS_PATH` misplaced ([Environment](../reference/environment.md)), which commits nothing; drafts written beside an import outside `$SPECS_PATH` are never committed, and git hygiene there is your own responsibility.
 
 ## Gates
 

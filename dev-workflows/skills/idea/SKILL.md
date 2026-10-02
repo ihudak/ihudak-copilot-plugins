@@ -24,7 +24,7 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
 
 **Run flags — before anything else in this phase.** Read `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/run-flags.md` and execute its `strip-run-flags` entry point on the argument string. It returns `run_flags` and the **stripped** arguments; every parsing step below reads only what it leaves behind. For this skill both `--skip-feedback` and `--enforce-model` apply. **`--skip-costs` is not a flag of this edition at all** — there is no cost subsystem to skip — so it is neither parsed nor reported ignored. A malformed or unreachable `--enforce-model` stops the run here, before `specs-preflight` and before any write, and emits no feedback entry. Print the `Run flags:` line when either flag is non-default, and repeat it in the final report. **Under `--enforce-model`** (`run_flags.enforced_model`; `_shared/model-routing.md` §10), **every** subagent dispatch in this run passes `model:` explicitly, in §5's dispatch form — including a dispatch whose line below shows no `model:` argument and one described as dispatch-pinned to a chain — and every handoff to an agent that itself dispatches another carries `enforced_model:` so the nested dispatch is pinned too. The final report's model-routing line then reads `Model routing: bypassed — enforced <id> (flag|env)` in place of any degradation note.
 
-1. **Validate `$SPECS_PATH`.** It must be **set**, an **existing directory** holding one of `specs/`, `specifications/`, `vis/`, `ideas/`, and **writable** — `idea.md` is written into a feature folder there, never moved afterwards. If any check fails, STOP and offer:
+1. **Validate `$SPECS_PATH`.** **Where it is set, first** execute `specs-root-check` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §8): any signal is its `SPECS_PATH_INSIDE_TREE` hard stop, which sets `specs_git: misrooted`, offers no path to enter, and ends the run before anything below. Then it must be **set**, an **existing directory** holding one of `specs/`, `specifications/`, `vis/`, `ideas/`, and **writable** — `idea.md` is written into a feature folder there, never moved afterwards. If any check fails, STOP and offer:
    ```
    choices: ["Set SPECS_PATH (enter the path)", "Cancel", "Other… (describe)"]
    ```
@@ -56,9 +56,9 @@ Flags: `--deep` switches the grill from bounded (≤10 questions) to relentless 
 **Specs-repo preflight.** Cite
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts
-from an earlier run, retry an artifact commit that failed to push, and settle the branch.
-Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires,
-emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole
+from an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires,
+emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole
 run — the terminal `commit-artifacts` step skips on it.
 
 ---
@@ -330,7 +330,8 @@ only; no `/rename`: short PM phase, §4). Guidance only, never auto-run.
    ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
    `<origin key> Add dev-workflows session artifacts (idea:)`, and pushes. It NEVER touches a code/docs
    repo or the current working directory; NEVER force-pushes; NEVER fails the run; and skips entirely
-   when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that notice. Hold its §6 outcome
+   when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting
+   that notice. Hold its §6 outcome
    line for the Final report.
 
 ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (idea.md itself is handed off separately, before this phase, via `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2, behind Phase 5's §4.3 consent choice; the terminal step above commits only the bounded session-artifact paths in `$SPECS_PATH`), and NEVER writes into a code/docs repo or the current working directory; no user name is ever written.

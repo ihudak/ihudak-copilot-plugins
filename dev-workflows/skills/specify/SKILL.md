@@ -50,7 +50,7 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
 2. **Resolve `$SPECS_PATH`.** `specify:` writes specifications under `$SPECS_PATH/specifications/`
    (exact layout resolved in step 3) — the specs repo. If `$SPECS_PATH` is unset, stop
    with a clear error naming `SPECS_PATH` (`choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`) —
-   there is no fallback for this write target.
+   there is no fallback for this write target. A path entered there is tested by `specs-root-check` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §8) before step 3 uses it; a signal is its hard stop.
 
 3. **Resolve the feature folder.** Derive provisional kebab-case slugs from the relevant
    Jira item title(s) (from the index/summary — finalized once `jira-reader` runs in Phase 2, but a
@@ -92,9 +92,8 @@ an absolute `$SPECS_PATH`-rooted directory, so it does not require cwd to be ins
 **Specs-repo preflight.** Cite
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts
-from an earlier run, retry an artifact commit that failed to push, and settle the branch.
-Prompt-free and silent when the specs repo is clean and on its default branch. If a guard fires,
-emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole
+from an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires,
+emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole
 run — the terminal `commit-artifacts` step skips on it.
 
 **Gate the VI.** Execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against the VI file in `specifications/<VI>-<vslug>/` — **resolve its actual name on the ref first**: `git -C "$SPECS_PATH" ls-tree --name-only "origin/<default>" "specifications/<VI>-<vslug>/"` filtered to `<VI>_*.md`, falling back to the derived `<VI>_<vslug>.md` only when that listing is empty. A human-adjusted slug is a supported state — `create-vi:` and this skill's own Phase 2 reader both locate the VI by glob plus frontmatter, and the feature folder is matched by key-number for the same reason — so gating an exact derived filename would report `absent` for a VI that is present, and would let a slug-drifted file on a plugin branch escape the rows D/E stop entirely. Map its §3.7 return value by `stopped` first, never by `on_main` alone. Any stopping state → stop per §4.4. Otherwise (`stopped: false`): on `pass`/`pass_amending`, proceed — Phase 2 still reads the item from Jira via `jira-reader` exactly as today; the merged VI is a grounding confirmation, not a new content source; on `absent`, `specify:`'s existing Jira-export behaviour is unaffected — but report it: *"No authored VI on `<default>` for `<VI>` — specifying from the Jira export at `<path>`. If a VI exists on a branch, this run would have stopped; it does not, so none does."*; on `unmanaged`, behave exactly as before this feature — reachable here even after step 2's own `$SPECS_PATH` check, since that check only rejects an unset value, never an invalid path or a non-git directory.
@@ -520,8 +519,7 @@ commits `<KEY> Add dev-workflows session artifacts (specify:)` with no
 `Co-Authored-By` trailer, and pushes to the branch this run's handoff phase
 created (§4.1). It NEVER touches a code repo, a docs repo, or the
 current working directory; NEVER force-pushes; NEVER fails the run; and skips
-entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
-notice. Hold its §6 outcome line for the Final report.
+entirely when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Hold its §6 outcome line for the Final report.
 
 ADDITIVE — this phase NEVER fails the run, NEVER commits the deliverable (still
 true — git for the deliverable is offered only in Phase 7, and this phase itself

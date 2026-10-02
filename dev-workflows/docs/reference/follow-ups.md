@@ -20,6 +20,8 @@ Resolution is deterministic — there is no interactive "pick a location" prompt
 2. **The run's source was an imported Jira directory outside `$SPECS_PATH`** → `<parent-of-import>/<KEY>-followups.md`, beside the import.
 3. **Nothing resolvable** → report-only: the follow-ups stay in the run's Final Report and nothing is written anywhere. The plugin never writes into your current working directory on this path, since it may be a code repository. The run says so with a notice asking you to set `$SPECS_PATH` to persist them.
 
+On a run carrying `specs_git: misrooted`, meaning the run found `$SPECS_PATH` misplaced in any of the cases [Environment](environment.md) describes (`skills/_shared/specs-repo-git.md` §3.1 is the authority on them), the follow-ups stay in the Final Report instead, whatever else resolves, so nothing is written under a path the run found wrong. The run says so with a notice naming the flag.
+
 Every tier also keeps the follow-ups visible in the Final Report, so a degraded write location never means lost information — only a less durable one, flagged with a notice naming the fallback path used.
 
 ## What qualifies as a follow-up
