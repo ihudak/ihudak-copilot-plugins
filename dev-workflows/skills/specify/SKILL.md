@@ -79,7 +79,8 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
        written flat inside it either way.
    - All delimiters this step writes are hyphens; matching an existing dir tolerates a stray `-`/`_`.
      Neither the VI dir nor the feature folder is created here — the first phase that writes to it
-     (Phase 2's `idea.md` write, in a fresh run) creates it.
+     (its first `_session.md` write — Phase 4's feasibility note or Phase 5's first settled
+     decision) creates it.
 
 4. **Detect a prior run.** If a `_session.md` exists in the resolved feature folder, record that a
    resume is available — Phase 1 asks the user resume-vs-fresh. If no `_session.md` exists, this is a
@@ -266,17 +267,16 @@ rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skill
   Stories/Sub-tasks (`linked_items` whose `parent` chain leads to `focus_key`) — filtering
   in-orchestrator and discarding sibling Epics' subtrees before feeding the downstream phases. When
   `focus_key` is null (broad VI-level spec), use the whole VI subtree as today. Everything below —
-  themes, `idea.md`, the Phase 5 raw material — derives from this scoped `focus_key` subtree.
+  themes and the Phase 5 raw material — derives from this scoped `focus_key` subtree.
 - Extract **capability themes** and component/product mentions from the scoped subtree — feeds
   Phase 3's repo derivation and Phase 4's `code-scanner` dispatches.
-- Write **`idea.md`** in the feature folder from the scoped Jira text (the focus item's summary,
-  description, and its linked-item summaries) — pre-spec brainstorming provenance, in the same spirit
-  as the `idea.md` convention `source-truth.md` already treats as non-authoritative once
-  `specification.md` exists. **Only when the folder holds no `idea.md` yet.** An existing one —
-  `idea:`'s (it writes into a VI's own folder, the feature folder of a broad VI-level spec) or an
-  earlier `specify:` run's — is the richer record and is never overwritten: keep it, and say *"kept
-  the existing `idea.md`"* in the Final report. Phase 7's handoff commits an `idea.md` this phase
-  wrote together with the spec.
+- **Write no `idea.md`.** The Jira text this phase reads is the import itself — committed under
+  `jira-import/` for a key input — and `specification.md`, which this run writes, is what
+  `source-truth.md` treats as authoritative once it exists; a Jira-derived `idea.md` would be a
+  second, weaker record of the same text. It would also land where `idea:` writes: a broad
+  VI-level spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or
+  be read by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder is
+  `idea:`'s — leave it untouched.
 - Carry the scoped linked-item tree (the Epic's Stories/Sub-tasks) forward into Phase 5 — the raw
   material the grill mines for user stories, acceptance criteria, and test cases.
 
@@ -432,14 +432,14 @@ Cap: one fix cycle + one re-review maximum.
 
 ## Phase 7 — Handoff
 
-Write the feature folder: `specification.md` (`Published: no`), `_session.md`, `_glossary.md`, and the rendered `.html` — beside the `idea.md` Phase 2 wrote, or the existing one it kept.
+Write the feature folder: `specification.md` (`Published: no`), `_session.md`, `_glossary.md`, and the rendered `.html` (no `idea.md` — Phase 2).
 
 Then **offer** (commit-when-asked — never automatic), presenting `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.3's **gated — stopping** array verbatim (`design:` stops on a `specification.md` that is not on the default branch), after that section's push-target probe:
 ```
 choices: ["Branch + commit + push + open PR to main (Recommended)", "Just write the files — I'll handle git (the next phase will stop until this is on main)", "Cancel"]
 ```
 
-On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: spec`; `feature_folder` = the Epic subfolder for a **per-Epic** spec (a VI + focus Epic) or a **stand-alone-Epic** spec (`<EPIC>` = `focus_key`, which for a stand-alone Epic equals `jira_key`), or the VI dir for a **broad VI-level** spec (`focus_key` null) — Epic keys are globally unique, so the per-Epic form needs no VI prefix, and both forms use hyphens; §2.2 derives `spec/<EPIC>-<eslug>` or `spec/<VI>-<vslug>` from that folder, matching today's branch names; `deliverable_paths` = `specification.md`, `_session.md`, `_glossary.md`, and the rendered `.html` — plus `idea.md` when Phase 2 wrote it (an uncommitted `idea.md` matches no `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1 shape, so it would sit dirty and fire §3.3's G1 on every later preflight); never a kept one; `title: <EPIC|VI> Add specification`; and `body_facts` = the stage/user-story/AC/TC counts, the open-question count, and the `spec-reviewer` verdict. **Merged-to-main = ready for the dev-team handover** — Devs and `design:` read the spec from `main`, never from the branch, and `require-on-main` now enforces that rather than merely stating it. Emit its §4.1 outcome line in the Final report.
+On the first choice, execute `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §2) with `prefix: spec`; `feature_folder` = the Epic subfolder for a **per-Epic** spec (a VI + focus Epic) or a **stand-alone-Epic** spec (`<EPIC>` = `focus_key`, which for a stand-alone Epic equals `jira_key`), or the VI dir for a **broad VI-level** spec (`focus_key` null) — Epic keys are globally unique, so the per-Epic form needs no VI prefix, and both forms use hyphens; §2.2 derives `spec/<EPIC>-<eslug>` or `spec/<VI>-<vslug>` from that folder, matching today's branch names; `deliverable_paths` = `specification.md`, `_session.md`, `_glossary.md`, and the rendered `.html`; `title: <EPIC|VI> Add specification`; and `body_facts` = the stage/user-story/AC/TC counts, the open-question count, and the `spec-reviewer` verdict. **Merged-to-main = ready for the dev-team handover** — Devs and `design:` read the spec from `main`, never from the branch, and `require-on-main` now enforces that rather than merely stating it. Emit its §4.1 outcome line in the Final report.
 
 ### Next Epic (after a per-Epic spec from a multi-Epic VI)
 
@@ -533,7 +533,7 @@ folder — the intended home.
 
 ## Final report
 
-Report: feature-folder path; whether `idea.md` was written or an existing one kept; stage/user-story/AC/TC counts; open-question count; unmounted-repo advisories; the `spec-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and a reminder of the round-trip described above + that `Published: yes` is a human-only freeze step.
+Report: feature-folder path; stage/user-story/AC/TC counts; open-question count; unmounted-repo advisories; the `spec-reviewer` verdict; the `Phase handoff:` outcome line from `handoff-to-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §4.1); the `Specs repo:` outcome line from `commit-artifacts` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §6), with any guard notice repeated in full; and a reminder of the round-trip described above + that `Published: yes` is a human-only freeze step.
 
 ### Next step
 

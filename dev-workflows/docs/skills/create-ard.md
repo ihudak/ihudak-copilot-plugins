@@ -34,6 +34,7 @@ flowchart TD
 
 ## What it needs
 
+- **A Jira VI key, optionally followed by an Epic key**, via the shared front-end — a `mode: direct` prompt is rejected outright (`CREATE_ARD_NEEDS_JIRA`); `create-ard:` has no non-Jira behavior.
 - **The VI on the specs repo's default branch** — gated via `require-on-main` against the VI file in `specifications/<VI>-<vslug>/`. An unmerged VI is a hard stop, naming the branch and any open pull request. An **absent** VI is not a stop: the run falls back to reading the Jira export directly through `jira-reader`, and reports that it did so.
 - **`$SPECS_PATH`** (required) — if unset, the run stops naming `SPECS_PATH` and offers to enter a path or cancel.
 - **A prior VI-level ARD**, when the run is Epic-level — resolved via [`skills/_shared/ard-resolution.md`](../../skills/_shared/ard-resolution.md). `status: found` inherits its `[AD#N]` invariants read-only; `status: unmerged` stops, naming the branch and any pull request; `status: none` (the common case for a first ARD) proceeds unchanged.
