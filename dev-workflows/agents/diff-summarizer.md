@@ -45,7 +45,7 @@ repository. When `repo_url_slug` is absent, trust `repo_path` as given.
 
 ## Resolver selection by host
 
-Inspect `pr_refs[*].host` and route per-PR. Rule: **if the URL is on a cloud service AND an official CLI is available locally, use the CLI; otherwise fall back to pure-local-git strategies against the cloned repo.**
+Inspect `pr_refs[*].host` and route per-PR. Rule: **if the URL is on a cloud service AND an official CLI is available locally, use the CLI, dropping to the pure-local-git strategies wherever it cannot resolve the PR — not installed or not authenticated, its commits not available locally, or its range empty (GitHub resolver steps 2–4); otherwise fall back to pure-local-git strategies against the cloned repo.**
 
 | Category | Detected by | Cloud CLI (preferred when installed + authenticated) | Fallback |
 |---|---|---|---|
