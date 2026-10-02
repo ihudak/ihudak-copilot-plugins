@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
+## [2.34.4] — 2026-10-02
+
+Ported from the Claude edition's 2.65.4: `ai-workflows`' retirement of the Haiku-first chain for `defect-reporter` (`workflows-core` 1.9.1).
+
+### Changed
+
+- **`defect-reporter` runs on the §2.1 detection chain, the tier of the `impl-maintenance` it replaces, instead of a cheap chain headed by Haiku.** Under `--skip-feedback` it is the run's only feedback capture, and its work is judgement: it applies the defect predicate and its exclusions, then confirms the wrong line in the plugin's source. Haiku saved little on one dispatch per run. `model-routing.md` §2.2 is retired, its `defect-reporter` rule now sits in §2.1, and `defect_model` records a §2.1 resolution. Every skill's `--skip-feedback` dispatch, `run-flags.md` §4, `defect-reporter`'s description and `dev-workflows-shared.instructions.md` say the same.
+- **`run-flags.md` §2 now carries the Haiku rows itself.** The `haiku` value used to resolve against §2.2; no `model-routing.md` chain names Haiku any longer, so `--enforce-model=haiku` resolves exactly as before against §2's own list.
+
+### Fixed
+
+- **`docs-profile:`'s `notes` example said synthesis fell back to `claude-sonnet-4.6`**, skipping the two newer Sonnet rows §2 tries first; it now names `claude-sonnet-5.5`.
+
 ## [2.34.3] — 2026-10-02
 
 Ported from the Claude edition's 2.65.3: `ai-workflows`' fix for a `$SPECS_PATH` set inside the specs tree (its issue #70), adapted to this plugin's four specs directories, its Jira-key folder names and its shared Jira front-end. Not ported: that release's trailer fix, since this edition signs a deliverable commit as the fixed Copilot identity, and every part that touches the cost subsystem, which this edition does not have.

@@ -143,17 +143,11 @@ cheap tier buys nothing a Sonnet row does not already give.
 If none is available, fall back to the session model and announce it. Record the
 chosen model as `detection_model:` in the `model_routing` block.
 
----
-
-## 2.2 Cheap ("bugs-only") fallback chain
-
-Dispatched only for `defect-reporter` under `--skip-feedback` (`run-flags.md` §4); also
-resolves `run-flags.md` §2's `haiku` value. Use the first available:
-
-1. `claude-haiku-4.5`
-2. the §2.1 chain
-
-Record it as `defect_model:` in the `model_routing` block when used.
+**`defect-reporter` runs on this chain too**, under `--skip-feedback` (`run-flags.md` §4),
+recorded as `defect_model:`. Telling a defect from friction and confirming the wrong line in
+the plugin's source is judgement, not throughput; it takes this chain because it is the tier
+`impl-maintenance`, the agent it replaces, runs on. No chain in this file names Haiku;
+`run-flags.md` §2 carries the Haiku rows an enforced Haiku value resolves against.
 
 ---
 
@@ -276,7 +270,7 @@ model_routing:
                                              # SIGNIFICANT/HIGH-RISK.
   implementation_model: <e.g. claude-sonnet-5.5 or current_model>
   detection_model: <e.g. claude-sonnet-5.5>  # mid-tier steps (§2.1); never the session model
-  defect_model:   <e.g. claude-haiku-4.5>    # §2.2 cheap chain; set only under --skip-feedback
+  defect_model:   <e.g. claude-sonnet-5.5>   # §2.1 chain; set only under --skip-feedback
   fixes_model:    <same as implementation_model>
   opus_available: true | false             # true if any §2 row 1-6 (Opus 5.5/5/4.8/4.7/4.6/4.5) is available
   review_tier_vendor: openai | anthropic   # which branch of §2.3 the review_model came from
@@ -608,7 +602,7 @@ escalate a single oversized repo slice's `code-scanner` to the strong tier (§8.
 
 `run_flags.enforced_model` (`run-flags.md`) lets a run pin every subagent dispatch to one model, bypassing this policy's own per-step selection. Classification and the routing rules above are unchanged in what they select — this section changes only which model each selection resolves to.
 
-- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1, §2.2 and §2.3 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
+- **Chain resolution.** When `run_flags.enforced_model` is set, every resolution of §2, §2.1 and §2.3 returns that value instead of walking its own chain. Every `*_model` field of the §4 `model_routing` block that names a **dispatched** step equals it — `planning_model`, `review_model`, `detection_model`, `fixes_model`, `defect_model` — and the block gains `enforced_model: <id>` and `routing: bypassed`. A field that records the orchestrator's own inline work keeps the session model, never the enforced value, because enforcement pins subagent dispatches and not the session: `current_model` always does, and so does `implementation_model` / `authoring_model` wherever a skill codes or authors inline rather than delegating. `opus_available` is still resolved and reported truthfully — it is a property of the environment, not of the enforcement choice.
 - **Every dispatch.** Every `task` dispatch passes `model: <enforced>` explicitly, in §5's dispatch form, including agents whose frontmatter pins a tier: the dispatch's `model:` argument overrides the frontmatter pin. Every "frontmatter-pinned … no override" statement at a dispatch site reads "no override unless §10 enforces a model".
 - **Nested dispatch.** An agent that itself dispatches another (`docs-style-checker` → `dt-style-checker`; `upgrade-executor` / `vuln-fixer` → `test-baseliner`) receives `enforced_model` in its prompt and passes it on its own dispatch, so enforcement reaches every model a run touches.
 - **Steps unchanged.** Classification still runs and still selects the §3 sequence for the task's class. Enforcement changes which model each selected step runs on, never whether the step runs.
