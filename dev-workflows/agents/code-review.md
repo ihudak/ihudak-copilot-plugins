@@ -138,9 +138,8 @@ full review.
     requirement an earlier run, or code predating the spec, already delivers
     is `satisfied`, counted as *already present*. A plan step's
     `implements [ID]` tag, an Epic's done status in Jira, an earlier run's
-    report and a ticked box
-    are claims about coverage, not evidence of it: verify the behaviour in the
-    code either way. Then report **`exceeds`**: behaviour this change adds that
+    report and a ticked box are claims about coverage, not evidence of it:
+    verify the behaviour in the code either way. Then report **`exceeds`**: behaviour this change adds that
     no in-scope requirement and no plan step asks for — judged on the diff
     only, since code that predates the change is not this change's
     over-build. This checks design→**code** — it does NOT re-verify

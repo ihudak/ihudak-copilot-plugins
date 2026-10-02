@@ -14,6 +14,7 @@ pr_refs:
     branch_from: <feature branch from jira-reader>
     branch_to:   <target branch from jira-reader>
     title:       <link text>
+    source_item: <Jira key of the item the PR link was found in, from jira-reader>
     status:      MERGED | OPEN | DECLINED | UNKNOWN
 context: |
   <what this repo's PRs relate to — for documentation focus>
