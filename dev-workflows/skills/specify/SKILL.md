@@ -79,8 +79,8 @@ Usage: `specify: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs`
        written flat inside it either way.
    - All delimiters this step writes are hyphens; matching an existing dir tolerates a stray `-`/`_`.
      Neither the VI dir nor the feature folder is created here — the first phase that writes to it
-     (its first `_session.md` write — Phase 4's feasibility note or Phase 5's first settled
-     decision) creates it.
+     (its first `_session.md` write — Phase 3's feasibility note, step 4's soft gate, or Phase 5's
+     first settled decision) creates it.
 
 4. **Detect a prior run.** If a `_session.md` exists in the resolved feature folder, record that a
    resume is available — Phase 1 asks the user resume-vs-fresh. If no `_session.md` exists, this is a
@@ -273,10 +273,10 @@ rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skill
 - **Write no `idea.md`.** The Jira text this phase reads is the import itself — committed under
   `jira-import/` for a key input — and `specification.md`, which this run writes, is what
   `source-truth.md` treats as authoritative once it exists; a Jira-derived `idea.md` would be a
-  second, weaker record of the same text. It would also land where `idea:` writes: a broad
-  VI-level spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or
-  be read by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder is
-  `idea:`'s — leave it untouched.
+  second, weaker record of the same text. It would also land where `idea:` writes: a broad VI-level
+  spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or be read
+  by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder is not this
+  command's to touch — `idea:`'s, or one an earlier `specify:` version left — leave it as it is.
 - Carry the scoped linked-item tree (the Epic's Stories/Sub-tasks) forward into Phase 5 — the raw
   material the grill mines for user stories, acceptance criteria, and test cases.
 
