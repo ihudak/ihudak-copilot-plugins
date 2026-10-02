@@ -1,7 +1,7 @@
 {
   "name": "dev-workflows",
   "description": "Full product-development lifecycle workflow skills for GitHub Copilot CLI: idea → create-vi → create-ard → specify → design → epics → implement → document → release-notes → ready, plus vuln (CVE remediation), upgrade, update-vi, api-guideline-reviewer, guideline-reviewer, docs-profile, feedback, and prompt utilities. Role-split model routing — Anthropic models do the work, top OpenAI models review it — with branch management, dispatched review sub-agents, and automated maintenance. Each phase hands its artifact to the next through the specs repo's default branch, and the consuming skill refuses to start until it has landed. Optional read-only grounding on shipped product docs, tracked prior art in the specs repo, the counterpart space's docs, and mounted code. 21 user-facing skills + 35 sub-agents.",
-  "version": "2.34.1",
+  "version": "2.34.2",
   "author": {
     "name": "Ivan Gudak",
     "url": "https://github.com/ihudak"

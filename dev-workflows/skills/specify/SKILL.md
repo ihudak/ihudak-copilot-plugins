@@ -270,13 +270,14 @@ rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skill
   themes and the Phase 5 raw material — derives from this scoped `focus_key` subtree.
 - Extract **capability themes** and component/product mentions from the scoped subtree — feeds
   Phase 3's repo derivation and Phase 4's `code-scanner` dispatches.
-- **Write no `idea.md`.** The Jira text this phase reads is the import itself — committed under
+- **Write no `idea.md`.** The Jira text this phase reads is the import itself — in the tree under
   `jira-import/` for a key input — and `specification.md`, which this run writes, is what
   `source-truth.md` treats as authoritative once it exists; a Jira-derived `idea.md` would be a
   second, weaker record of the same text. It would also land where `idea:` writes: a broad VI-level
-  spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or be read
-  by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder is not this
-  command's to touch — `idea:`'s, or one an earlier `specify:` version left — leave it as it is.
+  spec's feature folder is the VI's own folder, where it would overwrite `idea:`'s file or, once
+  committed, be read by `create-vi:`'s idea ladder as the idea. An `idea.md` already in the folder
+  is not this command's to touch — `idea:`'s, or one an earlier `specify:` version left — leave it
+  as it is.
 - Carry the scoped linked-item tree (the Epic's Stories/Sub-tasks) forward into Phase 5 — the raw
   material the grill mines for user stories, acceptance criteria, and test cases.
 
