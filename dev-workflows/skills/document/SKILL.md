@@ -1349,7 +1349,7 @@ the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (document:)`, and pushes
 per §4 step 5. It NEVER writes into the docs repo this run just changed — the
 documentation commit, branch, and PR are untouched — NEVER touches a code
-repo, or the current working directory; NEVER
+repo or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
 report was composed before this phase, **print its §6 outcome line here**, as
@@ -1777,7 +1777,7 @@ the run. It stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`,
 commits `<KEY> Add dev-workflows session artifacts (document:)` — or
 `NOISSUE …` when this doc-edit run resolved no key — and pushes per §4 step 5.
 It NEVER writes into the docs repo this run just changed, NEVER touches a code
-repo, or the current working directory; NEVER
+repo or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as
@@ -1797,7 +1797,7 @@ in full. No `resume.md` is written in this mode
 - NEVER create a git branch — this mode never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
 - NEVER run tests (this command has no test phase)
 - NEVER invoke Opus (no planning agent, no review agent — docs edits are always SIMPLE or MODERATE), unless `run_flags.enforced_model` names one (§10)
-- NEVER commit the doc edits, or anything else in a docs/code repo, or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- NEVER commit the doc edits, or anything else in a docs/code repo or the current working directory — the user manages git manually there. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` in the shared `## Mode detection` section, before dispatching to either mode — so it runs for Mode B as well as Mode A — and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - NEVER make assumptions that could have been asked — ask instead
 - NEVER end implementation with "Should I implement?" — if approved, implement

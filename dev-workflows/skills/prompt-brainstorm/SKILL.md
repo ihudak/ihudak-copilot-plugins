@@ -57,7 +57,7 @@ hand-off, because the brainstorming skill takes over the session there. It
 stages ONLY the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
 `<KEY> Add dev-workflows session artifacts (prompt-brainstorm:)` — or
 `NOISSUE …` when no `jira_key` resolved — and pushes. It NEVER touches a
-code/docs repo, or the current working directory; NEVER
+code/docs repo or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
 `specs_git: blocked` (§3.3 G0), re-emitting that notice. Print its §6 outcome
 line here, prefixed `Specs repo:`, with any guard notice repeated in full.

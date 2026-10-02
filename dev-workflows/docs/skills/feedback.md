@@ -22,7 +22,7 @@ The argument (everything after the `feedback:` trigger) is the note text — the
 
 ## What it produces
 
-An `origin: manual` entry appended to the plugin's per-VI feedback file — see [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md) for the exact entry format and the specs-first ladder that resolves where the file lands; `feedback:` doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it, printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo, or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
+An `origin: manual` entry appended to the plugin's per-VI feedback file — see [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md) for the exact entry format and the specs-first ladder that resolves where the file lands; `feedback:` doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it, printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
 
 ## Gates
 
