@@ -29,7 +29,8 @@ docs-profile:    → docs-profile → (writes .dev-workflows/docs-profile.yml as
 
 All seventeen in-scope skills additionally run `specs-preflight` at run start — as early as
 $SPECS_PATH is known (Phase 0 in most skills, Step 0 in vuln:, the shared mode-detection section
-in document:) — and `commit-artifacts` as their last action (skills/_shared/specs-repo-git.md),
+in document:), and none on a run `specs-root-check` (skills/_shared/specs-repo-git.md §8) stops
+before it — and `commit-artifacts` as their last action (skills/_shared/specs-repo-git.md),
 including the four Utilities below, which have no line of their own here because they are
 single-purpose logging skills rather than pipelines. In prompt-brainstorm: and prompt-grill-me:
 the terminal step runs immediately before their Phase 3, which cedes the session (§4).

@@ -37,7 +37,7 @@ flowchart TD
 ## What it needs
 
 - **`<KEY>`** — mandatory; absent or malformed stops the run with `UPDATE_VI_NEEDS_KEY`.
-- **`$SPECS_PATH`** (required) — if unset, the run stops naming `SPECS_PATH` and offers to enter a path or cancel.
+- **`$SPECS_PATH`** (required) — if unset, the run stops naming `SPECS_PATH` and offers to enter a path or cancel. Set to a path inside the specs tree — `specifications/` itself, a mount of it, or a folder in it — it stops the run with `SPECS_PATH_INSIDE_TREE` before any folder is looked up, naming the value to set and offering no path to enter ([Environment](../reference/environment.md)).
 - **The re-imported Jira VI**, in the feature folder's `jira-import/` (body + its inlined `## Comments` section) — the run's **authoritative base**, resolved Jira-import-first. Not yet imported stops the run and asks you to import it first; imported but stale (older than 3 days) offers a re-import rather than stopping outright.
 - **Secondary grounding** (all optional and read-only): a frozen specs-repo draft (`<KEY>_*.md`), any `*_ARD.md`, `specification.md`, and the `@transcript`/notes path(s) passed on the command line. None of these gate the run. Where a discovered `*_ARD.md` or `specification.md` is not on the specs repo's default branch, the Phase 1 confirmation flags it as unapproved — advisory only, never a reason to stop.
 - **Documentation grounding** (optional, on by default) — turned off with `--no-docs`; a miss is a silent skip, never a gate.

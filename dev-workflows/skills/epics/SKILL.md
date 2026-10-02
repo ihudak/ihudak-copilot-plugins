@@ -14,7 +14,7 @@ Usage: `epics: <VI-Key> [<Epic-Key>] [--no-docs | --docs <path>]` (`--no-docs` t
 
 Key distinction from `document:` (Jira mode): the VI being Epic-ized is **not yet implemented** — there are no PRs to diff. Code scanning (when enabled) is a plain filesystem search to understand what exists and what needs to be built.
 
-`epics:` **never branches**, never runs `handoff-to-main` and never opens a pull request (still true — the run's git **writes** are confined to `$SPECS_PATH`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`; the run does make read-only git calls elsewhere — Phase 4's `git remote get-url origin` per candidate clone and Phase 8's `git diff --stat` from `project_root` — but none of them writes), and writes only to the resolved output directory — `<VI folder>/epic-drafts/`, or a derived `epic-drafts/<jira_key>/` dir beside an imported hierarchy outside `$SPECS_PATH`. Drafts written under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) are committed by the terminal `commit-artifacts` step (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1); drafts written beside an import outside `$SPECS_PATH` are never committed — git there is the user's responsibility. The run commits only inside `$SPECS_PATH`, and only its bounded artifact paths (§2.1) — via the `specs-preflight` flush at run start (§3.4) and the terminal `commit-artifacts` step (§4); never anything outside `$SPECS_PATH`. It still creates no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none).
+`epics:` **never branches**, never runs `handoff-to-main` and never opens a pull request (still true — the run's git **writes** are confined to `$SPECS_PATH`, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`; the run does make read-only git calls elsewhere — Phase 4's `git remote get-url origin` per candidate clone and Phase 8's `git diff --stat` from `project_root` — but none of them writes), and writes only to the resolved output directory — `<VI folder>/epic-drafts/`, or a derived `epic-drafts/<jira_key>/` dir beside an imported hierarchy outside `$SPECS_PATH`. Drafts written under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) are committed by the terminal `commit-artifacts` step (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1), unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which leave them written and uncommitted; drafts written beside an import outside `$SPECS_PATH` are never committed — git there is the user's responsibility. The run commits only inside `$SPECS_PATH`, and only its bounded artifact paths (§2.1) — via the `specs-preflight` flush at run start (§3.4) and the terminal `commit-artifacts` step (§4); never anything outside `$SPECS_PATH`. It still creates no branch (still true — `specs-preflight` switches `$SPECS_PATH` only between branches that already exist, and only plugin-created ones (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none).
 
 ---
 
@@ -47,9 +47,8 @@ specs repo.
 `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover
 session artifacts from an earlier run, retry an artifact commit that failed to
-push, and settle the branch. Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the
+push, and settle the branch. Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires, emit its §5 notice; if it returns
+`specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole run — the
 terminal `commit-artifacts` step skips on it.
 
 ---
@@ -64,7 +63,7 @@ Ask about:
 
 - **Output directory.** One `.md` file per Epic, filename `<NEW-EPIC-SLUG>.md`
   (drafted Epics have no Jira ID yet, so they are slug-named files inside the
-  VI-keyed folder). The default is **`<VI folder>/epic-drafts/`** — beside `jira-import/`, never inside it: a re-import regenerates `jira-import/`, so a draft written there would be lost, while `epic-drafts/` survives re-imports. The terminal `commit-artifacts` step commits it (`specs-repo-git.md` §2.1). For a directory-token input outside `$SPECS_PATH`: `<parent-of-jira_export_root>/epic-drafts/<jira_key>/`, with the path-safety guard — warn and offer another path if it would fall *inside* `jira_export_root`. A pre-existing directory that already holds drafts is normal — **not** a warning.
+  VI-keyed folder). The default is **`<VI folder>/epic-drafts/`** — beside `jira-import/`, never inside it: a re-import regenerates `jira-import/`, so a draft written there would be lost, while `epic-drafts/` survives re-imports. The terminal `commit-artifacts` step commits it (`specs-repo-git.md` §2.1), unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which leave it written and uncommitted. For a directory-token input outside `$SPECS_PATH`: `<parent-of-jira_export_root>/epic-drafts/<jira_key>/`, with the path-safety guard — warn and offer another path if it would fall *inside* `jira_export_root`. A pre-existing directory that already holds drafts is normal — **not** a warning.
   The directory is auto-created if missing. Record `output_dir`, and record
   `project_root` = `$SPECS_PATH` when the VI folder resolved, else `output_dir`. Ask:
   ```
@@ -353,7 +352,7 @@ The drafting is delegated to the **`epic-writer`** subagent (pinned to the §2.1
    ```
    choices: ["Provide the missing input (you'll be prompted)", "Cancel"]
    ```
-   On a provided value, rewrite the handoff and re-dispatch once. Nothing is committed here (still true — this step writes only Epic drafts into the output directory; under `$SPECS_PATH` the terminal `commit-artifacts` step commits them, outside it nothing does — git management there is the user's responsibility).
+   On a provided value, rewrite the handoff and re-dispatch once. Nothing is committed here (still true — this step writes only Epic drafts into the output directory; under `$SPECS_PATH` the terminal `commit-artifacts` step commits them, save on a run carrying `specs_git: blocked` or `specs_git: misrooted`, and outside it nothing does — git management there is the user's responsibility).
 
    Also record `coverage_file` (the `_coverage.md` path) and `clarifications_needed[]` for Phases 6.1 and 7.
 
@@ -485,7 +484,7 @@ Cap: one fix cycle + one re-review maximum.
 
 First gather the change context:
 
-a. `project_root` (`$SPECS_PATH` when the VI folder resolved, else the resolved output directory) is the "project root" for this run. Run `git diff --stat` from `project_root` if it is a git repo; otherwise list the written files manually. This step never commits — just report what changed (when `project_root` is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the other bounded artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1; outside `$SPECS_PATH` nothing commits them).
+a. `project_root` (`$SPECS_PATH` when the VI folder resolved, else the resolved output directory) is the "project root" for this run. Run `git diff --stat` from `project_root` if it is a git repo; otherwise list the written files manually. This step never commits — just report what changed (when `project_root` is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the other bounded artifact paths, per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1, unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which commit nothing; outside `$SPECS_PATH` nothing commits them).
 b. Compose a **change summary block**:
 
 ```
@@ -649,7 +648,7 @@ MODERATE — specs-repo Epic drafting for a single VI
 - [list any]
 
 ### Git state
-The project root has uncommitted changes. If it is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the session artifacts — see its outcome line at the end of the run. Otherwise `epics:` does not commit the project root — git management there is your responsibility.
+The project root has uncommitted changes. If it is `$SPECS_PATH`, the terminal `commit-artifacts` step commits the drafts and the session artifacts, unless this run carries `specs_git: blocked` or `specs_git: misrooted` — see its outcome line at the end of the run. Otherwise `epics:` does not commit the project root — git management there is your responsibility.
 
 ### Next step
 [Per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/next-phase-offer.md` — guidance only, never auto-invoked. For each Epic just drafted, author its spec → `specify: <VI> <Epic>` (PE); the **Epic fan-out** (depth vs breadth) applies from the spec/design stage on. Optionally a Product Architect adds an Epic-level ARD first → `create-ard: <VI> <Epic>`. If the review BLOCKED, resolve that first.]
@@ -706,7 +705,7 @@ step 5. It NEVER touches an imported directory outside `$SPECS_PATH` (drafts wri
 code/docs repo, or the current working directory (an import under `$SPECS_PATH` and `<VI folder>/epic-drafts/` are committed by
 this step, `specs-repo-git.md` §2.1); NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
-`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
+`specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Because the Phase 9
 report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
@@ -718,7 +717,7 @@ in full.
 - ALWAYS `emit-block` (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/feedback-emission.md`) before escalating a halt caused by a **plugin / skill / command / reference gap** (a capability the run needed but the plugin lacked) — so a run abandoned at the block still records it. NEVER for a work-quality review BLOCK or an environment / user halt (repo-missing, dirty-tree, jira-not-found, cancellation)
 - ALWAYS resolve input via the shared Jira-input front-end (Phase 0) — a JiraID requires `$SPECS_PATH` and an import in its feature folder; an imported-Jira directory works without either; `epics:` is cwd-agnostic and rejects `mode: direct`
 - NEVER create a git branch — this command never branches. `specs-preflight` may switch `$SPECS_PATH` between branches that already exist, and only ones the plugin created (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.2); it creates none.
-- NEVER branch, run `handoff-to-main`, or open a pull request. NEVER commit anything in an imported directory outside `$SPECS_PATH` (drafts written there are never committed) or the current working directory — git management there is the user's responsibility. Drafts under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) and an import under `$SPECS_PATH` are committed by the terminal step, not by this skill's own phases. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+- NEVER branch, run `handoff-to-main`, or open a pull request. NEVER commit anything in an imported directory outside `$SPECS_PATH` (drafts written there are never committed) or the current working directory — git management there is the user's responsibility. Drafts under `$SPECS_PATH` (`<VI folder>/epic-drafts/`) and an import under `$SPECS_PATH` are committed by the terminal step, not by this skill's own phases, save on a run carrying `specs_git: blocked` or `specs_git: misrooted`, which commits nothing. The terminal `commit-artifacts` step commits ONLY `$SPECS_PATH`'s bounded artifact paths (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
 - ALWAYS run `specs-preflight` at Phase 0 and `commit-artifacts` as the run's last action (per `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`) — bounded to `$SPECS_PATH`'s artifact paths (§2.1) and to plugin-created branches (§2.2), always `git -C "$SPECS_PATH"` and never a `cd` (§1 rule 1), never force-pushing, and never failing the run
 - NEVER write inside `jira-import/` — re-created on every import; writes would be lost
 - NEVER write inside `_archive/` — read-only by convention
@@ -727,7 +726,7 @@ in full.
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `epic-reviewer` before Phase 8 maintenance
 - ALWAYS resolve the `model_routing` block at Phase 1.5 and pin each subagent dispatch to its §9 chain via `model:` — the mechanical steps (`jira-reader`, `code-scanner`, `dt-style-checker`, `doc-fixer`), the Phase 8 maintenance agents (three `general-purpose`, one `impl-maintenance`), and `epic-writer` (MODERATE) to the §2.1 detection chain; `epic-reviewer` keeps its §2.3 review-tier pin fixed at dispatch (no override unless §10 enforces a model); coordination + interactive gates run on `current_model`
-- ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts itself (still true — drafts under `$SPECS_PATH` are committed by the terminal `commit-artifacts` step; drafts outside it are never committed, and git there is the user's responsibility)
+- ALWAYS delegate Phase 6 writing to the `epic-writer` subagent (write-only); the orchestrator never writes Epics itself and never commits the drafts itself (still true — drafts under `$SPECS_PATH` are committed by the terminal `commit-artifacts` step, save on a run carrying `specs_git: blocked` or `specs_git: misrooted`; drafts outside it are never committed, and git there is the user's responsibility)
 - ALWAYS cap review/fix cycles: 1 fix + 1 re-review max
 - ALWAYS pass `Change type: docs` in the Phase 8 change summary block
 - ALWAYS pass `Command run: epics:` in the Phase 8 Agent 4 session handoff

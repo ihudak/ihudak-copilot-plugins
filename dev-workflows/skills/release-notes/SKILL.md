@@ -52,9 +52,7 @@ and execute its `specs-preflight` entry point (§3) inline: flush any leftover
 session artifacts from an earlier run, retry an artifact commit that failed to
 push, and settle the branch. This runs against `$SPECS_PATH` only —
 `git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
-in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+in is untouched (§1 rule 1). Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole run — the terminal
 `commit-artifacts` step skips on it.
 
 ---
@@ -91,8 +89,8 @@ and on its default branch. If a guard fires, emit its §5 notice; if it returns
      *Specs resolution*, the VI-flat form; a focus Epic does not change it, since the draft is the
      VI's) → default `<VI-dir>/<jira_key>-release-notes.md`. More than one matching folder is
      ambiguous: list them and ask which, never pick one. The terminal `commit-artifacts` step
-     commits this file (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
-  2. **No VI folder, but the ticket has its own feature folder** (a non-VI ticket imported into the specs repo) → `<its folder>/<jira_key>-release-notes.md`. State in the plan why the VI folder was not used. The terminal `commit-artifacts` step commits this file (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1).
+     commits this file (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1), unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which leave it written and uncommitted.
+  2. **No VI folder, but the ticket has its own feature folder** (a non-VI ticket imported into the specs repo) → `<its folder>/<jira_key>-release-notes.md`. State in the plan why the VI folder was not used. The terminal `commit-artifacts` step commits this file (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1), unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which leave it written and uncommitted.
   3. **Neither** (directory input outside `$SPECS_PATH`) → `<parent-of-jira_export_root>/<jira_key>-release-notes.md`.
   Then ask (the Recommended choice is always the resolved file):
   ```
@@ -340,7 +338,8 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
        *is* the archive: record `git -C "$SPECS_PATH" log -1 --format=%h -- <rel>` and write no
        copy. Otherwise (untracked, modified, or `$SPECS_PATH` is not a git work tree), copy it to
        `<VI-dir>/dev-workflows/release-notes/<jira_key>-release-notes.<YYYYMMDD-HHMMSS>.md` —
-       under `dev-workflows/`, so the terminal step commits it with the run's other artifacts
+       under `dev-workflows/`, so the terminal step commits it with the run's other artifacts (save on a
+       run carrying `specs_git: blocked` or `specs_git: misrooted`, which commits nothing)
        instead of leaving a stray file the next preflight reports. Then offer
        `["Overwrite (the current draft is kept — in git history or the archive copy)", "Print to screen instead", "Skip", "Other… (describe)"]`;
        there is no `.new` sibling here, because a second file in the feature folder would be
@@ -368,7 +367,7 @@ If `dt-style-guide` is not installed, skip this phase and note "style check skip
 2. **Report:**
    ```
    ## Release-notes draft — <jira_key>
-   - Destination: <path | stdout | skipped>  (<specs VI folder or the ticket's own feature folder — committed by the terminal step | ticket's own feature folder: <why the VI folder was not used> | chosen path — not committed>)
+   - Destination: <path | stdout | skipped>  (<specs VI folder or the ticket's own feature folder — committed by the terminal step, or not committed where the run carries `specs_git: blocked` or `specs_git: misrooted` | ticket's own feature folder: <why the VI folder was not used> | chosen path — not committed>)
    - Shaped as: <Feature update | Breaking change | Fix> → <destination file>  (source: <imported | inferred>)
    - Context label: <the {{#context}} value | none — omitted from the draft>
    - Deprecation: <EOL <date> (end-of-support <date | —>) | none>
@@ -473,8 +472,8 @@ per §4 step 5. **The draft is one of those paths when Phase 8 wrote it to the V
 other artifacts; a draft written to a chosen path is not. It NEVER writes into a
 docs repo, NEVER touches a code repo,
 or the current working directory; NEVER force-pushes; NEVER fails the run; and skips
-entirely when the run carries `specs_git: blocked` (§3.3 G0), re-emitting that
-notice. Because the Phase 8 report was composed before this phase, **print its
+entirely when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop),
+re-emitting that notice. Because the Phase 8 report was composed before this phase, **print its
 §6 outcome line here**, as the run's last output — prefixed `Specs repo:`, with
 any guard notice repeated in full.
 

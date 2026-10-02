@@ -33,6 +33,16 @@ Classify each token:
 
 ## Resolution
 
+**First, on a `jira-driven` input: `specs-root-check`.** Where `$SPECS_PATH` is set and the mode is
+`jira-driven` — a JiraID token or a directory token — run
+`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §8's `specs-root-check` before either branch
+below. Any signal is that section's `SPECS_PATH_INSIDE_TREE` hard stop: the run ends there with
+`specs_git: misrooted` set, never on Fallback A, whose "enter the path" override would leave the
+environment pointed at the same place for the next run. A directory token is tested too, although
+it works without `$SPECS_PATH`, and §8 says why. `direct` mode runs none: a run that resolves no
+feature folder learns the cause from `specs-repo-git.md` §3.1's notice. No signal → the branch the
+input selects, unchanged.
+
 ### jira-driven — JiraID token (requires `$SPECS_PATH`)
 
 `<spec-dirs>` = every existing directory among `$SPECS_PATH/{specs|specifications|vis|ideas}/`.
@@ -174,7 +184,9 @@ Resolve in order:
   set it;
   a directory with none of `specs/`, `specifications/`, `vis/`, `ideas/` → say the importer needs
   `specifications/` there. Either way
-  `choices: ["Set SPECS_PATH (enter the path)", "Pass an imported-Jira directory instead", "Cancel"]`
+  `choices: ["Set SPECS_PATH (enter the path)", "Pass an imported-Jira directory instead", "Cancel"]`.
+  A path entered there is tested by `specs-root-check` (`specs-repo-git.md` §8) before it is
+  used, exactly as a set `$SPECS_PATH` is (§ Resolution); a signal is its hard stop.
 - **B — JiraID-shaped but no `<feature folder>/jira-import/<KEY>-index.md`, and no nested import
   either (or a `ValueIncrement` seen only inside another ticket's import):** say in prose
   that the ticket has not been imported into the specs repo and give the

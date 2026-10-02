@@ -20,6 +20,8 @@ owns every prompt.
 At the start of the phase, resolve the write target by walking the ladder,
 most-durable first.
 
+**Before tier 1: the run carries `specs_git: misrooted`** (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3.1, or its §8 `specs-root-check` stop) → **report-only**, as in tier 3, whether or not a VI dir or an import resolved, with its own notice (below). `$SPECS_PATH` is set but misplaced, so a write under it lands where the next run, with the variable corrected, never looks, and a tier-2 write would file follow-ups for a run whose specs tree is in doubt.
+
 1. **`$SPECS_PATH` VI dir exists** — the dir matched by
    `$SPECS_PATH/{specs|specifications|vis|ideas}/…/<KEY>{-|_}<slug>/…`, per the folder-naming rule of `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/jira-input-resolution.md` § JiraID token, step 2 (a name equal to `<KEY>` or beginning `<KEY>-` or `<KEY>_`, in any `<spec-dirs>` directory — a bare folder counts) →
    `<VI-dir>/dev-workflows/<KEY>-followups.md` (§2.1), verbose detail inlined
@@ -37,7 +39,9 @@ In every tier the follow-ups ALSO remain in the Final Report (zero regression)
 and the pipeline never fails.
 
 - **Notice**: tier 2: `⚠ N follow-ups written to <path>`; tier 3:
-  `⚠ No specs dir — N follow-ups kept in this report only; set $SPECS_PATH to persist them`.
+  `⚠ No specs dir — N follow-ups kept in this report only; set $SPECS_PATH to persist them`;
+  under `specs_git: misrooted`:
+  `⚠ SPECS_PATH is misplaced (specs_git: misrooted) — N follow-ups kept in this report only.`
 - **Interactive escape** (folds into the §5 batch preview, mirroring Fallback A
   in `jira-input-resolution.md`): at tier 2 only (the `source = directory` tier — tier 3 has no path to offer), show the resolved
   fallback path and offer

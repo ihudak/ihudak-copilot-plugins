@@ -18,7 +18,7 @@ The argument (everything after the `feedback:` trigger) is the note text — the
 
 - **The note itself** — friction plus a suggested improvement. The skill lightly tidies wording but never invents content you didn't say.
 - **Confirmed metadata**, resolved in one grouped prompt: `command` (inferred from recent context, or `n/a`), `category` (a controlled, reuse-first vocabulary from [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md) §1), and `impact` (`blocker | friction | polish`).
-- **`$SPECS_PATH`** — the specs-preflight step at Phase 0 settles the branch before anything is written; it is silent when the repo is already clean and on its default branch.
+- **`$SPECS_PATH`** — the specs-preflight step at Phase 0 settles the branch before anything is written, save on a run that finds `$SPECS_PATH` misplaced, where it switches nothing and says so; it is silent when the repo is already clean and on its default branch and `$SPECS_PATH` names the root of a dedicated specs repository.
 
 ## What it produces
 

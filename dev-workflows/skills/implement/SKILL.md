@@ -95,9 +95,7 @@ and execute its `specs-preflight` entry point (§3) inline: flush any leftover
 session artifacts from an earlier run, retry an artifact commit that failed to
 push, and settle the branch. This runs against `$SPECS_PATH` only —
 `git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
-in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+in is untouched (§1 rule 1). Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole run — the terminal
 `commit-artifacts` step skips on it.
 
 **Gate the in-scope specs on `$SPECS_PATH`'s main.** This runs after the cheap `focus_key`-null `jira-reader` classification above — a deliberate, bounded exception to `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §5 rule 2's "before its first subagent dispatch", and structurally forced: this gate's `specs` set is derived from `focus_key`, which that dispatch resolves. The exception is bounded to that one read-only Epic-unit classification; every expensive step still follows the gate. (`epics:` records its own §5 rule 2 deviation the same way.) For each resolved `specs` path whose basename is `specification.md` or `design.md` — `implement:`'s **in-scope** spec/design files, the same set Phase 2B and the invariants section reference for the conformance dimension — execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against it, mapping its §3.7 return value by `stopped` first, never by `on_main` alone. Any stopping state → stop per §4.4, naming `$SPECS_PATH` explicitly — `implement:` stands in a **code** repo, so an unqualified stop message would point at the wrong repository. Otherwise (`stopped: false`): `pass`/`pass_amending` → proceed (on `pass_amending`, print §3.3's row-B message — reachable only when an **earlier** `implement:` run's Phase 4.5 handoff created the branch and `specs-repo-git.md` §3.5 B3 kept this run's preflight checkout on it — never this run's own Phase 4.5, which has not executed when this Phase 0 gate runs; `implement:` does not itself author `specification.md`/`design.md`, so a leftover `spec/`/`design/` branch left by an earlier `specify:`/`design:` run is never row B for this gate — it is row C/C′, and the stop/repair path above already covers it). `absent` → **only an in-scope spec is gated at all** — a direct-prompt run resolves none of these `specs` entries and is entirely unaffected, so do not stop; behave exactly as before this feature. `unmanaged` → behave exactly as before this feature. A spec/design supplied directly as a lone `@path` primary description — the Design-doc open-question guard's own input above, a separate mechanism from the `specs` list this gate reads — is **out-of-contract**: read where it sits, deliberately not gated here, the same rule this plan set for `create-vi: <KEY> @<path>`.
@@ -808,8 +806,8 @@ per §4 step 5. It NEVER writes into the code repo this run just changed — tha
 repo's own commit, push, and pull request were Phase 4.6's, through a different
 reference and against a different remote —
 NEVER touches a docs repo or the current working directory; NEVER
-force-pushes; NEVER fails the run; and skips entirely when the run carries
-`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
+force-pushes; NEVER fails the run; and skips entirely when the run carries `specs_git:
+blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.

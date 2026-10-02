@@ -31,12 +31,10 @@ and execute its `specs-preflight` entry point (§3) inline: flush any leftover
 session artifacts from an earlier run, retry an artifact commit that failed to
 push, and settle the branch. This runs against `$SPECS_PATH` only —
 `git -C "$SPECS_PATH"`, never a `cd`, so the code/docs repo this run is working
-in is untouched (§1 rule 1). Prompt-free and silent when the specs repo is clean
-and on its default branch. If a guard fires, emit its §5 notice; if it returns
-`specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+in is untouched (§1 rule 1). Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires, emit its §5 notice; if it returns `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole run — the terminal
 `commit-artifacts` step skips on it. It sits **here**, in the shared
 mode-detection dispatch, deliberately: both modes reach a terminal
-`commit-artifacts`, so both must carry a `specs_git: blocked` flag. A preflight
+`commit-artifacts`, so both must carry a `specs_git: blocked` or `specs_git: misrooted` flag. A preflight
 placed inside either mode's own Phase 0 would leave the other mode committing
 unguarded.
 
@@ -191,7 +189,7 @@ All discovery defaults to `/workspace` (`${REPOS_PATH:-/workspace}`); on a host,
 
 **Specs-repo preflight.** Already run — the shared mode-detection dispatch executed `specs-preflight`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
-before this mode was entered, and any `specs_git: blocked` flag it set is carried into this mode too.
+before this mode was entered, and any `specs_git: blocked` or `specs_git: misrooted` flag it set is carried into this mode too.
 Do not run it a second time.
 
 ---
@@ -1351,7 +1349,7 @@ per §4 step 5. It NEVER writes into the docs repo this run just changed — the
 documentation commit, branch, and PR are untouched — NEVER touches a code
 repo or the current working directory; NEVER
 force-pushes; NEVER fails the run; and skips entirely when the run carries
-`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 9
+`specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Because the Phase 9
 report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
@@ -1368,7 +1366,7 @@ in full.
 - GitHub URLs may use the `gh` CLI for head/base SHA resolution; no direct REST calls outside `gh`
 - NEVER write inside `_archive/` — that path is read-only by convention
 - NEVER write inside `jira-import/` — that path is re-created from scratch on every Jira import; writes there will be lost
-- NEVER write product documentation outside the resolved `docs_repo_path` (Phase 0); the only other writes go to `<project_dir>` and `<screenshot_staging_dir>` as Phase 1 defines them — the feature folder under `$SPECS_PATH`, beside the import for a directory input outside it, or the staging directory the user entered (the `<JIRA_KEY>-implementation-gaps.md` bug-report draft, the `<JIRA_KEY>-pr-draft.md`, and screenshot staging; where a draft lies under `$SPECS_PATH` the terminal `commit-artifacts` commits it, `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1) and this run's own temporary files — Phase 6.3's handoff file and Phase 7's claims file, each made by `command mktemp` and removed at the top of Phase 8 — never anywhere else.
+- NEVER write product documentation outside the resolved `docs_repo_path` (Phase 0); the only other writes go to `<project_dir>` and `<screenshot_staging_dir>` as Phase 1 defines them — the feature folder under `$SPECS_PATH`, beside the import for a directory input outside it, or the staging directory the user entered (the `<JIRA_KEY>-implementation-gaps.md` bug-report draft, the `<JIRA_KEY>-pr-draft.md`, and screenshot staging; where a draft lies under `$SPECS_PATH` the terminal `commit-artifacts` commits it, `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §2.1, unless the run carries `specs_git: blocked` or `specs_git: misrooted`, which leave it written and uncommitted) and this run's own temporary files — Phase 6.3's handoff file and Phase 7's claims file, each made by `command mktemp` and removed at the top of Phase 8 — never anywhere else.
 - ALWAYS escalate missing repos before proceeding — never silent skip
 - ALWAYS invoke `docs-style-checker` (Phase 6.4) before `doc-reviewer` (Phase 7)
 - ALWAYS run the Phase 0 toolchain preflight (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/toolchain-preflight.md`) after profile resolution and before Phase 1; it prompts only when a required tool is missing
@@ -1439,7 +1437,7 @@ No model-routing reminder is injected for this command — classification still 
 
 **Specs-repo preflight.** Already run — the shared mode-detection dispatch executed `specs-preflight`
 (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §3)
-before this mode was entered, and any `specs_git: blocked` flag it set is carried into this mode too.
+before this mode was entered, and any `specs_git: blocked` or `specs_git: misrooted` flag it set is carried into this mode too.
 Do not run it a second time.
 
 ---
@@ -1741,7 +1739,7 @@ Output a structured report — do NOT ask any closing confirmation:
 - [anything the user asked to defer, OR validation failures the user accepted, OR "none"]
 
 ### Git state
-The working tree has uncommitted changes. `document:` (direct mode) never commits the doc edits — you manage git manually. Run `git -C <repo_root> status` to review, then commit when ready. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step — see its outcome line at the end of the run.)
+The working tree has uncommitted changes. `document:` (direct mode) never commits the doc edits — you manage git manually. Run `git -C <repo_root> status` to review, then commit when ready. (This run's `$SPECS_PATH` session artifacts are committed separately by the terminal step, unless the run carries `specs_git: blocked` or `specs_git: misrooted` — see its outcome line at the end of the run.)
 ```
 
 ---
@@ -1778,8 +1776,7 @@ commits `<KEY> Add dev-workflows session artifacts (document:)` — or
 `NOISSUE …` when this doc-edit run resolved no key — and pushes per §4 step 5.
 It NEVER writes into the docs repo this run just changed, NEVER touches a code
 repo or the current working directory; NEVER
-force-pushes; NEVER fails the run; and skips entirely when the run carries
-`specs_git: blocked` (§3.3 G0), re-emitting that notice. Because the Phase 5
+force-pushes; NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Because the Phase 5
 report was composed before this phase, **print its §6 outcome line here**, as
 the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full. No `resume.md` is written in this mode

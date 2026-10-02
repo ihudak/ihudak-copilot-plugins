@@ -44,14 +44,13 @@ must be resolved down to a single Epic. Pass an explicit `<VI> <Epic>` to scope 
 
 2. **Resolve `$SPECS_PATH`.** `ready:` reads the ARD/spec/design artifacts and writes `_readiness.md`
    under `$SPECS_PATH/specifications/`. If `$SPECS_PATH` is unset, stop with a clear error naming
-   `SPECS_PATH`: `choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`.
+   `SPECS_PATH`: `choices: ["Set SPECS_PATH (enter the path)", "Cancel"]`. A path entered there is tested by `specs-root-check` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md` §8) before the preflight and step 3 use it; a signal is its hard stop.
 
-**Specs-repo preflight.** Cite
-`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
+**Specs-repo preflight.** Cite `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/specs-repo-git.md`
 and execute its `specs-preflight` entry point (§3) inline: flush any leftover session artifacts from
-an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free and
-silent when the specs repo is clean and on its default branch. If a guard fires, emit its §5 notice;
-if it returns `specs_git: blocked` (§3.3 G0), carry that flag for the whole run — the terminal
+an earlier run, retry an artifact commit that failed to push, and settle the branch. Prompt-free, and silent unless it acts, a guard fires, or §3.1 reports a misconfigured `$SPECS_PATH`. If a guard fires, emit its §5 notice;
+if it returns
+`specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1), carry that flag for the whole run — the terminal
 `commit-artifacts` step skips on it.
 
 3. **Read from a clean specs-repo main — never a branch.** The specs repo's `main` (or `master`) branch
@@ -88,7 +87,7 @@ MUST be `"Other… (describe)"`.
    - **VI-level** (`focus_key` null) — locate `<VI-dir>/<VI>_ARD.md` (resolved via Phase 2.5, not here) and `<VI-dir>/specification.md` (a VI-level spec is optional per `workflow-states.md`); then enumerate **every** Epic subdirectory under `<VI-dir>` that matches a key-number pattern, and for each locate `{<EPIC>_ARD.md, specification.md, design.md}` — this is per-Epic and plural, because a VI's "Ready for Implementation" status requires **every in-scope Epic** to carry spec + design (`workflow-states.md`'s VI row).
    - **Epic-level** (`focus_key` set) — locate the VI-level `<VI-dir>/<VI>_ARD.md` (inherited invariants) plus the single focus Epic's `{<EPIC>_ARD.md, specification.md, design.md}` under `<VI-dir>/<EPIC>-<eslug>/`.
 
-   For each `specification.md` and `design.md` path located above (the `_ARD.md` files are handled by Phase 2.5's `ard-resolution.md`, not here), execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against its repo-relative path and map its §3.7 return value by `stopped` first, never by `on_main` alone — never a stop, per this command's defining trait: `stopped: false` with `on_main: pass`/`pass_amending` → **present** (with its absolute path); `stopped: false` with `on_main: absent` → **missing**, exactly as before this feature (§3.4's `ready:` row — this is row F only, never rows D/E, which also read not-on-ref against `<default-ref>` (`phase-handoff.md` §3.2) but return `stopped: true`); `stopped: false` with `on_main: unmanaged` → fall back to a raw filesystem presence check, exactly as before this feature (row H's own silent-skip contract); `stopped: true` → still never a stop for `ready:` — map the row to exactly one of three ⚠ reasons, never conflating them, because they are three different repository states, not one: rows D/E → ⚠ **authored only on `<branch>`, not merged** (naming the branch and any open PR); rows C′/C″/C — C after a failed retry — → ⚠ **on `<default>` but your local checkout is stale or dirty, so it could not be confirmed** (C″ belongs here and not with G/I: it is a local divergence on the default branch — an uncommitted edit or a committed-but-unpushed one — and the artifact is on `<default>`); rows G/I (including the run's own `specs_git: blocked`) → ⚠ **could not be verified against any ref** (naming the returned `degraded` clause where present). Each is recorded verbatim as a readiness finding — `ready:` itself never asks a further question, retries, or stops on top of what came back: row C's own prompt-once-and-re-test-once (`phase-handoff.md` §3.3 row C, `:139-143`) and row C′'s own immediate stop naming the blocking files are `require-on-main`'s contract, already executed synchronously inside this very step; `ready:` only records whichever `stopped`/`degraded` state the call returned. Record each ARD as present (with its absolute path) or absent — its on-main state is Phase 2.5's job. Do not open/read file contents yet beyond what's needed for these checks — full reads happen in Phase 4 via the reviewer.
+   For each `specification.md` and `design.md` path located above (the `_ARD.md` files are handled by Phase 2.5's `ard-resolution.md`, not here), execute `require-on-main` (`~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/phase-handoff.md` §3) against its path relative to `$SPECS_PATH` (§3.2 there) and map its §3.7 return value by `stopped` first, never by `on_main` alone — never a stop, per this command's defining trait: `stopped: false` with `on_main: pass`/`pass_amending` → **present** (with its absolute path); `stopped: false` with `on_main: absent` → **missing**, exactly as before this feature (§3.4's `ready:` row — this is row F only, never rows D/E, which also read not-on-ref against `<default-ref>` (`phase-handoff.md` §3.2) but return `stopped: true`); `stopped: false` with `on_main: unmanaged` → fall back to a raw filesystem presence check, exactly as before this feature (row H's own silent-skip contract); `stopped: true` → still never a stop for `ready:` — map the row to exactly one of four ⚠ reasons, never conflating them, because they are four different states, not one: rows D/E → ⚠ **authored only on `<branch>`, not merged** (naming the branch and any open PR); rows C′/C″, and row C where the repair it offered failed its one re-test or was declined (`Cancel`) → ⚠ **on `<default>` but your local checkout is stale or dirty, so it could not be confirmed** (C″ belongs here and not with G/I: it is a local divergence on the default branch — an uncommitted edit or a committed-but-unpushed one — and the artifact is on `<default>`); row C where it offered no repair — on a run carrying `specs_git: misrooted` (`phase-handoff.md` §3.3 row C), or on a read-only specs mount (§3.6 there) → ⚠ **on `<default>` but your checkout differs, and no repair was offered** (naming the files, and the flag or the read-only mount as the reason) — in both cases row C stops at once with no prompt and no retry. **The two row-C reasons split on whether a repair was offered**, never on how the offer ended: an accepted repair whose re-test fails and a declined one both had it put to the operator, while the flag and the mount never let it be, so every row-C stop lands in exactly one of the two, and neither is a ref problem; rows G/I (including the run's own `specs_git: blocked`) → ⚠ **could not be verified against any ref** (naming the returned `degraded` clause where present). Each is recorded verbatim as a readiness finding — `ready:` itself never asks a further question, retries, or stops on top of what came back: row C's own prompt-once-and-re-test-once (`phase-handoff.md` §3.3 row C and its re-test-once rule), a `Cancel` at that prompt included, or its immediate stop with no prompt where it offered no repair, and row C′'s own immediate stop naming the blocking files are `require-on-main`'s contract, already executed synchronously inside this very step; `ready:` only records whichever `stopped`/`degraded` state the call returned. Record each ARD as present (with its absolute path) or absent — its on-main state is Phase 2.5's job. Do not open/read file contents yet beyond what's needed for these checks — full reads happen in Phase 4 via the reviewer.
 
 3. **Quick Jira status peek (display only — not the ground truth).** Read
    `<jira_export_root>/<jira_key>-index.md`'s `| Key | Type | Status | Summary | Role |` table directly
@@ -186,12 +185,12 @@ Mechanically build three inputs for the reviewer — orchestrator-inline, no sub
 
 **(a) Coverage map.** For each requirement in Phase 2's `requirements[]` (by `id`), grep its ID token
 across the in-scope Epic `.md` file(s) and any `specification.md`(s)/`design.md`(s) Phase 1 found locally
-— that is every artifact except the one ⚠ reason where no local copy exists at all: **authored only on
-`<branch>`, not merged** (rows D/E), which has no local path on the checked-out `<default>` to grep and is
-excluded from this grep pass, not silently treated as absent; its own ⚠ finding already carries in Phase
-3(b). The other two ⚠ reasons (rows C′/C″/C's stale-or-dirty local checkout; rows G/I's unverifiable-against-
-any-ref) still have a local file on disk and are grepped exactly like a ✅ artifact — their ⚠ is about
-handoff verification, not about content availability. Record, per requirement: which Epic(s) mention it,
+— grepping a ⚠ artifact only where its file exists on disk, tested per artifact rather than assumed from
+its reason. **Authored only on `<branch>`, not merged** (rows D/E) never has one on the checked-out
+`<default>`. Rows G and I stop before any presence test, so a ⚠ from either can name a path that is not on
+disk: a repository with no default-branch ref and an Epic with no `design.md` is one such case. A ⚠
+artifact with no local file is excluded from this grep pass, not silently treated as absent; its own ⚠ finding already carries in Phase 3(b). A ⚠ artifact whose file is on disk is grepped exactly like a ✅
+artifact — its ⚠ is about handoff verification, not about content availability. Record, per requirement: which Epic(s) mention it,
 whether a `specification.md` mentions it, whether a `design.md` mentions it, or "not found by ID in any
 artifact". **Acknowledge the limitation** (carried to the final report's Assumptions section): this is an
 ID-grep, not semantic matching — an artifact may cover a requirement thematically without repeating its
@@ -201,9 +200,9 @@ literal ID; `readiness-reviewer` reads the full artifact text and can catch what
 status) on the matching ladder in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/workflow-states.md`, list that
 status's "Expected artifacts" column, and mark each expected artifact present ✅, absent ❌, or — per
 Phase 1's `require-on-main` check and Phase 2.5's `status: unmerged` handling — ⚠, carrying forward
-whichever of Phase 1's three reasons applies (authored only on a branch, not merged; on `<default>` but
-locally unconfirmed; or unverifiable against any ref) against Phase 1's inventory. A ⚠ artifact of any of
-the three reasons is a finding for the reviewer's "Status consistency" dimension, at no less than MAJOR
+whichever ⚠ reason applies — for a spec or design, the one Phase 1 step 2 recorded, whose list is the
+authority on the reasons and is cited here rather than counted; for an ARD, Phase 2.5's `status: unmerged`
+reason — against Phase 1's inventory. A ⚠ artifact of any of those reasons is a finding for the reviewer's "Status consistency" dimension, at no less than MAJOR
 severity — it does not satisfy the status the way a merged ✅ does, but it is not a BLOCKER and never stops
 this run. This is the mechanical half of that dimension.
 
@@ -536,8 +535,7 @@ and execute its `commit-artifacts` entry point (§4) inline — the LAST action 
 the §2.1 bounded artifact paths inside `$SPECS_PATH`, commits
 `<KEY> Add dev-workflows session artifacts (ready:)`, and pushes per §4 step 5.
 It NEVER touches a code/docs repo or the current working directory; NEVER force-pushes;
-NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0),
-re-emitting that notice. Because the Phase 5 report was composed before this phase, **print its §6
+NEVER fails the run; and skips entirely when the run carries `specs_git: blocked` (§3.3 G0) or `specs_git: misrooted` (§3.1, or §8's `specs-root-check` stop), re-emitting that notice. Because the Phase 5 report was composed before this phase, **print its §6
 outcome line here**, as the run's last output — prefixed `Specs repo:`, with any guard notice repeated
 in full.
 
