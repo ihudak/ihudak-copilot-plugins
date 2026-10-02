@@ -71,7 +71,7 @@ unresolved_prs:
   - pr_id:      <id>
     url:        <url>
     candidates: [<"<sha> <first line of commit message>", ...>]   # from Strategy 4 if any; else []
-    reason:     <e.g. "no PR ref; branch not found; multiple merge candidates">
+    reason:     <e.g. "no PR ref; branch not found; no merge-commit candidate qualified">
 
 aggregate_summary: |
   <1–2 paragraphs: what this repo contributed to the feature>
