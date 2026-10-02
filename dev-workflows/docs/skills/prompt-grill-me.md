@@ -20,7 +20,7 @@ The argument — everything after the `prompt-grill-me:` trigger — is the corr
 
 ## What it produces
 
-Appends an `origin: prompt` entry — Friction, User prompt verbatim, Resolution (fixed as `Grilled the fix inline`) — via [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md)'s `emit-prompt` entry point (§6) and the same specs-first ladder [`feedback:`](feedback.md) uses; it doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it — run **before** Phase 3's grill, which is interactive and may run long, so a commit placed after it risks never executing — printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo, the vault, or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
+Appends an `origin: prompt` entry — Friction, User prompt verbatim, Resolution (fixed as `Grilled the fix inline`) — via [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md)'s `emit-prompt` entry point (§6) and the same specs-first ladder [`feedback:`](feedback.md) uses; it doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it — run **before** Phase 3's grill, which is interactive and may run long, so a commit placed after it risks never executing — printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo, or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
 
 ## Gates
 

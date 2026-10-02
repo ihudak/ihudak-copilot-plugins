@@ -35,7 +35,7 @@ Every pipeline skill owns one role's step in the pipeline and hands a concrete a
 | [Hooks](docs/reference/hooks.md) | The bundled hooks and what each does. |
 | [Model routing](docs/reference/model-routing.md) | Task-complexity classification and the model fallback chain. |
 | [Session feedback](docs/reference/session-feedback.md) | Two signals: what you report, and what your corrections reveal. |
-| [Follow-ups](docs/reference/follow-ups.md) | How a skill emits follow-up tasks into your vault. |
+| [Follow-ups](docs/reference/follow-ups.md) | How a skill emits follow-up tasks into the specs repo. |
 | [Resume and checkpoints](docs/reference/resume-and-checkpoints.md) | Session hygiene for a long-running skill. |
 
 ## Not ported from the Claude Code edition
@@ -47,7 +47,7 @@ Two features from the upstream Claude Code plugin are intentionally omitted beca
 
 ## Recommended environment
 
-Mount every repository and your vault under one `/workspace`, matching this plugin's defaults, with [`ihudak/ai-containers`](https://github.com/ihudak/ai-containers). Outside a container the skills still work — set `$REPOS_PATH` and `$VAULT_PATH` yourself; see [Environment](docs/reference/environment.md).
+Mount every repository and your specs repo under one `/workspace`, matching this plugin's defaults, with [`ihudak/ai-containers`](https://github.com/ihudak/ai-containers). Outside a container the skills still work — set `$REPOS_PATH` and `$SPECS_PATH` yourself; see [Environment](docs/reference/environment.md).
 
 ## License
 

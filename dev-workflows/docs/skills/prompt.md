@@ -20,7 +20,7 @@ The argument — everything after the `prompt:` trigger — is the corrective re
 
 ## What it produces
 
-Performs the correction directly against your target files (Phase 2) — those edits are never staged or committed by this skill. It then appends an `origin: prompt` entry — Friction, User prompt verbatim, Resolution (a one-line summary of the fix just applied) — via [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md)'s `emit-prompt` entry point (§6) and the same specs-first ladder [`feedback:`](feedback.md) uses; it doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it, printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo, the vault, or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
+Performs the correction directly against your target files (Phase 2) — those edits are never staged or committed by this skill. It then appends an `origin: prompt` entry — Friction, User prompt verbatim, Resolution (a one-line summary of the fix just applied) — via [`skills/_shared/feedback-emission.md`](../../skills/_shared/feedback-emission.md)'s `emit-prompt` entry point (§6) and the same specs-first ladder [`feedback:`](feedback.md) uses; it doesn't restate that logic here. The terminal `commit-artifacts` step then commits and pushes it, printed as a `Specs repo:` outcome line. This skill never commits into a docs/code repo, or your current working directory — only `$SPECS_PATH`'s bounded artifact paths ([`skills/_shared/specs-repo-git.md`](../../skills/_shared/specs-repo-git.md) §2.1).
 
 ## Gates
 

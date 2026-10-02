@@ -52,7 +52,7 @@ flowchart TD
 
 ## What it produces
 
-`<KEY>_<slug>.md`, written to `$SPECS_PATH/specifications/<KEY>-<slug>/` (the feature folder is auto-created on first write), authored against [`skills/_shared/vi-format.md`](../../skills/_shared/vi-format.md) for the chosen profile. Frontmatter carries the propagated `sources`, `derived_from` (the idea's own path), `seeded_from_vi` (only when `--from-vi` was used), and `jira_key`. Behind Phase 5's consent choice, the VI is committed, pushed, and a pull request opened against the specs repo's default branch. The VI itself is **not yet visible to Jira** until the manual round-trip: paste the body into the Jira workitem `<KEY>`, then re-import it to `$VAULT_PATH/jira-products/<KEY>` — without both steps the downstream pipeline cannot read it.
+`<KEY>_<slug>.md`, written to `$SPECS_PATH/specifications/<KEY>-<slug>/` (the feature folder is auto-created on first write), authored against [`skills/_shared/vi-format.md`](../../skills/_shared/vi-format.md) for the chosen profile. Frontmatter carries the propagated `sources`, `derived_from` (the idea's own path), `seeded_from_vi` (only when `--from-vi` was used), and `jira_key`. Behind Phase 5's consent choice, the VI is committed, pushed, and a pull request opened against the specs repo's default branch. The VI itself is **not yet visible to Jira** until the manual round-trip: paste the body into the Jira workitem `<KEY>`, then re-import it into the feature folder (`SPECS_PATH="$SPECS_PATH" python src/main.py <KEY>` in a `jira-workitem-import` checkout) — without both steps the downstream pipeline cannot read it.
 
 ## Gates
 

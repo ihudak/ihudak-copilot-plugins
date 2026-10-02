@@ -41,7 +41,7 @@ flowchart TD
 
 ## What it produces
 
-`_readiness.md`, **overwritten every run**, at the VI dir or Epic subdir: a header stamping the run timestamp and specs-repo git rev, the checked Jira status(es) exactly as read, the verdict, a coverage roll-up (N/M requirements covered, each ❌ gap named), the full `readiness-reviewer` Findings section, and the repo-availability result. It's committed and handed off only behind [`phase-handoff.md`](../../skills/_shared/phase-handoff.md) §4.3's consent choice (creating `ready/<KEY>-<slug>`) — declining leaves it uncommitted, and the terminal `commit-artifacts` step never stages `_readiness.md` itself, only `$SPECS_PATH`'s bounded session-artifact paths. `ready:` never writes to Jira, `jira-products/`, or the vault, and never sets the status it checks.
+`_readiness.md`, **overwritten every run**, at the VI dir or Epic subdir: a header stamping the run timestamp and specs-repo git rev, the checked Jira status(es) exactly as read, the verdict, a coverage roll-up (N/M requirements covered, each ❌ gap named), the full `readiness-reviewer` Findings section, and the repo-availability result. It's committed and handed off only behind [`phase-handoff.md`](../../skills/_shared/phase-handoff.md) §4.3's consent choice (creating `ready/<KEY>-<slug>`) — declining leaves it uncommitted, and the terminal `commit-artifacts` step never stages `_readiness.md` itself, only `$SPECS_PATH`'s bounded session-artifact paths. `ready:` never writes to Jira or `jira-import/`, and never sets the status it checks.
 
 ## Gates
 

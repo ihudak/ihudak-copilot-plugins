@@ -19,7 +19,7 @@ Every phase ends the same way: a producing skill lands its deliverable on the sp
 - **Owns:** turning a raw prompt, community post, RFE, or existing VI into a refined idea, then into a well-formed Value Increment, and keeping an existing VI current.
 - **Runs:** `idea:`, `create-vi:`, `update-vi:`; also the early run of `release-notes:`, before any specification or design exists yet.
 - **Consumes:** a prompt, file, community post, RFE, or existing VI as its source; then a refined `idea.md` plus a user-supplied Jira key.
-- **Produces:** `idea.md` in `$VAULT_PATH` before a Jira key exists, then the VI written to `$SPECS_PATH/specifications/<KEY>-<slug>/`; an early release-notes draft.
+- **Produces:** `idea.md` in its origin's feature folder under one of `$SPECS_PATH/{specs|specifications|vis}/` (a PRODFB ticket's or the VI's), then the VI written to `$SPECS_PATH/specifications/<KEY>-<slug>/`; an early release-notes draft.
 - **Hands over at the seam:** `idea:` relocates and lands `idea.md`, and `create-vi:` / `update-vi:` land the VI, each onto the specs repo's default branch. `create-ard:` and `specify:` each gate on the VI there — an absent VI falls back to reading the Jira export directly instead of stopping (reported, not silent), and the hard stop is an unmerged VI, never a missing one. `epics:` reads the VI unconditionally through `jira-reader`, with no VI gate at all — see PE below for the input it does gate. `update-vi:` is deliberately the one PM skill that never calls `require-on-main` at all: its authoritative base is the Jira import (a 3-day freshness gate decides whether to trust the frozen draft instead), and gating its advisory ARD/spec grounding would block a legitimate refresh over an unrelated branch — it reports an unmerged grounding source instead of stopping on it.
 
 ## PA (Product Architecture)
@@ -35,7 +35,7 @@ Every phase ends the same way: a producing skill lands its deliverable on the sp
 - **Owns:** breaking a VI into Epics, and writing an org-standard specification for one item — an Epic, or, for a small VI, the whole VI.
 - **Runs:** `epics:`, `specify:`.
 - **Consumes:** the VI, plus the ARD when one exists and any Epics already drafted.
-- **Produces:** Epic drafts under `$VAULT_PATH/jira-drafts/<VI-KEY>/` (or a derived `epic-drafts/<jira_key>/` dir when `$VAULT_PATH` is unset); `specification.md`, landed on the specs repo's default branch.
+- **Produces:** Epic drafts under `<VI folder>/epic-drafts/`; `specification.md`, landed on the specs repo's default branch.
 - **Hands over at the seam:** `specify:` gates on the VI the same way `create-ard:` does — an absent VI falls back to the Jira export and is reported rather than silent, and the hard stop is an unmerged VI, never a missing one. `epics:` has no VI gate at all, but it does gate two other inputs: an optional VI-level `specification.md`, whose absence is a silent skip (`vi_spec_present: false`), and the applicable ARD, where an unmerged ARD stops the run like every caller but `ready:`. `specify:` lands `specification.md` onto the specs repo's default branch, and `design:` refuses to start until it finds that specification there.
 
 ## Dev (Build, Verify, and Deliver)
