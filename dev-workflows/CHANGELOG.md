@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
-## [2.34.1] — Unreleased
+## [2.34.1] — 2026-10-02
 
 Ported from the Claude edition's 2.65.1, plus one Copilot-only fix.
 
