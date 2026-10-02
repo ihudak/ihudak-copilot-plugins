@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
-## [2.34.3] — Unreleased
+## [2.34.3] — 2026-10-02
 
 Ported from the Claude edition's 2.65.3: `ai-workflows`' fix for a `$SPECS_PATH` set inside the specs tree (its issue #70), adapted to this plugin's four specs directories, its Jira-key folder names and its shared Jira front-end. Not ported: that release's trailer fix, since this edition signs a deliverable commit as the fixed Copilot identity, and every part that touches the cost subsystem, which this edition does not have.
 
@@ -27,7 +27,7 @@ Ported from the Claude edition's 2.65.3: `ai-workflows`' fix for a `$SPECS_PATH`
 
 ### Fixed — documentation
 
-- `docs/reference/environment.md` gains *When it points inside the specs tree*, and its *unreadable* paragraph says the non-repository notice names the misroot cause. `docs/getting-started.md` says to set `SPECS_PATH` to the root of a dedicated specs repository, never to `specifications/`. The session-feedback, follow-ups and resume pages say what a run carrying the flag does, and session-feedback places an unfiled entry at the top of `$SPECS_PATH` rather than "the specs-repo root". The `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:` and `ready:` pages name the stop, the `feedback:` page no longer says the preflight is silent on every clean repository on its default branch, and the references index names the new entry point. The `release-notes:` and `epics:` pages say a run carrying either flag commits no draft, the `feedback:` page that the preflight switches nothing on a misplaced `$SPECS_PATH`, and the root `README.md` where `SPECS_PATH` points. `.github/instructions/dev-workflows-shared.instructions.md` names `specs-root-check` and the flag, calls detached HEAD the one blocking *guard*, and says the stop is not a never-fatal violation; the skill map says a run the check stops runs no preflight.
+- `docs/reference/environment.md` gains *When it points inside the specs tree*, and its *unreadable* paragraph says the non-repository notice names the misroot cause. `docs/getting-started.md` says to set `SPECS_PATH` to the root of a dedicated specs repository, never to `specifications/`. The session-feedback, follow-ups and resume pages say what a run carrying the flag does, and session-feedback places an unfiled entry at the top of `$SPECS_PATH` rather than "the specs-repo root". The `idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:` and `ready:` pages name the stop, the `feedback:` page no longer says the preflight is silent on every clean repository on its default branch, and the references index names the new entry point. The `release-notes:` and `epics:` pages say a run carrying either flag commits no draft, the `feedback:` page that the preflight switches nothing on a misplaced `$SPECS_PATH`, and the root `README.md` where `SPECS_PATH` points. The `document:` page says a Jira-mode run stops on the misplaced variable, and the `release-notes:` page names the check beside its two specs-repo guards. `.github/instructions/dev-workflows-shared.instructions.md` names `specs-root-check` and the flag, calls detached HEAD the one blocking *guard*, and says the stop is not a never-fatal violation; the skill map says a run the check stops runs no preflight.
 
 ## [2.34.2] — 2026-10-02
 

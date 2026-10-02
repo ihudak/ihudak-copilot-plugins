@@ -66,7 +66,7 @@ flowchart TD
 
 **Mode B (direct edit):** an `@file` path or free-text description; no Jira input, no docs-profile, no space determination — classification is always SIMPLE or MODERATE, and Opus is never invoked. Its toolchain preflight is lighter, scoped to `style_check` only, using just the repo's own config signals and documented Prerequisites (there's no profile to derive a build/render requirement from).
 
-**Both modes:** `$SPECS_PATH` for the run's own bookkeeping only (`specs-preflight` / `commit-artifacts`) — the `specs` list the front-end resolves is additive context, never a gate.
+**Both modes:** `$SPECS_PATH` for the run's own bookkeeping only (`specs-preflight` / `commit-artifacts`) — the `specs` list the front-end resolves is additive context, never a gate. In Jira mode, a `$SPECS_PATH` set inside the specs tree stops the run with `SPECS_PATH_INSIDE_TREE` before any folder is looked up ([Environment](../reference/environment.md)); in direct mode the preflight reports it in a notice and the run goes on.
 
 ## What it produces
 
