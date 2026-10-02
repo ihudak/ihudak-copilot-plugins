@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow semver at the plugin level.
 A section headed `— Unreleased` has not been published yet; where more than one of them stands, they all ship together in the next release.
 
+## [2.35.0] — 2026-10-02
+
+### Added
+- **`code-review`'s spec/design-conformance dimension reports `exceeds`** — behaviour the change adds that no in-scope requirement and no plan step asks for, judged on the diff only. `MINOR`, or `MAJOR` where it builds what the plan's or design's `Out of scope` names; report-only, never written onto the spec by `implement:` step 7.5, and listed in its Phase 5 report beside the other classes. Upstream spec-kit's converge (#4621) flags code that "exceeds" the stated intent; this plugin's July adoption left that class out without recording why.
+- **At the grilling confirmation gate, the agent plays its understanding back** — the intended outcome, the constraints and what success looks like, marking what the user said and what was inferred — and asks for confirmation or correction. The play-back asks no decision, so it spends no slot of a bounded caller's cap. Adapted from superpowers' brainstorming skill; `docs/reference/references.md` says so.
+
+### Changed
+- **`risk-planner`'s step rule is "Unambiguous, not complete"**, replacing *No placeholders*. A step names the file, the exact signature of anything new, every value the spec or design pins quoted verbatim, and for a verification step the command and the output that means it passed; the self-review checks both for lines that decide nothing and for steps that write the implementer's code, plus a proportion check. Upstream writing-plans withdrew the *"steps that say what without how"* wording this agent carried, measuring plans at a quarter of the time and a third of the tokens with no loss of planted-defect catches; the verbatim-constraint rule is from spec-kit's tasks template (#4430).
+- **"design tree" is "decision tree" everywhere** — `grilling-technique.md` had contradicted itself, *"Walk the decision tree"* in Mechanics against *"Map the design tree"* in Rhythm, and its callers (`idea:`, `create-vi:`, `update-vi:`, `create-ard:`, `specify:`, `design:`) and their docs pages carried the old term, which collides with `design.md`.
+
+### Fixed
+- **`diff-summarizer` returned an empty diff for a merged PR on its local strategies.** Strategies 1 and 2 derived the base as `merge-base <target_branch> <head>`, which is `head` itself once the PR has merged — and the default filter takes merged PRs only. Both now test for a landed head and read the merge that landed it, intersecting `rev-list --first-parent` with `rev-list --ancestry-path` (the two flags in one call miss a PR merged through an intermediate branch); a fast-forward falls through to Strategy 3; and a range that changes no file, on any path, `gh` included, is never a resolution. Prompted by upstream superpowers' review-package fix for the same class (5bf4e780).
+- **No local strategy stated its diff, and the `gh` path's was two-dot.** Strategy 3's *base = `<commit>^1`, head = `<commit>^2`*, read beside the `gh` path's explicit `<base>..<head>`, reads as a two-dot tree diff, which carries the target's own changes since the fork, reversed, as if the PR had made them. Every path now takes `<base>...<head>`. Strategy 3 also covers a squash commit, which has no `^2`, and Strategy 4's partial-resolution sentence names every way Strategies 1–3 can now fail.
+- **`code-review` dimension 10 classified requirements against the diff alone.** A keyed `implement:` run's in-scope IDs are the whole unit's, so a requirement an earlier run delivered was `missing` (`MAJOR`), sending `review-fixer` after work that existed and writing a spurious `- [ ]` note onto the spec. It now classifies against the code as it stands after the change, searching the codebase before calling anything `missing`, and treats plan tags and earlier records as claims, not evidence.
+- **`test-baseliner` could record a failing suite as passing.** Nothing forbade reading a suite's status through `| tail` or `| grep`, whose exit status is the filter's — and for a status-only suite that status is the whole result. Both modes now take the status from the suite's own command.
+
 ## [2.34.4] — 2026-10-02
 
 Ported from the Claude edition's 2.65.4: `ai-workflows`' retirement of the Haiku-first chain for `defect-reporter` (`workflows-core` 1.9.1).
