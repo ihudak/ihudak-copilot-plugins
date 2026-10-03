@@ -72,7 +72,7 @@ Planning gates too: `risk-planner` (Phase 2B, same strong-reasoning pin) is mand
 
 A repository with several suites has all of them baselined; where some ran and some could not, the run continues and the Final Report's Deferred items name the suites it did not verify. A test this run wrote that fails sends the run to the fix loop even where no earlier test regressed.
 
-A run that ends on a failed gate — a review that stayed blocked after its one fix cycle, failures you chose to keep, a test suite that could not run and that you accepted as unverified, or two supplied test commands that both failed — is still committed, and still offered for push and PR under the same consent choice — the failed gate never downgrades what you are offered. What changes is the pull request itself: where one is opened, it is a draft whose body leads with a DO-NOT-MERGE line naming the blocking fact. Unreviewed work that exists can be reviewed later; work that was never committed cannot (`../../skills/_shared/code-repo-handoff.md` §2.9).
+A run that ends on a failed gate — a review that stayed blocked, failures you chose to keep, a test suite that could not run and that you accepted as unverified, or two supplied test commands that both failed — is still committed, and still offered for push and PR under the same consent choice — the failed gate never downgrades what you are offered. What changes is the pull request itself: where one is opened, it is a draft whose body leads with a DO-NOT-MERGE line naming the blocking fact. Unreviewed work that exists can be reviewed later; work that was never committed cannot (`../../skills/_shared/code-repo-handoff.md` §2.9).
 
 ## Example
 

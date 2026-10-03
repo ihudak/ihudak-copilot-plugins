@@ -62,10 +62,6 @@ For each finding, **before any grouping or deduplication**:
    recorded with its grade by effect and what shows it. A line ruled a defect is never handed to the
    fixer: no finding of the review carries it, and the verdict was taken without it.
 
-**A reviewer with two grades** — one filing only `BLOCKER` and `RECOMMENDATION` — maps onto steps 2
-and 4 with `RECOMMENDATION` below `MAJOR`: an unverified `RECOMMENDATION` is dismissed with its note,
-and step 4 raises nothing, since the grade above it is `BLOCKER`.
-
 Only survivors are handed to the fixer — never an unverified finding, never a dismissed one.
 
 ## When triage empties the survivor set
@@ -86,7 +82,7 @@ triage. The disposition, in order:
    survived, every dismissal with its reason and every unverified finding with what would settle it,
    then ask:
    ```
-   choices: ["Proceed as if the verdict were PASS — every disposition is recorded (Recommended)", "Re-review, supplying every disposition's reason", "Keep the verdict and stop for a human decision", "Cancel"]
+   choices: ["Proceed as if the verdict were PASS — every disposition is recorded (Recommended)", "Re-review, supplying every disposition's reason", "Keep the verdict and stop for a human decision", "Cancel", "Other… (describe)"]
    ```
    **Keep the verdict** means the review stayed blocked: the caller takes its stop or escalation over
    the `BLOCKER`s the reviewer raised. Where the kept verdict is not `BLOCK` the reviewer raised none,
@@ -100,7 +96,7 @@ command's normal branch runs on the survivors.
 
 This section governs the first review. On a re-review, § On re-review settles the verdict instead —
 there, no survivor is handed to a fixer, and its own prompt carries no re-review arm. The prompt
-above, in either form, is the **first settle prompt**, since it settles the first review; it and
+above is the **first settle prompt**, since it settles the first review; it and
 § On re-review's are this reference's **settle prompts**.
 
 ## The patch gate
@@ -161,7 +157,7 @@ reviewer's answer.
    findings no longer support. Never promote it silently: report the verdict, each carried row with
    its outcome and every new disposition, then ask:
    ```
-   choices: ["Proceed — no BLOCKER survived triage, and every disposition is recorded (Recommended)", "Keep the verdict and stop for a human decision", "Cancel"]
+   choices: ["Proceed — no BLOCKER survived triage, and every disposition is recorded (Recommended)", "Keep the verdict and stop for a human decision", "Cancel", "Other… (describe)"]
    ```
    There is no re-review arm: a re-review's verdict is settled here, never by another review.
    **Proceed** continues as the caller does after a second verdict that is not `BLOCK`. **Keep the

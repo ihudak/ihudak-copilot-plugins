@@ -127,8 +127,8 @@ full review.
    the repository's own lint, format or type-check configuration already
    enforces is that tool's to report, not this review's. As a **floor**
    where those files document no standard on a point (a standard
-   documented in one of them **overrides**
-   this list), watch for the classic code smells — flag as judgment-call
+   documented in one of them **overrides** this list), watch for the
+   classic code smells — flag as judgment-call
    findings (`MINOR`/`NIT`, not hard violations): Mysterious Name,
    Duplicated Code, Feature Envy, Data Clumps, Primitive Obsession,
    Repeated Switches, Shotgun Surgery, Divergent Change, Speculative
