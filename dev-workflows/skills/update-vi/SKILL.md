@@ -129,7 +129,7 @@ Dispatch `vi-reviewer` (Opus, caller-pinned via `task(model:)`; recorded as `rev
   > VI path: [absolute path to the updated <KEY>_<slug>.md]
   > Profile: [lean | hybrid | full — infer from the sections present]"
 
-Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER. Cap: one fix cycle + one re-review.
+Act on the verdict as `create-vi:` Phase 4 does: on `BLOCK`, fix the BLOCKER findings inline (the orchestrator/grill edits the VI — no delegated writer) and re-review **once**. If still `BLOCK`, escalate per the `Review verdict BLOCK (unresolved after one fix cycle) — commands that fix inline` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md` for each unresolved BLOCKER. Cap: one fix cycle + one re-review.
 
 **The recorded verdict names the version it was taken against** — where any edit followed it, the final report says so and names the edits, per the `A recorded verdict names the version it was taken against` rule in `~/.copilot/installed-plugins/ihudak-copilot-plugins/dev-workflows/skills/_shared/escalation-rules.md`. Where none did, it says that too.
 

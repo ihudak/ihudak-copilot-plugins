@@ -156,7 +156,7 @@ An exhausted ladder (or no `origin`) means no pull request can be opened: report
 
 `clean_finish: false` when the caller reports any of:
 
-- a review-tier review verdict still `BLOCK` after its single allowed fix cycle plus re-review;
+- a review-tier review that stayed blocked — a `BLOCKER` survived its re-review's triage, or the user kept its verdict at a settle prompt (or, in `vuln:` and `upgrade:`, cancelled there);
 - test regressions the user chose to keep rather than fix or revert;
 - a unit of work the caller marked `BLOCKED` (a `vuln:` CVE, an `upgrade:` component) **that reached the repository** — a unit that stopped before writing anything (an unreadable input, a failed baseline) changed nothing and must not flip the flag for the rest of the batch;
 - a verification the caller **attempted and could not complete**, and proceeded on anyway — `implement:`'s accepted unverified run, `vuln:`'s and `upgrade:`'s `TESTS_NOT_RUN`. Kept regressions at least name what failed; here nothing is known about the tests in either direction, which is the stronger case for the banner, not a weaker one. One state that also leaves the tests unknown is **not** this, and is excluded deliberately rather than by omission: a verification the operator **declined before the first edit** — `implement:`'s *"Skip tests for this run"*, `vuln:`'s `SKIPPED_BY_USER`. A typed decision taken up front is the `--no-commit` precedent of §1's opt-out paragraph — honoured without penalty — where this bullet is about a gate the run ran into.
