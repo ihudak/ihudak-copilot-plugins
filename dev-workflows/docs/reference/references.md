@@ -32,7 +32,7 @@ The git entry points that bound every write into the specs repo and into a code 
 
 The gates a written artifact passes through before it counts as done, and the discipline for turning a reviewer's findings into fixes.
 
-- `finding-triage.md` — the step between a reviewer's findings and a fixer's edits: verify each finding at the location it names, record every dismissal with a reason, and hand the fixer survivors only.
+- `finding-triage.md` — the step between a reviewer's findings and a fixer's edits: verify each finding at the location it names; keep it, mark it unverified with what would settle it, or dismiss it with a reason; triage a re-review against the run's earlier rulings over the same artifact; and hand the fixer survivors only.
 - `gate-ledger.md` — the six verification-gate outcomes and the rule that no outcome is orchestrator-assignable to mean "I decided not to run this"; consumed by `document:` and the agents whose gates it registers.
 - `repo-verification-gates.md` — how to extract a docs repo's own pre-PR checklist into a structured block a reviewer can check the written files against, augmenting the plugin's own gates rather than overriding them.
 - `pre-lint.md` — deterministic, grep-expressible structural checks a reviewer-gated skill runs against a just-authored artifact before spending a strong-reasoning review pass on mechanical structure.

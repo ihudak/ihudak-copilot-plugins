@@ -205,18 +205,27 @@ the rule above is the fix for the same failure, had been upstream since 2026-09-
 ported, and rejects the loop for a stated reason. Adopting a loop as well is a design change to every
 edition, not a port; do not reintroduce one from the field report alone.
 
+## Review verdict BLOCK (unresolved after one fix cycle) — commands that fix inline
+
+`choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in the final report)", "Override and accept the finding", "Cancel the whole run", "Other… (describe)"]`
+
+Used by the commands that fix their own reviewer's findings inline, with no delegated writer, and define no "Defer" of their own — `create-vi:`, `update-vi:`, `create-ard:` and `design:` — when the one re-review still returns `BLOCK`.
+Escalate per unresolved BLOCKER individually. "Manual fix notes" → take free-text from the user and apply it inline in one bounded pass, with no further re-review. "Defer" → record the finding as deferred in the run's final report. "Override" → record it there with the user's rationale. "Cancel" aborts the run.
+
 ## Review verdict BLOCK (unresolved after one fix cycle) — document:
 
 `choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run"]`
 
-Used in `document:` Phase 7 at either of two points: when `doc-fixer` returns `Stop condition flag: NEEDS HUMAN` — it deferred a BLOCKER as needing a human decision, so no re-review runs — or when `doc-reviewer` returns BLOCK a second time.
+Used in `document:` Phase 7 at either of two points: when `doc-fixer` returns `Stop condition flag: NEEDS HUMAN` — it deferred a BLOCKER as needing a human decision, so no re-review runs — or when the review stayed blocked (`finding-triage.md` § On re-review).
 Escalate per unresolved BLOCKER individually.
 
 ## Review verdict BLOCK (unresolved after one fix cycle) — epics:
 
 `choices: ["Provide manual fix notes (you'll be prompted)", "Defer to a follow-up issue (record in Phase 9 report)", "Override and accept the finding", "Cancel the whole run", "Other… (describe)"]`
 
-Used in `epics:` Phase 7 at either of two points: when `doc-fixer` returns `Stop condition flag: NEEDS HUMAN` — it deferred a BLOCKER as needing a human decision, so no re-review runs — or when `epic-reviewer` returns BLOCK a second time.
+Used in `epics:` Phase 7 at either of two points: when `doc-fixer` returns `Stop condition flag: NEEDS HUMAN` — it deferred a BLOCKER as needing a human decision, so no re-review runs — or when the review stayed blocked (`finding-triage.md` § On re-review).
 Escalate per unresolved BLOCKER individually. "Defer" means the finding goes
 into an Epic-refinement note in the draft itself (appended as a
 `## Refinement notes` section) in addition to the Phase 9 report.
+`specify:` cites this entry on purpose and defines its own "Defer" to mirror it —
+a `## Refinement notes` section in `specification.md`.
