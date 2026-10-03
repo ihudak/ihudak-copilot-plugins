@@ -122,17 +122,17 @@ full review.
    every directory from the project root down to a changed file's own
    directory; `CONTRIBUTING.md` at the root, in `.github/` or in `docs/`;
    `CODING_STANDARDS.md` at the root; `.github/copilot-instructions.md`;
-   and every `.github/instructions/*.instructions.md` whose `applyTo:`
+   and every `.github/instructions/**/*.instructions.md` whose `applyTo:`
    frontmatter matches a changed file. Read each one that exists. A rule
    the repository's own lint, format or type-check configuration already
    enforces is that tool's to report, not this review's. As a **floor**
    where those files document no standard on a point (a standard
    documented in one of them **overrides** this list), watch for the
    classic code smells — flag as judgment-call findings (`MINOR`/`NIT`,
-   not hard violations): Mysterious Name,
-   Duplicated Code, Feature Envy, Data Clumps, Primitive Obsession,
-   Repeated Switches, Shotgun Surgery, Divergent Change, Speculative
-   Generality, Message Chains, Middle Man, Refused Bequest.
+   not hard violations): Mysterious Name, Duplicated Code, Feature Envy,
+   Data Clumps, Primitive Obsession, Repeated Switches, Shotgun Surgery,
+   Divergent Change, Speculative Generality, Message Chains, Middle Man,
+   Refused Bequest.
 4. **Missed edge cases** - nulls, empty collections, zero/negative/boundary
    values, unicode, timezones, concurrent access, partial failures, retries,
    idempotency, rate limiting. Also the **missing-adoption gap** — a sibling
